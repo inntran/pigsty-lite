@@ -12,6 +12,7 @@ from typing import Any
 
 ALLOWED_PROFILES = {"single", "ha"}
 ALLOWED_NODE_ROLES = {"monitor", "backup_store", "pg_primary", "pg_replica"}
+ALLOWED_IP_VERSIONS = {"dual", "ipv4", "ipv6"}
 ALLOWED_TUNE = {"oltp", "olap", "tiny"}
 ALLOWED_CA_MODES = {"generate", "existing", "byo"}
 ALLOWED_USER_TLS = {"ca_signed", "byo", "http"}
@@ -42,21 +43,57 @@ def _require_int(d: dict, key: str, path: str) -> int:
     return value
 
 
-def _check_ip(value: str, path: str) -> None:
+def _required_ip_version(ip_version: str) -> int | None:
+    if ip_version == "ipv4":
+        return 4
+    if ip_version == "ipv6":
+        return 6
+    return None
+
+
+def _check_ip(value: str, path: str, ip_version: str = "dual") -> None:
     try:
-        ipaddress.ip_address(value)
+        address = ipaddress.ip_address(value)
     except ValueError as exc:
         raise SchemaError(f"{path}: invalid ip '{value}': {exc}") from exc
 
+    required = _required_ip_version(ip_version)
+    if required is not None and address.version != required:
+        raise SchemaError(
+            f"network.ip_version '{ip_version}' requires IPv{required} address at {path}; "
+            f"got '{value}'"
+        )
 
-def _check_cidr(value: str, path: str) -> None:
+
+def _check_cidr(value: str, path: str, ip_version: str = "dual") -> None:
     try:
-        ipaddress.ip_network(value, strict=False)
+        network = ipaddress.ip_network(value, strict=False)
     except ValueError as exc:
         raise SchemaError(f"{path}: invalid cidr '{value}': {exc}") from exc
 
+    required = _required_ip_version(ip_version)
+    if required is not None and network.version != required:
+        raise SchemaError(
+            f"network.ip_version '{ip_version}' requires IPv{required} CIDR at {path}; "
+            f"got '{value}'"
+        )
 
-def _validate_nodes(nodes: dict, profile: str) -> None:
+
+def _validate_network(network: dict | None) -> str:
+    if network is None:
+        return "dual"
+    if not isinstance(network, dict):
+        raise SchemaError("network: must be a mapping")
+    ip_version = network.get("ip_version", "dual")
+    if not isinstance(ip_version, str):
+        raise SchemaError("network.ip_version: expected string")
+    if ip_version not in ALLOWED_IP_VERSIONS:
+        allowed = sorted(ALLOWED_IP_VERSIONS)
+        raise SchemaError(f"network.ip_version: '{ip_version}' not in {allowed}")
+    return ip_version
+
+
+def _validate_nodes(nodes: dict, profile: str, ip_version: str) -> None:
     if not isinstance(nodes, dict) or not nodes:
         raise SchemaError("nodes: must be a non-empty mapping")
 
@@ -66,7 +103,7 @@ def _validate_nodes(nodes: dict, profile: str) -> None:
         if not isinstance(node, dict):
             raise SchemaError(f"{path}: must be a mapping")
         ip = _require_str(node, "ip", path)
-        _check_ip(ip, f"{path}.ip")
+        _check_ip(ip, f"{path}.ip", ip_version)
         role = _require_str(node, "role", path)
         if role not in ALLOWED_NODE_ROLES:
             raise SchemaError(f"{path}.role: '{role}' not in {sorted(ALLOWED_NODE_ROLES)}")
@@ -93,7 +130,23 @@ def _validate_nodes(nodes: dict, profile: str) -> None:
         raise SchemaError(f"nodes: profile 'ha' requires at least 2 pg_replica; got {replicas}")
 
 
-def _validate_postgres(postgres: dict) -> None:
+def _validate_hba_rules(postgres: dict, ip_version: str) -> None:
+    hba_rules = postgres.get("hba_rules", [])
+    if not isinstance(hba_rules, list):
+        raise SchemaError("postgres.hba_rules: must be a list")
+    for index, rule in enumerate(hba_rules):
+        if not isinstance(rule, dict):
+            raise SchemaError(f"postgres.hba_rules[{index}]: must be a mapping")
+        source = rule.get("source")
+        if isinstance(source, str):
+            try:
+                _check_cidr(source, f"postgres.hba_rules[{index}].source", ip_version)
+            except SchemaError as exc:
+                if "invalid cidr" not in str(exc):
+                    raise
+
+
+def _validate_postgres(postgres: dict, ip_version: str) -> None:
     if not isinstance(postgres, dict):
         raise SchemaError("postgres: must be a mapping")
     version = _require_int(postgres, "version", "postgres")
@@ -108,6 +161,7 @@ def _validate_postgres(postgres: dict) -> None:
     shared_buffer_ratio = postgres.get("shared_buffer_ratio", 0.25)
     if not isinstance(shared_buffer_ratio, int | float) or not 0.05 <= shared_buffer_ratio <= 0.6:
         raise SchemaError("postgres.shared_buffer_ratio: must be a float in 0.05..0.6")
+    _validate_hba_rules(postgres, ip_version)
 
 
 def _validate_tls(tls: dict) -> None:
@@ -124,7 +178,7 @@ def _validate_tls(tls: dict) -> None:
         raise SchemaError(f"tls.user_facing.mode: '{user_mode}' not in {sorted(ALLOWED_USER_TLS)}")
 
 
-def _validate_firewall(firewall: dict) -> None:
+def _validate_firewall(firewall: dict, ip_version: str) -> None:
     if not isinstance(firewall, dict):
         raise SchemaError("firewall: must be a mapping")
     for key in ("operator_cidrs", "postgres_client_cidrs"):
@@ -132,7 +186,7 @@ def _validate_firewall(firewall: dict) -> None:
         if not isinstance(value, list) or not value:
             raise SchemaError(f"firewall.{key}: must be a non-empty list")
         for index, cidr in enumerate(value):
-            _check_cidr(cidr, f"firewall.{key}[{index}]")
+            _check_cidr(cidr, f"firewall.{key}[{index}]", ip_version)
 
 
 def _validate_monitoring(monitoring: dict) -> None:
@@ -152,6 +206,7 @@ def validate(data: Any) -> None:
     profile = _require_str(data, "profile", "")
     if profile not in ALLOWED_PROFILES:
         raise SchemaError(f"profile: '{profile}' not in {sorted(ALLOWED_PROFILES)}")
+    ip_version = _validate_network(data.get("network"))
 
     cluster = _require(data, "cluster", "")
     if not isinstance(cluster, dict):
@@ -160,8 +215,8 @@ def validate(data: Any) -> None:
     _require_str(cluster, "domain", "cluster")
 
     nodes = _require(data, "nodes", "")
-    _validate_nodes(nodes, profile)
-    _validate_postgres(_require(data, "postgres", ""))
+    _validate_nodes(nodes, profile, ip_version)
+    _validate_postgres(_require(data, "postgres", ""), ip_version)
     _validate_tls(_require(data, "tls", ""))
-    _validate_firewall(_require(data, "firewall", ""))
+    _validate_firewall(_require(data, "firewall", ""), ip_version)
     _validate_monitoring(_require(data, "monitoring", ""))

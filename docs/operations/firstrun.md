@@ -31,6 +31,11 @@ Target hosts:
    $EDITOR responses/site.rsp.yml
    ```
 
+   Use `network.ip_version: dual` for mixed/default behavior, `ipv4` to require
+   IPv4 inputs, or `ipv6` to require IPv6 node IPs, firewall CIDRs, and HBA CIDR
+   sources. IPv6 single-stack mode also switches generated bind defaults to
+   `::1` for local services and `::` for wildcard listeners.
+
 2. Validate it.
 
    ```bash

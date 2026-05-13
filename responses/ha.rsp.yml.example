@@ -1,8 +1,10 @@
 # pigsty-lite response file - HA profile (1 monitor + 3 postgres).
-# Copy to responses/site.rsp.yml and edit IPs / credentials / domain.
+# Copy to responses/site.rsp.yml and edit IPv4/IPv6 IPs / credentials / domain.
 # Then run: ./configure -s -f responses/site.rsp.yml
 ---
 profile: ha
+network:
+  ip_version: dual  # dual, ipv4, or ipv6
 cluster:
   name: pg-prod
   domain: example.internal

@@ -71,6 +71,12 @@ def test_ansible_host_propagated_from_response():
     assert pg["pgnode01"]["ansible_host"] == "10.20.30.11"
 
 
+def test_ipv6_ansible_host_propagated_from_response():
+    out = yaml.safe_load(generate(_load("ipv6.rsp.yml")))
+    pg = out["all"]["children"]["postgres"]["hosts"]
+    assert pg["pgnode01"]["ansible_host"] == "2001:db8:10::11"
+
+
 def test_generated_inventory_includes_banner_comment():
     raw = generate(_load("single.rsp.yml"))
     assert raw.lstrip().startswith("#")

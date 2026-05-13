@@ -53,10 +53,14 @@ git clone <this repo>
 cd pigsty-lite
 make init                    # install Galaxy collections + roles
 
-./configure                  # interactive: profile, IPs, passwords
+./configure                  # interactive: profile, IPv4/IPv6 IPs, passwords
 make plan                    # ansible --check --diff
 make deploy
 ```
+
+Set `network.ip_version: ipv6` in the response file to enforce IPv6
+single-stack inputs. In that mode, node IPs, firewall CIDRs, and HBA CIDR
+sources must be IPv6, and generated bind defaults use `::1`/`::`.
 
 Day-2 changes (add a database, rotate a password, tune a parameter) mean: edit `responses/site.rsp.yml`, then `make deploy`.
 

@@ -1,19 +1,16 @@
-# pigsty-lite response file - SINGLE profile (1 monitor + 1 postgres).
-# Copy to responses/site.rsp.yml and edit IPv4/IPv6 IPs / credentials / domain.
-# Then run: ./configure -s -f responses/site.rsp.yml
 ---
 profile: single
 network:
-  ip_version: dual  # dual, ipv4, or ipv6
+  ip_version: ipv6
 cluster:
-  name: pg-dev
+  name: pg-dev-v6
   domain: example.internal
 nodes:
   pgmon01:
-    ip: 10.20.30.10
+    ip: 2001:db8:10::10
     role: monitor
   pgnode01:
-    ip: 10.20.30.11
+    ip: 2001:db8:10::11
     role: pg_primary
 postgres:
   version: 18
@@ -23,7 +20,8 @@ postgres:
   extensions: [pg_stat_statements]
   databases: []
   users: []
-  hba_rules: []
+  hba_rules:
+    - {db: app, user: app, source: 2001:db8:40::/64, method: scram-sha-256}
 pgbackrest:
   enabled: false
 tls:
@@ -36,5 +34,5 @@ monitoring:
 repos:
   pigsty: {enabled: false, packages: []}
 firewall:
-  operator_cidrs: ["10.0.0.0/8"]
-  postgres_client_cidrs: ["10.20.40.0/24"]
+  operator_cidrs: ["2001:db8::/32"]
+  postgres_client_cidrs: ["2001:db8:40::/64"]

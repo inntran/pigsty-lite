@@ -41,11 +41,17 @@ def generate(response: dict[str, Any]) -> str:
     monitoring = response["monitoring"]
     firewall = response["firewall"]
     repos = response.get("repos", {})
+    ip_version = response.get("network", {}).get("ip_version", "dual")
+    ipv6_single_stack = ip_version == "ipv6"
 
     out: dict[str, Any] = {
         "cluster_profile": response["profile"],
         "cluster_name": response["cluster"]["name"],
         "cluster_domain": response["cluster"]["domain"],
+        "network_ip_version": ip_version,
+        "network_ipv6_single_stack": ipv6_single_stack,
+        "network_loopback_address": "::1" if ipv6_single_stack else "127.0.0.1",
+        "network_any_address": "::" if ipv6_single_stack else "0.0.0.0",
         "postgres_version": postgres["version"],
         "postgres_port": postgres["port"],
         "postgres_tune_profile": postgres["tune"],

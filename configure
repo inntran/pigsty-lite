@@ -112,7 +112,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     print(f"Wrote {INVENTORY_PATH.relative_to(ROOT)}")
     print(f"Wrote {RESPONSE_VARS_PATH.relative_to(ROOT)}")
     print()
-    print("Edit responses/site.rsp.yml to fill IPs, then: make plan")
+    print("Edit responses/site.rsp.yml to fill IPv4/IPv6 IPs, then: make plan")
     return 0
 
 

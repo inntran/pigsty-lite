@@ -348,34 +348,34 @@ One canonical list in `playbooks/tags.md`.
 
 ### 6.1 Exposure model
 
-Every service that is only consumed by another service on the same host binds to `127.0.0.1` and is not opened in firewalld. Every cross-host service binds to `0.0.0.0` and is firewalled to specific source groups via rich rules. `nginx_proxy` is the only inbound for user-facing UIs.
+Every service that is only consumed by another service on the same host binds to `network_loopback_address` and is not opened in firewalld. Every cross-host service binds to `network_any_address` and is firewalled to specific source groups via rich rules. In the default dual-stack mode these resolve to `127.0.0.1` and `0.0.0.0`; with `network.ip_version: ipv6` they resolve to `::1` and `::`. `nginx_proxy` is the only inbound for user-facing UIs.
 
 **Monitor host:**
 
 | Service | Listen | Firewall | Source |
 |---|---|---|---|
-| nginx_proxy | `0.0.0.0:80,443` | `http`, `https` | `operator_cidrs` |
-| vmsingle | `0.0.0.0:8428` | `victoriametrics` | `postgres` + `monitor` |
-| vlsingle | `0.0.0.0:9428` | `victorialogs` | `postgres` + `monitor` |
-| vmalert | `127.0.0.1:8880` | — | local only |
-| alertmanager | `127.0.0.1:9093` | — | local only |
-| grafana | `127.0.0.1:3000` | — | local only |
+| nginx_proxy | `network_any_address:80,443` | `http`, `https` | `operator_cidrs` |
+| vmsingle | `network_any_address:8428` | `victoriametrics` | `postgres` + `monitor` |
+| vlsingle | `network_any_address:9428` | `victorialogs` | `postgres` + `monitor` |
+| vmalert | `network_loopback_address:8880` | — | local only |
+| alertmanager | `network_loopback_address:9093` | — | local only |
+| grafana | `network_loopback_address:3000` | — | local only |
 
 **Postgres node:**
 
 | Service | Listen | Firewall | Source |
 |---|---|---|---|
-| haproxy:5432/5433/5434 | `0.0.0.0` | `postgresql`, `haproxy-postgres` | `postgres_client_cidrs` |
-| pgbouncer:6432 | `0.0.0.0` | `pgbouncer` (off by default — clients go via haproxy) | `postgres_client_cidrs` |
-| haproxy stats:7000 | `127.0.0.1` | — | local |
-| patroni REST:8008 | `0.0.0.0` | `patroni-rest` | `postgres` + `monitor` |
-| etcd:2379, 2380 | `0.0.0.0` | `etcd-client`, `etcd-server` | `postgres`, `etcd` group |
-| node_exporter:9100 | `0.0.0.0` | `prometheus-node-exporter` | `monitor` |
-| postgres_exporter:9187 | `0.0.0.0` | `postgres-exporter` | `monitor` |
-| pgbouncer_exporter:9127 | `0.0.0.0` | `pgbouncer-exporter` | `monitor` |
-| pgbackrest_exporter:9854 | `0.0.0.0` | `pgbackrest-exporter` | `monitor` |
-| vmagent:8429 | `127.0.0.1` | — | local |
-| vlagent:9429 | `127.0.0.1` | — | local |
+| haproxy:5432/5433/5434 | `network_any_address` | `postgresql`, `haproxy-postgres` | `postgres_client_cidrs` |
+| pgbouncer:6432 | `network_any_address` | `pgbouncer` (off by default — clients go via haproxy) | `postgres_client_cidrs` |
+| haproxy stats:7000 | `network_loopback_address` | — | local |
+| patroni REST:8008 | `network_any_address` | `patroni-rest` | `postgres` + `monitor` |
+| etcd:2379, 2380 | `network_any_address` | `etcd-client`, `etcd-server` | `postgres`, `etcd` group |
+| node_exporter:9100 | `network_any_address` | `prometheus-node-exporter` | `monitor` |
+| postgres_exporter:9187 | `network_any_address` | `postgres-exporter` | `monitor` |
+| pgbouncer_exporter:9127 | `network_any_address` | `pgbouncer-exporter` | `monitor` |
+| pgbackrest_exporter:9854 | `network_any_address` | `pgbackrest-exporter` | `monitor` |
+| vmagent:8429 | `network_loopback_address` | — | local |
+| vlagent:9429 | `network_loopback_address` | — | local |
 
 `nmap` from outside `operator_cidrs` sees only `22, 80, 443` on monitor host and only `22` on postgres hosts.
 

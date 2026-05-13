@@ -1,7 +1,9 @@
 # MANAGED BY pigsty-lite - DO NOT EDIT
 # Entries below are derived from inventory groups: postgres, monitor, backup_store, etcd.
 
+{% if not (network_ipv6_single_stack | default(false)) %}
 127.0.0.1   localhost localhost.localdomain
+{% endif %}
 ::1         localhost localhost.localdomain
 
 {% set seen = [] %}

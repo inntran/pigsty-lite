@@ -6,7 +6,17 @@ certs_renewal_window_days: "{{ cert_renewal_window_days | default(30) }}"
 certs_key_size: 2048
 certs_required_packages:
   - python3-cryptography
+certs_default_ip_san_address: >-
+  {{ ansible_host | default(
+    (ansible_facts | default({})).get('default_ipv6', {}).get(
+      'address',
+      (ansible_facts | default({})).get('default_ipv4', {}).get(
+        'address',
+        network_loopback_address | default('127.0.0.1')
+      )
+    )
+  ) }}
 certs_subject_alternative_names:
   - "DNS:{{ inventory_hostname }}"
   - "DNS:{{ inventory_hostname }}.{{ cluster_domain | default('local') }}"
-  - "IP:{{ ansible_host | default(ansible_facts.default_ipv4.address | default('127.0.0.1')) }}"
+  - "IP:{{ certs_default_ip_san_address }}"

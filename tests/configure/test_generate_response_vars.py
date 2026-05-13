@@ -39,6 +39,24 @@ def test_firewall_keys_promoted_to_top_level():
     assert out["postgres_client_cidrs"] == ["10.20.40.0/24"]
 
 
+def test_network_defaults_to_dual_stack():
+    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+    assert out["network_ip_version"] == "dual"
+    assert out["network_ipv6_single_stack"] is False
+    assert out["network_loopback_address"] == "127.0.0.1"
+    assert out["network_any_address"] == "0.0.0.0"
+
+
+def test_ipv6_single_stack_network_vars():
+    out = yaml.safe_load(generate(_load("ipv6.rsp.yml")))
+    assert out["network_ip_version"] == "ipv6"
+    assert out["network_ipv6_single_stack"] is True
+    assert out["network_loopback_address"] == "::1"
+    assert out["network_any_address"] == "::"
+    assert out["operator_cidrs"] == ["2001:db8::/32"]
+    assert out["postgres_client_cidrs"] == ["2001:db8:40::/64"]
+
+
 def test_tls_keys_namespaced():
     out = yaml.safe_load(generate(_load("ha.rsp.yml")))
     assert out["ca_mode"] == "generate"
