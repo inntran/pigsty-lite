@@ -1,9 +1,12 @@
 ---
 # P0 site.yml - full deploy of pigsty-lite (P0 scope only).
 # Later sub-plans (P1..P6) extend this file as they ship.
-- import_playbook: _preflight.yml
+- name: Import P0 preflight playbook
+  import_playbook: _preflight.yml
   tags: [preflight]
-- import_playbook: _ca.yml
+- name: Import P0 CA playbook
+  import_playbook: _ca.yml
   tags: [ca]
-- import_playbook: _node.yml
+- name: Import P0 node playbook
+  import_playbook: _node.yml
   tags: [repos, node, certs]

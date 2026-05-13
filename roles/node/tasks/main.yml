@@ -56,7 +56,7 @@
       [Journal]
       SystemMaxUse={{ node_journald_max_use }}
       MaxFileSec={{ node_journald_max_file_sec }}
-  notify: restart journald
+  notify: Restart journald
 
 - name: Ensure firewalld is enabled and running
   ansible.builtin.systemd:

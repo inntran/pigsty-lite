@@ -1,3 +1,4 @@
 ---
 # Operator entry: validate without making changes.
-- import_playbook: _preflight.yml
+- name: P0 preflight operator alias
+  import_playbook: _preflight.yml

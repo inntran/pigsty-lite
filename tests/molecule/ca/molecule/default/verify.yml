@@ -5,7 +5,7 @@
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_pki/ca"
   tasks:
-    - name: ca.key exists, mode 0600
+    - name: Check ca.key exists with mode 0600
       ansible.builtin.stat:
         path: "{{ ca_dir }}/ca.key"
       register: ca_key
@@ -16,7 +16,7 @@
           - ca_key.stat.exists
           - ca_key.stat.mode == "0600"
 
-    - name: ca.crt exists, mode 0644
+    - name: Check ca.crt exists with mode 0644
       ansible.builtin.stat:
         path: "{{ ca_dir }}/ca.crt"
       register: ca_crt
@@ -27,7 +27,7 @@
           - ca_crt.stat.exists
           - ca_crt.stat.mode == "0644"
 
-    - name: ca.crt is a valid x509 with cluster CN
+    - name: Check ca.crt is a valid x509 with cluster CN
       community.crypto.x509_certificate_info:
         path: "{{ ca_dir }}/ca.crt"
       register: info

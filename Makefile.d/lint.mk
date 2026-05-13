@@ -15,7 +15,7 @@ lint-python:
 	ruff format --check .
 
 lint-markdown:
-	markdownlint-cli2 "**/*.md" "#collections" "#.ansible"
+	markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#docs/superpowers"
 
 lint-shell:
 	@files=$$(find bin -type f -not -name '*.py' -not -name '_*.py' 2>/dev/null); \

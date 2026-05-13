@@ -6,12 +6,16 @@
       ansible.builtin.command: grep -q "preflight_passed=true" /etc/ansible/facts.d/preflight.fact
       changed_when: false
 
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
     - name: Confirm firewalld is installed
-      ansible.builtin.command: rpm -q firewalld
-      register: firewalld_rpm
-      changed_when: false
+      ansible.builtin.assert:
+        that:
+          - "'firewalld' in ansible_facts.packages"
 
     - name: Confirm policycoreutils is installed
-      ansible.builtin.command: rpm -q policycoreutils
-      register: pcu_rpm
-      changed_when: false
+      ansible.builtin.assert:
+        that:
+          - "'policycoreutils' in ansible_facts.packages"

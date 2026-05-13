@@ -1,9 +1,9 @@
 ---
-- name: reload firewalld
+- name: Reload firewalld
   ansible.builtin.command: firewall-cmd --reload
   changed_when: true
 
-- name: restart journald
+- name: Restart journald
   ansible.builtin.systemd:
     name: systemd-journald
     state: restarted

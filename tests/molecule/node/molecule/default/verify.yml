@@ -2,7 +2,7 @@
 - name: Verify
   hosts: all
   tasks:
-    - name: firewalld is enabled and running
+    - name: Check firewalld is enabled and running
       ansible.builtin.systemd:
         name: firewalld
         state: started
@@ -15,7 +15,7 @@
         that:
           - not fw.changed
 
-    - name: ssh service is allowed in default zone
+    - name: Check ssh service is allowed in default zone
       ansible.builtin.command: firewall-cmd --list-services
       register: services
       changed_when: false
@@ -29,6 +29,6 @@
       ansible.builtin.command: grep -q "MANAGED BY pigsty-lite" /etc/hosts
       changed_when: false
 
-    - name: sysctl values rendered
+    - name: Check sysctl values rendered
       ansible.builtin.command: grep -q "vm.swappiness = 10" /etc/sysctl.d/90-pigsty-lite.conf
       changed_when: false

@@ -53,7 +53,7 @@ jobs:
         run: python -m pytest tests/configure -v
 
       - name: markdownlint
-        run: markdownlint-cli2 "**/*.md" "#collections" "#.ansible"
+        run: markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#docs/superpowers"
 
       - name: xmllint firewalld services
         run: |
