@@ -29,7 +29,7 @@ MinIO, Redis, MongoDB, FerretDB, Citus, MSSQL/MySQL compatibility, Docker apps, 
 **Control node (the machine you run `ansible-playbook` from):**
 
 - Linux or macOS
-- `ansible-core` (pin version in `requirements.yml`)
+- `ansible` Python package
 - `git`, `make`, `gpg`, Python 3
 - `make init` to fetch upstream Galaxy collections and roles
 
