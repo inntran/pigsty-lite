@@ -4,6 +4,16 @@
 # roles/patroni/defaults/main.yml. Variables here encode shared decisions
 # that span both roles.
 
+# Shared PostgreSQL identity and filesystem contract consumed by both roles.
+postgres_user: postgres
+postgres_group: postgres
+postgres_base_dir: /var/lib/pgsql
+postgres_version_dir: "{{ postgres_base_dir }}/{{ postgres_version }}"
+postgres_data_dir: "{{ postgres_version_dir }}/data"
+postgres_log_dir: "{{ postgres_version_dir }}/log"
+postgres_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+postgres_port: 5432
+
 # Patroni passwords. In dev / molecule these are fine. In production the
 # operator overrides them via the response file. Never check production
 # passwords in git.

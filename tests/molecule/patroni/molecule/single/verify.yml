@@ -1,0 +1,56 @@
+---
+- name: Verify
+  hosts: postgres
+  tasks:
+    - name: Check patroni service state
+      ansible.builtin.systemd:
+        name: patroni
+      register: patroni_unit
+
+    - name: Assert patroni active
+      ansible.builtin.assert:
+        that:
+          - patroni_unit.status.ActiveState == "active"
+
+    - name: Patroni reports leader
+      ansible.builtin.uri:
+        url: "https://127.0.0.1:8008/leader"
+        validate_certs: false
+        status_code: 200
+
+    - name: Query member state
+      ansible.builtin.uri:
+        url: "https://127.0.0.1:8008/patroni"
+        validate_certs: false
+        return_content: true
+      register: member_state
+
+    - name: Assert state running, role primary
+      ansible.builtin.assert:
+        that:
+          - member_state.json.state == "running"
+          - member_state.json.role == "primary"
+
+    - name: Query cluster state
+      ansible.builtin.uri:
+        url: "https://127.0.0.1:8008/cluster"
+        validate_certs: false
+        return_content: true
+      register: cluster_state
+
+    - name: Assert one member, one leader
+      ansible.builtin.assert:
+        that:
+          - cluster_state.json.members | length == 1
+          - (cluster_state.json.members | selectattr('role', 'equalto', 'leader') | list | length) == 1
+
+    - name: Connect to postgres over loopback
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres -c "select 1"
+      register: psql_probe
+      changed_when: false
+
+    - name: Assert psql returned 1
+      ansible.builtin.assert:
+        that:
+          - "'1' in psql_probe.stdout"

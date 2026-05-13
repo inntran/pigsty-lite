@@ -7,13 +7,21 @@
   roles:
     - role: ../../../../../roles/ca
 
-- name: Prepare - install repos and issue host cert on the target
+- name: Prepare - repos, certs, etcd, postgres install
   hosts: all
   gather_facts: true
   vars:
     certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
     repos_pgdg_enabled: true
+    repos_epel_enabled: true
     repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+    node_sysctl_apply: false
   roles:
     - role: ../../../../../roles/repos
+    - role: ../../../../../roles/node
     - role: ../../../../../roles/certs
+    - role: ../../../../../roles/etcd
+    - role: ../../../../../roles/postgres

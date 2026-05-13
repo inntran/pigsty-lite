@@ -1,7 +1,6 @@
 ---
 - name: Verify
   hosts: postgres
-  become: true
   tasks:
     - name: Check postgresql server binary
       ansible.builtin.stat:
