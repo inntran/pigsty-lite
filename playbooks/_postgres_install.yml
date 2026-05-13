@@ -1,0 +1,8 @@
+---
+- name: P2a postgres - install PG packages and prepare filesystem
+  hosts: postgres
+  become: true
+  gather_facts: true
+  roles:
+    - role: postgres
+      tags: [postgres]

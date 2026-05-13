@@ -1,6 +1,5 @@
 ---
-# P0 site.yml - full deploy of pigsty-lite (P0 scope only).
-# Later sub-plans (P1..P6) extend this file as they ship.
+# pigsty-lite site.yml
 - name: Import P0 preflight playbook
   import_playbook: _preflight.yml
   tags: [preflight]
@@ -13,3 +12,9 @@
 - name: Import P1 etcd playbook
   import_playbook: _etcd.yml
   tags: [etcd]
+- name: Import P2a postgres install playbook
+  import_playbook: _postgres_install.yml
+  tags: [postgres]
+- name: Import P2a patroni bootstrap playbook
+  import_playbook: _postgres_bootstrap.yml
+  tags: [patroni]
