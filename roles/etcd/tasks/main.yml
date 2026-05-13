@@ -15,6 +15,10 @@
   ansible.builtin.import_tasks: _firewall.yml
   tags: [etcd, firewall]
 
+- name: Apply pending etcd configuration changes before health gate
+  ansible.builtin.meta: flush_handlers
+  tags: [etcd, service]
+
 - name: Start and verify etcd
   ansible.builtin.import_tasks: _service.yml
   tags: [etcd, service]

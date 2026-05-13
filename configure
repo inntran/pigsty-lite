@@ -105,7 +105,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
 
     RESPONSE_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with RESPONSE_FILE_PATH.open("w") as fh:
-        yaml.safe_dump(data, fh, sort_keys=False)
+        yaml.safe_dump(data, fh, sort_keys=False, explicit_start=True)
     _write(INVENTORY_PATH, gen_inventory(data))
     _write(RESPONSE_VARS_PATH, gen_response_vars(data))
     print(f"Wrote {RESPONSE_FILE_PATH.relative_to(ROOT)}")

@@ -25,7 +25,13 @@ etcd_trusted_ca_file: "{{ etcd_pki_dir }}/ca.crt"
 
 # Network
 etcd_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
-etcd_advertise_address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+etcd_advertise_address: >-
+  {{ ansible_host | default(
+       (ansible_facts | default({})).get('default_ipv6', {}).get(
+         'address',
+         (ansible_facts | default({})).get('default_ipv4', {}).get('address')
+       )
+     ) }}
 etcd_listen_url_host: >-
   {{ '[' ~ etcd_listen_address ~ ']'
      if ':' in (etcd_listen_address | string) and not (etcd_listen_address | string).startswith('[')

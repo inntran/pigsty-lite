@@ -1,4 +1,8 @@
 ---
+- name: Reload systemd for etcd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
 - name: Restart etcd
   ansible.builtin.systemd:
     name: "{{ etcd_service_name }}"

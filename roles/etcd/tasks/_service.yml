@@ -4,7 +4,6 @@
     name: "{{ etcd_service_name }}"
     enabled: true
     state: started
-    daemon_reload: true
 
 - name: Wait for etcd to report healthy
   ansible.builtin.command:

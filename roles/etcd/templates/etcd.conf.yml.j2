@@ -12,7 +12,27 @@ initial-advertise-peer-urls: https://{{ etcd_advertise_url_host }}:{{ etcd_peer_
 
 # Cluster bootstrap
 initial-cluster-token: {{ etcd_cluster_token }}
-initial-cluster: {% for h in groups['etcd'] %}{% if hostvars[h].etcd_advertise_address is defined %}{% set peer_host = hostvars[h].etcd_advertise_address %}{% elif hostvars[h].ansible_host is defined %}{% set peer_host = hostvars[h].ansible_host %}{% else %}{% set peer_host = hostvars[h].ansible_default_ipv4.address %}{% endif %}{{ h }}=https://{{ '[' ~ peer_host ~ ']' if ':' in (peer_host | string) and not (peer_host | string).startswith('[') else peer_host }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}{% endfor %}
+initial-cluster: {% for h in groups['etcd'] -%}
+{%- set hv = hostvars[h] -%}
+{%- if hv.etcd_advertise_address is defined -%}
+{%- set peer_host = hv.etcd_advertise_address -%}
+{%- elif hv.ansible_host is defined -%}
+{%- set peer_host = hv.ansible_host -%}
+{%- elif hv.ansible_facts is defined and hv.ansible_facts.default_ipv6 is defined -%}
+{%- set peer_host = hv.ansible_facts.default_ipv6.address -%}
+{%- elif hv.ansible_default_ipv6 is defined -%}
+{%- set peer_host = hv.ansible_default_ipv6.address -%}
+{%- elif hv.ansible_facts is defined and hv.ansible_facts.default_ipv4 is defined -%}
+{%- set peer_host = hv.ansible_facts.default_ipv4.address -%}
+{%- else -%}
+{%- set peer_host = hv.ansible_default_ipv4.address -%}
+{%- endif -%}
+{%- set peer_url_host = peer_host -%}
+{%- if ':' in (peer_host | string) and not (peer_host | string).startswith('[') -%}
+{%- set peer_url_host = '[' ~ peer_host ~ ']' -%}
+{%- endif -%}
+{{ h }}=https://{{ peer_url_host }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}
+{%- endfor %}
 
 initial-cluster-state: {{ etcd_initial_cluster_state }}
 

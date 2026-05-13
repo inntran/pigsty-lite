@@ -30,4 +30,6 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart etcd
+  notify:
+    - Reload systemd for etcd
+    - Restart etcd

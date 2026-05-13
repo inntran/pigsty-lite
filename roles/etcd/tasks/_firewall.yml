@@ -1,16 +1,64 @@
 ---
+- name: Build etcd peer firewall sources
+  ansible.builtin.set_fact:
+    etcd_peer_firewall_sources: >-
+      {{ (etcd_peer_firewall_sources | default([]))
+         + [{'address': etcd_firewall_source_address,
+             'family': ('ipv6' if ':' in (etcd_firewall_source_address | string) else 'ipv4')}] }}
+  loop: "{{ groups['etcd'] }}"
+  vars:
+    etcd_source_hostvars: "{{ hostvars[item] }}"
+    etcd_firewall_source_address: >-
+      {{ etcd_source_hostvars.get(
+           'etcd_advertise_address',
+           etcd_source_hostvars.get(
+             'ansible_host',
+             etcd_source_hostvars.get('ansible_facts', {}).get('default_ipv6', {}).get(
+               'address',
+               etcd_source_hostvars.get('ansible_facts', {}).get('default_ipv4', {}).get('address')
+             )
+           )
+         ) }}
+
+- name: Build etcd client firewall sources
+  ansible.builtin.set_fact:
+    etcd_client_firewall_sources: >-
+      {{ (etcd_client_firewall_sources | default([]))
+         + [{'address': etcd_firewall_source_address,
+             'family': ('ipv6' if ':' in (etcd_firewall_source_address | string) else 'ipv4')}] }}
+  loop: "{{ (groups.get('etcd', []) + groups.get('postgres', [])) | unique }}"
+  vars:
+    etcd_source_hostvars: "{{ hostvars[item] }}"
+    etcd_firewall_source_address: >-
+      {{ etcd_source_hostvars.get(
+           'etcd_advertise_address',
+           etcd_source_hostvars.get(
+             'ansible_host',
+             etcd_source_hostvars.get('ansible_facts', {}).get('default_ipv6', {}).get(
+               'address',
+               etcd_source_hostvars.get('ansible_facts', {}).get('default_ipv4', {}).get('address')
+             )
+           )
+         ) }}
+
 - name: Open etcd-server (peer) to other etcd hosts
   ansible.posix.firewalld:
-    service: etcd-server
+    rich_rule: >-
+      rule family="{{ item.family }}" source address="{{ item.address }}"
+      service name="etcd-server" accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ etcd_firewalld_zone }}"
+  loop: "{{ etcd_peer_firewall_sources | unique }}"
 
 - name: Open etcd-client to postgres + etcd hosts
   ansible.posix.firewalld:
-    service: etcd-client
+    rich_rule: >-
+      rule family="{{ item.family }}" source address="{{ item.address }}"
+      service name="etcd-client" accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ etcd_firewalld_zone }}"
+  loop: "{{ etcd_client_firewall_sources | unique }}"
