@@ -1,9 +1,9 @@
 # First run
 
-This guide walks through the minimal pigsty-lite P0 workflow on a fresh control
-node. P0 ships the cross-cutting pieces: preflight, repos, node baseline, CA,
-and per-host certs. Roles for etcd, PostgreSQL, monitoring, backups, and reverse
-proxy ship in later sub-plans.
+This guide walks through the minimal pigsty-lite P0+P1 workflow on a fresh
+control node. P0 ships the cross-cutting pieces: preflight, repos, node
+baseline, CA, and per-host certs. P1 adds the etcd cluster. Roles for
+PostgreSQL, monitoring, backups, and reverse proxy ship in later sub-plans.
 
 ## Prerequisites
 
@@ -62,8 +62,18 @@ Target hosts:
    make deploy
    ```
 
-After P0, every host has PGDG enabled, baseline firewalld, sysctl tuning, and
-`/etc/pki/pigsty-lite/<host>.{crt,key}` plus `ca.crt`.
+After P0+P1, every host has PGDG enabled, baseline firewalld, sysctl tuning,
+`/etc/pki/pigsty-lite/<host>.{crt,key}` plus `ca.crt`, and every `etcd` group
+member runs a healthy mTLS-secured etcd member. Verify with:
+
+```bash
+ansible etcd -i inventory/site.yml -m command -b -a \
+  'etcdctl --endpoints=https://127.0.0.1:2379 \
+    --cacert=/etc/pki/pigsty-lite/ca.crt \
+    --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt \
+    --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key \
+    endpoint health'
+```
 
 ## Troubleshooting
 
@@ -73,3 +83,7 @@ After P0, every host has PGDG enabled, baseline firewalld, sysctl tuning, and
   `download.postgresql.org` or proxy via inventory environment settings.
 - `certs` task hangs on CSR fetch: control-node user lacks read access to
   `pki/ca/`. Run from the user that ran `_ca.yml`.
+- `etcd` start fails with "no such host": peer URLs use `ansible_host` for
+  each member; ensure every host in the `etcd` group has a reachable
+  `ansible_host` value, or override `etcd_advertise_address` in
+  `host_vars/<host>.yml`.
