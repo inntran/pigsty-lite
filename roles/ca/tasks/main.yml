@@ -13,6 +13,7 @@
     mode: "0600"
     state: present
     backup: false
+  when: not ansible_check_mode
 
 - name: Generate CSR for self-signed CA
   community.crypto.openssl_csr:
@@ -25,6 +26,7 @@
     key_usage: ["digitalSignature", "keyCertSign", "cRLSign"]
     key_usage_critical: true
     mode: "0640"
+  when: not ansible_check_mode
 
 - name: Self-sign CA certificate
   community.crypto.x509_certificate:
@@ -34,3 +36,4 @@
     provider: selfsigned
     selfsigned_not_after: "+{{ ca_valid_days }}d"
     mode: "0644"
+  when: not ansible_check_mode

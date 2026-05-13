@@ -1,0 +1,12 @@
+---
+- name: P0 node - repos, OS baseline, per-host certs
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: repos
+      tags: [repos, node]
+    - role: node
+      tags: [node]
+    - role: certs
+      tags: [certs, node]

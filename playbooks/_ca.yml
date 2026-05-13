@@ -1,0 +1,9 @@
+---
+- name: P0 CA - generate self-signed CA on the control node
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  become: false
+  roles:
+    - role: ca
+      tags: [ca]
