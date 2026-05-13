@@ -1,0 +1,75 @@
+---
+- name: Gather distribution facts
+  ansible.builtin.setup:
+    gather_subset:
+      - distribution
+      - selinux
+      - mounts
+
+- name: Assert OS family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == preflight_required_os_family
+    fail_msg: >-
+      pigsty-lite requires {{ preflight_required_os_family }};
+      this host reports {{ ansible_facts.os_family }}.
+
+- name: Assert OS major version
+  ansible.builtin.assert:
+    that:
+      - (ansible_facts.distribution_major_version | int) == preflight_required_os_major
+    fail_msg: >-
+      pigsty-lite requires major version {{ preflight_required_os_major }};
+      this host reports {{ ansible_facts.distribution_major_version }}.
+
+- name: Install required packages
+  ansible.builtin.dnf:
+    name: "{{ preflight_required_packages }}"
+    state: present
+
+- name: Read SELinux mode from /sys
+  ansible.builtin.slurp:
+    src: /sys/fs/selinux/enforce
+  register: preflight_enforce
+  failed_when: false
+  changed_when: false
+
+- name: Compute current SELinux runtime mode
+  ansible.builtin.set_fact:
+    preflight_selinux_runtime: >-
+      {{ 'Enforcing' if (preflight_enforce.content | default('MA==') | b64decode) == '1'
+         else 'Permissive' }}
+  when: preflight_enforce.content is defined
+
+- name: Assert SELinux runtime matches requirement
+  ansible.builtin.assert:
+    that:
+      - preflight_selinux_runtime | default('Permissive') == preflight_required_selinux_mode
+    fail_msg: >-
+      pigsty-lite requires SELinux={{ preflight_required_selinux_mode }};
+      this host is {{ preflight_selinux_runtime | default('unknown') }}.
+  when: preflight_enforce.content is defined
+
+- name: Warn if swap is enabled
+  ansible.builtin.debug:
+    msg: "WARNING: swap is on. Recommended off for database hosts."
+  when: ansible_facts.swaptotal_mb | default(0) | int > 0
+
+- name: Ensure local facts directory exists
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d
+    state: directory
+    mode: "0755"
+
+- name: Persist preflight pass local fact
+  ansible.builtin.copy:
+    dest: /etc/ansible/facts.d/preflight.fact
+    mode: "0644"
+    content: |
+      [pigsty_lite]
+      preflight_passed=true
+
+- name: Record preflight pass
+  ansible.builtin.set_fact:
+    preflight_passed: true
+    cacheable: true

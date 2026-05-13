@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: preflight
+  author: pigsty-lite
+  description: Validate host before any change is applied.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags: [postgresql, preflight]
+dependencies: []

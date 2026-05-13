@@ -1,0 +1,33 @@
+---
+driver:
+  name: podman
+platforms:
+  - name: pigsty-lite-preflight-rocky10
+    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    systemd: always
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      roles_path: "../../../roles"
+      collections_path: "../../../collections"
+  inventory:
+    host_vars:
+      pigsty-lite-preflight-rocky10:
+        selinux_required_mode: "Permissive"
+verifier:
+  name: ansible
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - converge
+    - idempotence
+    - verify
+    - destroy

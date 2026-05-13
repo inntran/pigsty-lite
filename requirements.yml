@@ -4,6 +4,7 @@ collections:
   - name: community.crypto
   - name: community.general
   - name: ansible.posix
+  - name: containers.podman
   # Used in later sub-plans; versions are pinned after development stabilizes.
   - name: grafana.grafana
   - name: community.grafana
