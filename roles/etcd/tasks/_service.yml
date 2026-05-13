@@ -1,0 +1,22 @@
+---
+- name: Enable and start etcd
+  ansible.builtin.systemd:
+    name: "{{ etcd_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for etcd to report healthy
+  ansible.builtin.command:
+    cmd: >-
+      etcdctl
+      --endpoints=https://{{ etcd_advertise_address }}:{{ etcd_client_port }}
+      --cacert={{ etcd_trusted_ca_file }}
+      --cert={{ etcd_cert_file }}
+      --key={{ etcd_key_file }}
+      endpoint health
+  register: etcd_health
+  changed_when: false
+  retries: "{{ etcd_health_retries }}"
+  delay: "{{ etcd_health_delay }}"
+  until: "'is healthy' in etcd_health.stdout"

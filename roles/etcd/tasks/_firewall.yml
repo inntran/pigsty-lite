@@ -1,0 +1,16 @@
+---
+- name: Open etcd-server (peer) to other etcd hosts
+  ansible.posix.firewalld:
+    service: etcd-server
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ etcd_firewalld_zone }}"
+
+- name: Open etcd-client to postgres + etcd hosts
+  ansible.posix.firewalld:
+    service: etcd-client
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ etcd_firewalld_zone }}"

@@ -1,0 +1,20 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [etcd, assert]
+
+- name: Install etcd package and prepare filesystem
+  ansible.builtin.import_tasks: _install.yml
+  tags: [etcd, install]
+
+- name: Render etcd configuration
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [etcd, config]
+
+- name: Open firewalld services
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [etcd, firewall]
+
+- name: Start and verify etcd
+  ansible.builtin.import_tasks: _service.yml
+  tags: [etcd, service]

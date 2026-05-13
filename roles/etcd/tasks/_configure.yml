@@ -1,0 +1,9 @@
+---
+- name: Render etcd.conf.yml
+  ansible.builtin.template:
+    src: etcd.conf.yml.j2
+    dest: "{{ etcd_config_file }}"
+    owner: root
+    group: etcd
+    mode: "0640"
+  notify: restart etcd

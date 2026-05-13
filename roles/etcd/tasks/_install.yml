@@ -1,0 +1,34 @@
+---
+- name: Install etcd package
+  ansible.builtin.dnf:
+    name: "{{ etcd_package }}"
+    state: present
+
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: "{{ etcd_config_dir }}"
+    state: directory
+    owner: root
+    group: etcd
+    mode: "0750"
+
+- name: Ensure data directory exists with correct ownership
+  ansible.builtin.file:
+    path: "{{ etcd_data_dir }}"
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: "0700"
+
+- name: Register SELinux fcontext for etcd data dir
+  community.general.sefcontext:
+    target: "{{ etcd_data_dir }}(/.*)?"
+    setype: etcd_var_lib_t
+    state: present
+  register: etcd_sefcontext
+
+- name: Relabel etcd data dir if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ etcd_data_dir }}"
+  when: etcd_sefcontext.changed
+  changed_when: true
