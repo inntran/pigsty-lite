@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+# Rendered by roles/etcd. Do not edit by hand.
+
+name: {{ etcd_member_name }}
+data-dir: {{ etcd_data_dir }}
+
+# Client / peer URLs
+listen-client-urls: https://{{ etcd_listen_address }}:{{ etcd_client_port }}
+advertise-client-urls: https://{{ etcd_advertise_address }}:{{ etcd_client_port }}
+listen-peer-urls: https://{{ etcd_listen_address }}:{{ etcd_peer_port }}
+initial-advertise-peer-urls: https://{{ etcd_advertise_address }}:{{ etcd_peer_port }}
+
+# Cluster bootstrap
+initial-cluster-token: {{ etcd_cluster_token }}
+initial-cluster: {{ etcd_initial_cluster }}
+initial-cluster-state: {{ etcd_initial_cluster_state }}
+
+# TLS - client endpoint
+client-transport-security:
+  cert-file: {{ etcd_cert_file }}
+  key-file: {{ etcd_key_file }}
+  trusted-ca-file: {{ etcd_trusted_ca_file }}
+  client-cert-auth: true
+
+# TLS - peer endpoint
+peer-transport-security:
+  cert-file: {{ etcd_cert_file }}
+  key-file: {{ etcd_key_file }}
+  trusted-ca-file: {{ etcd_trusted_ca_file }}
+  client-cert-auth: true
+  peer-client-cert-auth: true
+
+# Logging
+logger: zap
+log-outputs:
+  - stderr
+
+# Operational tuning (defaults; can be overridden via etcd_*)
+heartbeat-interval: 250
+election-timeout: 1500
+auto-compaction-mode: periodic
+auto-compaction-retention: "1h"
