@@ -141,9 +141,7 @@ def _validate_monitoring(monitoring: dict) -> None:
     for key in ("vmsingle_retention", "vlsingle_retention"):
         value = _require_str(monitoring, key, "monitoring")
         if not DURATION_RE.match(value):
-            raise SchemaError(
-                f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)"
-            )
+            raise SchemaError(f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)")
 
 
 def validate(data: Any) -> None:
