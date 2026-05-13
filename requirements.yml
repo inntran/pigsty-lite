@@ -1,0 +1,10 @@
+---
+collections:
+  - name: community.postgresql
+  - name: community.crypto
+  - name: community.general
+  - name: ansible.posix
+  # Used in later sub-plans; versions are pinned after development stabilizes.
+  - name: grafana.grafana
+  - name: community.grafana
+  - name: victoriametrics.cluster

@@ -11,6 +11,7 @@ dist/
 # ansible
 *.retry
 .ansible/
+collections/
 
 # python / tooling
 .venv/
