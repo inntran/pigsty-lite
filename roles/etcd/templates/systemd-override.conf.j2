@@ -1,0 +1,3 @@
+[Service]
+ExecStart=
+ExecStart=/bin/bash -c "GOMAXPROCS=$(nproc) /usr/bin/etcd --config-file={{ etcd_config_file }}"

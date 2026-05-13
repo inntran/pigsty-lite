@@ -7,3 +7,20 @@
     group: etcd
     mode: "0640"
   notify: restart etcd
+
+- name: Ensure etcd systemd drop-in directory exists
+  ansible.builtin.file:
+    path: "{{ etcd_systemd_dropin_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure etcd to use YAML config file
+  ansible.builtin.template:
+    src: systemd-override.conf.j2
+    dest: "{{ etcd_systemd_dropin_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart etcd
