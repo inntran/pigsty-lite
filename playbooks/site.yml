@@ -10,3 +10,6 @@
 - name: Import P0 node playbook
   import_playbook: _node.yml
   tags: [repos, node, certs]
+- name: Import P1 etcd playbook
+  import_playbook: _etcd.yml
+  tags: [etcd]
