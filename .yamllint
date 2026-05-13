@@ -20,5 +20,6 @@ rules:
     indent-sequences: consistent
 ignore: |
   .venv/
+  .uv-cache/
   .ansible/
   collections/

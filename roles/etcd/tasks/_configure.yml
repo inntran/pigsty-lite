@@ -6,7 +6,7 @@
     owner: root
     group: etcd
     mode: "0640"
-  notify: restart etcd
+  notify: Restart etcd
 
 - name: Allow etcd service to read its host private key
   ansible.builtin.file:
@@ -30,4 +30,4 @@
     owner: root
     group: root
     mode: "0644"
-  notify: restart etcd
+  notify: Restart etcd

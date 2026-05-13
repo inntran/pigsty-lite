@@ -15,10 +15,10 @@ lint-python:
 	ruff format --check .
 
 lint-markdown:
-	markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#docs/superpowers"
+	markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#.uv-cache" "#docs/superpowers"
 
 lint-shell:
-	@files=$$(find bin -type f -not -name '*.py' -not -name '_*.py' 2>/dev/null); \
+	@files=$$(find bin -path '*/__pycache__' -prune -o -type f -not -name '*.py' -not -name '_*.py' -print 2>/dev/null); \
 	if [ -n "$$files" ]; then shellcheck $$files; fi
 
 lint-xml:
