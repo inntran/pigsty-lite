@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+[Service]
+LimitNOFILE=65536
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec={{ patroni_bootstrap_timeout_seconds }}
