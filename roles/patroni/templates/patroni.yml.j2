@@ -49,8 +49,6 @@ bootstrap:
         effective_cache_size: {{ effective_cache_mb }}MB
         work_mem: {{ work_mem_mb }}MB
         maintenance_work_mem: {{ maint_mem_mb }}MB
-        listen_addresses: {{ patroni_postgres_listen_address | to_json }}
-        port: {{ patroni_postgres_port }}
         ssl: "on"
         ssl_cert_file: {{ patroni_cert_file | to_json }}
         ssl_key_file: {{ patroni_key_file | to_json }}
@@ -102,7 +100,11 @@ postgresql:
 {%   set stripped = line.strip() %}
 {%   if stripped and not stripped.startswith('#') and '=' in stripped %}
 {%     set item = stripped.split('=', 1) %}
-    {{ item[0].strip() }}: {{ item[1].strip() | to_json }}
+{%     set value = item[1].strip() %}
+{%     if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')) %}
+{%       set value = value[1:-1] %}
+{%     endif %}
+    {{ item[0].strip() }}: {{ value | to_json }}
 {%   endif %}
 {% endfor %}
 {% for k, v in (postgres_extra_parameters | default({})).items() %}
