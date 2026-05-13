@@ -1,0 +1,38 @@
+# pigsty-lite response file - SINGLE profile (1 monitor + 1 postgres).
+# Copy to responses/site.rsp.yml and edit IPs / credentials / domain.
+# Then run: ./configure -s -f responses/site.rsp.yml
+---
+profile: single
+cluster:
+  name: pg-dev
+  domain: example.internal
+nodes:
+  pgmon01:
+    ip: 10.20.30.10
+    role: monitor
+  pgnode01:
+    ip: 10.20.30.11
+    role: pg_primary
+postgres:
+  version: 18
+  port: 5432
+  tune: oltp
+  shared_buffer_ratio: 0.25
+  extensions: [pg_stat_statements]
+  databases: []
+  users: []
+  hba_rules: []
+pgbackrest:
+  enabled: false
+tls:
+  internal_ca: generate
+  user_facing: {mode: ca_signed}
+monitoring:
+  vmsingle_retention: 30d
+  vlsingle_retention: 14d
+  alertmanager: {receivers: []}
+repos:
+  pigsty: {enabled: false, packages: []}
+firewall:
+  operator_cidrs: ["10.0.0.0/8"]
+  postgres_client_cidrs: ["10.20.40.0/24"]

@@ -79,7 +79,9 @@ def _validate_nodes(nodes: dict, profile: str) -> None:
     if monitors != 1:
         raise SchemaError(f"nodes: profile '{profile}' requires exactly 1 monitor node")
     if primaries != 1:
-        raise SchemaError(f"nodes: profile '{profile}' requires exactly 1 pg_primary; got {primaries}")
+        raise SchemaError(
+            f"nodes: profile '{profile}' requires exactly 1 pg_primary; got {primaries}"
+        )
 
     if profile == "single":
         if replicas != 0:

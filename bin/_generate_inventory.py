@@ -37,7 +37,9 @@ def generate(response: dict[str, Any]) -> str:
     monitor_hosts = [(name, {"ansible_host": node["ip"]}) for name, node in by_role["monitor"]]
 
     if by_role["backup_store"]:
-        backup_hosts = [(name, {"ansible_host": node["ip"]}) for name, node in by_role["backup_store"]]
+        backup_hosts = [
+            (name, {"ansible_host": node["ip"]}) for name, node in by_role["backup_store"]
+        ]
     else:
         backup_hosts = monitor_hosts.copy()
 

@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""pigsty-lite configure CLI.
+
+Modes:
+  ./configure                  Interactive wizard (TTY required)
+  ./configure -c {single,ha}   Preset profile, prompts for the rest
+  ./configure -s -f FILE       Silent: load FILE, validate, regenerate
+  ./configure --validate FILE  Validate FILE and exit
+
+Always emits:
+  inventory/site.yml
+  group_vars/response.yml
+On a non-silent run, also writes:
+  responses/site.rsp.yml
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+
+from bin._generate_inventory import generate as gen_inventory  # noqa: E402
+from bin._generate_response_vars import generate as gen_response_vars  # noqa: E402
+from bin._response_schema import SchemaError, validate  # noqa: E402
+
+INVENTORY_PATH = ROOT / "inventory" / "site.yml"
+RESPONSE_VARS_PATH = ROOT / "group_vars" / "response.yml"
+RESPONSE_FILE_PATH = ROOT / "responses" / "site.rsp.yml"
+
+
+def _load_yaml(path: Path) -> dict:
+    with path.open() as fh:
+        return yaml.safe_load(fh)
+
+
+def _write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    try:
+        data = _load_yaml(Path(args.validate))
+        validate(data)
+    except SchemaError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, yaml.YAMLError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print("OK")
+    return 0
+
+
+def cmd_silent(args: argparse.Namespace) -> int:
+    src = Path(args.file)
+    try:
+        data = _load_yaml(src)
+        validate(data)
+    except SchemaError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, yaml.YAMLError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    _write(INVENTORY_PATH, gen_inventory(data))
+    _write(RESPONSE_VARS_PATH, gen_response_vars(data))
+    print(f"Wrote {INVENTORY_PATH.relative_to(ROOT)}")
+    print(f"Wrote {RESPONSE_VARS_PATH.relative_to(ROOT)}")
+    return 0
+
+
+def cmd_interactive(args: argparse.Namespace) -> int:
+    if not sys.stdin.isatty():
+        print("ERROR: interactive mode requires a TTY; use -s -f FILE for silent mode", file=sys.stderr)
+        return 1
+    print("pigsty-lite interactive configure")
+    print("(P0 implements minimal prompts; future tasks extend this)")
+    print()
+    profile = args.profile or input("Profile (single|ha) [ha]: ").strip() or "ha"
+    cluster_name = input("Cluster name [pg-prod]: ").strip() or "pg-prod"
+    cluster_domain = input("Cluster domain [example.internal]: ").strip() or "example.internal"
+
+    example_name = f"{profile}.rsp.yml.example"
+    example_path = ROOT / "responses" / example_name
+    if not example_path.exists():
+        print(f"ERROR: missing template {example_path}", file=sys.stderr)
+        return 1
+    data = _load_yaml(example_path)
+    data["profile"] = profile
+    data["cluster"]["name"] = cluster_name
+    data["cluster"]["domain"] = cluster_domain
+
+    try:
+        validate(data)
+    except SchemaError as exc:
+        print(f"INVALID generated response: {exc}", file=sys.stderr)
+        return 2
+
+    RESPONSE_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with RESPONSE_FILE_PATH.open("w") as fh:
+        yaml.safe_dump(data, fh, sort_keys=False)
+    _write(INVENTORY_PATH, gen_inventory(data))
+    _write(RESPONSE_VARS_PATH, gen_response_vars(data))
+    print(f"Wrote {RESPONSE_FILE_PATH.relative_to(ROOT)}")
+    print(f"Wrote {INVENTORY_PATH.relative_to(ROOT)}")
+    print(f"Wrote {RESPONSE_VARS_PATH.relative_to(ROOT)}")
+    print()
+    print("Edit responses/site.rsp.yml to fill IPs, then: make plan")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="configure", description=__doc__)
+    parser.add_argument("--validate", metavar="FILE", help="validate FILE and exit")
+    parser.add_argument("-s", "--silent", action="store_true")
+    parser.add_argument("-f", "--file", help="response file for silent mode")
+    parser.add_argument("-c", "--profile", choices=("single", "ha"), help="preset profile for wizard")
+    args = parser.parse_args(argv)
+
+    if args.validate:
+        return cmd_validate(args)
+    if args.silent:
+        if not args.file:
+            parser.error("--silent requires --file")
+        return cmd_silent(args)
+    return cmd_interactive(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
