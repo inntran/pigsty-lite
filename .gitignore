@@ -16,6 +16,7 @@ tests/molecule/**/_tmp*/
 
 # python / tooling
 .venv/
+uv.lock
 __pycache__/
 *.pyc
 .cache/
