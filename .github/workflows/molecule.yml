@@ -26,6 +26,12 @@ jobs:
             scenario: single
           - role: etcd
             scenario: ha
+          - role: postgres
+            scenario: default
+          - role: patroni
+            scenario: single
+          - role: patroni
+            scenario: ha
     steps:
       - uses: actions/checkout@v6
 
