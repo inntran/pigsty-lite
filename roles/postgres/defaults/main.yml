@@ -1,0 +1,29 @@
+---
+# Variables prefixed `postgres_`. Vendor PGDG paths so SELinux fcontext
+# is inherited where possible. Patroni drives bootstrap; this role never
+# runs initdb or writes postgresql.conf.
+
+# Versioning - postgres_version comes from group_vars/all.yml (default 18).
+postgres_pkg_server: "postgresql{{ postgres_version }}-server"
+postgres_pkg_contrib: "postgresql{{ postgres_version }}-contrib"
+postgres_pkg_libs: "postgresql{{ postgres_version }}"
+postgres_support_packages:
+  - python3-libselinux
+  - policycoreutils-python-utils
+
+# Filesystem (vendor defaults)
+postgres_base_dir: /var/lib/pgsql
+postgres_version_dir: "{{ postgres_base_dir }}/{{ postgres_version }}"
+postgres_data_dir: "{{ postgres_version_dir }}/data"
+postgres_log_dir: "{{ postgres_version_dir }}/log"
+postgres_user: postgres
+postgres_group: postgres
+postgres_data_dir_mode: "0700"
+
+# OS / vendor unit handling
+postgres_vendor_systemd_unit: "postgresql-{{ postgres_version }}.service"
+postgres_mask_vendor_unit: true
+
+# Network (Patroni reads these via group_vars)
+postgres_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+postgres_port: 5432
