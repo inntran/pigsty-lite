@@ -1,0 +1,30 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: etcd service is active
+      ansible.builtin.systemd:
+        name: etcd
+      register: etcd_unit
+
+    - name: Assert etcd active
+      ansible.builtin.assert:
+        that:
+          - etcd_unit.status.ActiveState == "active"
+
+    - name: etcd endpoint health (root)
+      ansible.builtin.command:
+        cmd: >-
+          etcdctl
+          --endpoints=https://127.0.0.1:2379
+          --cacert=/etc/pki/pigsty-lite/ca.crt
+          --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt
+          --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key
+          endpoint health
+      register: etcd_health
+      changed_when: false
+
+    - name: Assert healthy
+      ansible.builtin.assert:
+        that:
+          - "'is healthy' in etcd_health.stdout"

@@ -1,0 +1,10 @@
+---
+- name: Converge - apply etcd role
+  hosts: etcd
+  gather_facts: true
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
+    - role: ../../../../../roles/etcd
