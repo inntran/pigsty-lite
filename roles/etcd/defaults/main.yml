@@ -9,7 +9,7 @@ etcd_package_enablerepo: pgdg-rhel10-extras
 etcd_service_name: etcd
 
 # Filesystem (vendor defaults)
-etcd_data_dir: "{{ etcd_data_dir | default('/var/lib/etcd') }}"
+etcd_data_dir: /var/lib/etcd
 etcd_config_dir: /etc/etcd
 etcd_config_file: "{{ etcd_config_dir }}/etcd.conf.yml"
 etcd_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
