@@ -62,6 +62,25 @@
     - repos_pgdg_enabled | bool
     - not repos_pg_module_marker.stat.exists
 
+- name: Ensure dnf priorities plugin package is installed
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+
+- name: Set priority on PGDG repo sections
+  community.general.ini_file:
+    path: "{{ repos_pgdg_repo_file }}"
+    section: "{{ item }}"
+    option: priority
+    value: "{{ repos_pgdg_priority | string }}"
+    mode: "0644"
+    no_extra_spaces: true
+  loop:
+    - "pgdg-common"
+    - "{{ repos_pgdg_extras_repo }}"
+    - "pgdg{{ repos_pgdg_postgres_version }}"
+  when: repos_pgdg_enabled | bool
+
 - name: Enable EPEL
   ansible.builtin.dnf:
     name: epel-release

@@ -11,3 +11,12 @@ repos_pigsty_enabled: false
 repos_pigsty_packages: []
 repos_pigsty_baseurl: "https://repo.pigsty.io/yum/infra/$basearch"
 repos_pigsty_gpgkey: "https://repo.pigsty.io/key/RPM-GPG-KEY-pigsty"
+
+# Repo priorities (lower wins; dnf accepts 1..99, default 99).
+# Spec §11 wants PGDG > vendor > EPEL > pigsty. In practice only the PGDG-vs-
+# vendor split actually matters (shared packages like postgresql-libs), and
+# pigsty/EPEL rarely overlap with anything we install. So we set PGDG=10 and
+# leave everything else at the default 99. dnf's NEVR tie-breaking handles the
+# rare overlap between vendor/EPEL/pigsty acceptably, and we avoid editing
+# repo files we don't own.
+repos_pgdg_priority: 10
