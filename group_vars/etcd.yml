@@ -1,2 +1,20 @@
 ---
-# etcd group defaults. Populated in P1.
+# group_vars/etcd.yml - per-cluster overrides for the etcd group.
+# Role defaults live in roles/etcd/defaults/main.yml. Variables here
+# encode cluster-wide decisions (initial-cluster string, peer URLs).
+
+# Initial cluster string is computed at template time from the etcd group;
+# expose it explicitly here so it is part of the contract, not buried.
+etcd_initial_cluster: >-
+  {{ groups['etcd']
+     | map('extract', hostvars)
+     | map(attribute='inventory_hostname')
+     | zip(groups['etcd']
+           | map('extract', hostvars)
+           | map(attribute='ansible_host'))
+     | map('join', '=https://')
+     | map('regex_replace', '^(.*)$', '\\1:' ~ (etcd_peer_port | default(2380)) | string)
+     | join(',')
+  }}
+
+etcd_initial_cluster_state: new
