@@ -1,0 +1,36 @@
+---
+# roles/etcd/defaults/main.yml
+# All variables prefixed `etcd_`. Paths follow vendor defaults so SELinux
+# fcontext is inherited where possible.
+
+# Package
+etcd_package: etcd
+etcd_service_name: etcd
+
+# Filesystem (vendor defaults)
+etcd_data_dir: "{{ etcd_data_dir | default('/var/lib/etcd') }}"
+etcd_config_dir: /etc/etcd
+etcd_config_file: "{{ etcd_config_dir }}/etcd.conf.yml"
+etcd_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+
+# TLS (reuse per-host cert from P0 certs role)
+etcd_cert_file: "{{ etcd_pki_dir }}/{{ inventory_hostname }}.crt"
+etcd_key_file: "{{ etcd_pki_dir }}/{{ inventory_hostname }}.key"
+etcd_trusted_ca_file: "{{ etcd_pki_dir }}/ca.crt"
+
+# Network
+etcd_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+etcd_advertise_address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+etcd_client_port: "{{ etcd_client_port | default(2379) }}"
+etcd_peer_port: "{{ etcd_peer_port | default(2380) }}"
+
+# Cluster identity
+etcd_cluster_token: "{{ cluster_name | default('pigsty-lite') }}-etcd"
+etcd_member_name: "{{ inventory_hostname }}"
+
+# Health gate
+etcd_health_retries: 30
+etcd_health_delay: 2
+
+# Firewalld
+etcd_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
