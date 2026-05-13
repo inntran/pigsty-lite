@@ -24,6 +24,14 @@ etcd_trusted_ca_file: "{{ etcd_pki_dir }}/ca.crt"
 # Network
 etcd_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
 etcd_advertise_address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+etcd_listen_url_host: >-
+  {{ '[' ~ etcd_listen_address ~ ']'
+     if ':' in (etcd_listen_address | string) and not (etcd_listen_address | string).startswith('[')
+     else etcd_listen_address }}
+etcd_advertise_url_host: >-
+  {{ '[' ~ etcd_advertise_address ~ ']'
+     if ':' in (etcd_advertise_address | string) and not (etcd_advertise_address | string).startswith('[')
+     else etcd_advertise_address }}
 etcd_client_port: 2379
 etcd_peer_port: 2380
 

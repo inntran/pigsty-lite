@@ -5,15 +5,22 @@ name: {{ etcd_member_name }}
 data-dir: {{ etcd_data_dir }}
 
 # Client / peer URLs
-listen-client-urls: https://{{ etcd_listen_address }}:{{ etcd_client_port }}
-advertise-client-urls: https://{{ etcd_advertise_address }}:{{ etcd_client_port }}
-listen-peer-urls: https://{{ etcd_listen_address }}:{{ etcd_peer_port }}
-initial-advertise-peer-urls: https://{{ etcd_advertise_address }}:{{ etcd_peer_port }}
+listen-client-urls: https://{{ etcd_listen_url_host }}:{{ etcd_client_port }}
+advertise-client-urls: https://{{ etcd_advertise_url_host }}:{{ etcd_client_port }}
+listen-peer-urls: https://{{ etcd_listen_url_host }}:{{ etcd_peer_port }}
+initial-advertise-peer-urls: https://{{ etcd_advertise_url_host }}:{{ etcd_peer_port }}
 
 # Cluster bootstrap
 initial-cluster-token: {{ etcd_cluster_token }}
 initial-cluster: {% for h in groups['etcd'] -%}
-{{ h }}=https://{{ hostvars[h].etcd_advertise_address | default(hostvars[h].ansible_host | default(hostvars[h].ansible_default_ipv4.address)) }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}
+{% if hostvars[h].etcd_advertise_address is defined -%}
+{% set peer_host = hostvars[h].etcd_advertise_address -%}
+{% elif hostvars[h].ansible_host is defined -%}
+{% set peer_host = hostvars[h].ansible_host -%}
+{% else -%}
+{% set peer_host = hostvars[h].ansible_default_ipv4.address -%}
+{% endif -%}
+{{ h }}=https://{{ '[' ~ peer_host ~ ']' if ':' in (peer_host | string) and not (peer_host | string).startswith('[') else peer_host }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}
 {%- endfor %}
 initial-cluster-state: {{ etcd_initial_cluster_state }}
 
