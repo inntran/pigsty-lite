@@ -1909,6 +1909,90 @@ git commit -m "feat(repos): manage PGDG, vendor, EPEL, pigsty repos"
 
 ---
 
+## Task 10b: `roles/repos` — set priority on PGDG repo
+
+Spec §11 calls for "Repo priority: PGDG > vendor > EPEL > pigsty, enforced via `dnf-plugins-core` priority weights." In practice the only ordering that materially affects behavior is **PGDG beats vendor** — without that, `dnf` resolves shared packages (notably `postgresql-libs`) from whichever repo has the highest NEVR, which is usually vendor on RHEL 10, and breaks the PGDG installation path P2 depends on. The other splits (vendor > EPEL > pigsty) cover repos that rarely contain overlapping packages, and `dnf`'s default tie-breaking handles them acceptably.
+
+So the minimal correct enforcement is: set PGDG sections to a low priority (10), leave everything else at the default 99. We do not touch vendor repo files (OS-owned, can be rewritten by `dnf update`), and we do not touch EPEL or pigsty (no benefit, more files to manage). The `dnf` priorities plugin is built into `dnf-plugins-core`, which is present on RHEL/Rocky/Alma 10 by default but we install it explicitly to be safe. Lower numbers win.
+
+**Files:**
+- Modify: `roles/repos/defaults/main.yml`
+- Modify: `roles/repos/tasks/main.yml`
+- Modify: `tests/molecule/repos/molecule/default/verify.yml`
+
+- [ ] **Step 1: Append priority default to `roles/repos/defaults/main.yml`**
+
+```yaml
+# Repo priorities (lower wins; dnf accepts 1..99, default 99).
+# Spec §11 wants PGDG > vendor > EPEL > pigsty. In practice only the PGDG-vs-
+# vendor split actually matters (shared packages like postgresql-libs), and
+# pigsty/EPEL rarely overlap with anything we install. So we set PGDG=10 and
+# leave everything else at the default 99. dnf's NEVR tie-breaking handles the
+# rare overlap between vendor/EPEL/pigsty acceptably, and we avoid editing
+# repo files we don't own.
+repos_pgdg_priority: 10
+```
+
+- [ ] **Step 2: Add priority tasks to `roles/repos/tasks/main.yml`**
+
+Insert these BEFORE the existing "Enable EPEL" task:
+
+```yaml
+- name: Ensure dnf priorities plugin package is installed
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+
+- name: Set priority on PGDG repo sections
+  community.general.ini_file:
+    path: "{{ repos_pgdg_repo_file }}"
+    section: "{{ item }}"
+    option: priority
+    value: "{{ repos_pgdg_priority | string }}"
+    mode: "0644"
+    no_extra_spaces: true
+  loop:
+    - "pgdg-common"
+    - "{{ repos_pgdg_extras_repo }}"
+    - "pgdg{{ repos_pgdg_postgres_version }}"
+  when: repos_pgdg_enabled | bool
+```
+
+`community.general.ini_file` is idempotent by content; re-running the role writes zero changes once priorities are in place.
+
+- [ ] **Step 3: Extend `tests/molecule/repos/molecule/default/verify.yml`**
+
+Append after the existing `Assert pigsty repo absent`:
+
+```yaml
+    - name: Read PGDG repo file content
+      ansible.builtin.slurp:
+        src: /etc/yum.repos.d/pgdg-redhat-all.repo
+      register: pgdg_repo_content
+
+    - name: Assert PGDG sections carry priority=10
+      ansible.builtin.assert:
+        that:
+          - "'priority = 10' in (pgdg_repo_content.content | b64decode)"
+        fail_msg: |
+          Expected priority = 10 in PGDG repo file. Got:
+          {{ pgdg_repo_content.content | b64decode }}
+```
+
+- [ ] **Step 4: Re-run repos molecule**
+
+Run: `cd tests/molecule/repos && molecule test`
+Expected: PASS including idempotence (second converge writes zero priority changes).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add roles/repos/ tests/molecule/repos/molecule/default/verify.yml
+git commit -m "fix(repos): set priority on PGDG repo per spec §11"
+```
+
+---
+
 ## Task 11: `roles/node` — test first
 
 **Files:**
