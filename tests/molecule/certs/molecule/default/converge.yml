@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
+  roles:
+    - role: ../../../../../roles/certs

@@ -1,0 +1,80 @@
+---
+- name: Install target crypto dependencies
+  ansible.builtin.dnf:
+    name: "{{ certs_required_packages }}"
+    state: present
+
+- name: Ensure host PKI directory exists
+  ansible.builtin.file:
+    path: "{{ certs_pki_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure control CSR directory exists
+  ansible.builtin.file:
+    path: "{{ certs_ca_dir_on_control }}/csrs"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+
+- name: Ensure control issued certificate directory exists
+  ansible.builtin.file:
+    path: "{{ certs_ca_dir_on_control }}/issued"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+
+- name: Distribute CA certificate to host
+  ansible.builtin.copy:
+    src: "{{ certs_ca_dir_on_control }}/ca.crt"
+    dest: "{{ certs_pki_dir }}/ca.crt"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Generate host private key
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.key"
+    size: "{{ certs_key_size }}"
+    type: RSA
+    mode: "0640"
+    owner: root
+    group: root
+
+- name: Generate host CSR
+  community.crypto.openssl_csr:
+    path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.key"
+    common_name: "{{ inventory_hostname }}"
+    subject_alt_name: "{{ certs_subject_alternative_names }}"
+    mode: "0640"
+
+- name: Fetch CSR back to control node
+  ansible.builtin.fetch:
+    src: "{{ certs_pki_dir }}/{{ inventory_hostname }}.csr"
+    dest: "{{ certs_ca_dir_on_control }}/csrs/{{ inventory_hostname }}.csr"
+    flat: true
+
+- name: Sign CSR on control node
+  community.crypto.x509_certificate:
+    path: "{{ certs_ca_dir_on_control }}/issued/{{ inventory_hostname }}.crt"
+    csr_path: "{{ certs_ca_dir_on_control }}/csrs/{{ inventory_hostname }}.csr"
+    ownca_path: "{{ certs_ca_dir_on_control }}/ca.crt"
+    ownca_privatekey_path: "{{ certs_ca_dir_on_control }}/ca.key"
+    provider: ownca
+    ownca_not_after: "+{{ certs_validity_days }}d"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+
+- name: Copy signed cert back to host
+  ansible.builtin.copy:
+    src: "{{ certs_ca_dir_on_control }}/issued/{{ inventory_hostname }}.crt"
+    dest: "{{ certs_pki_dir }}/{{ inventory_hostname }}.crt"
+    owner: root
+    group: root
+    mode: "0644"

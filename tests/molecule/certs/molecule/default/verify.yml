@@ -1,0 +1,42 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Host cert exists at /etc/pki/pigsty-lite/<host>.crt
+      ansible.builtin.stat:
+        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt"
+      register: certs_host_cert
+
+    - name: Assert host cert
+      ansible.builtin.assert:
+        that:
+          - certs_host_cert.stat.exists
+          - certs_host_cert.stat.mode == "0644"
+
+    - name: Host key exists, mode 0640
+      ansible.builtin.stat:
+        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.key"
+      register: certs_host_key
+
+    - name: Assert host key
+      ansible.builtin.assert:
+        that:
+          - certs_host_key.stat.exists
+          - certs_host_key.stat.mode == "0640"
+
+    - name: CA cert is installed on host
+      ansible.builtin.stat:
+        path: "/etc/pki/pigsty-lite/ca.crt"
+      register: certs_ca_cert
+
+    - name: Assert CA cert
+      ansible.builtin.assert:
+        that:
+          - certs_ca_cert.stat.exists
+
+    - name: Clean temporary CA dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/_tmp_ca"
+        state: absent
+      delegate_to: localhost
+      run_once: true

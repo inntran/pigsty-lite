@@ -1,0 +1,12 @@
+---
+certs_ca_dir_on_control: "{{ playbook_dir | dirname }}/pki/ca"
+certs_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+certs_validity_days: "{{ cert_validity_days | default(730) }}"
+certs_renewal_window_days: "{{ cert_renewal_window_days | default(30) }}"
+certs_key_size: 2048
+certs_required_packages:
+  - python3-cryptography
+certs_subject_alternative_names:
+  - "DNS:{{ inventory_hostname }}"
+  - "DNS:{{ inventory_hostname }}.{{ cluster_domain | default('local') }}"
+  - "IP:{{ ansible_host | default(ansible_facts.default_ipv4.address | default('127.0.0.1')) }}"

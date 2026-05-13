@@ -12,6 +12,7 @@ dist/
 *.retry
 .ansible/
 collections/
+tests/molecule/**/_tmp*/
 
 # python / tooling
 .venv/

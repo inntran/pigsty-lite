@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: certs
+  author: pigsty-lite
+  description: Issue per-host certs from the pigsty-lite CA.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags: [postgresql, pki, certs]
+dependencies: []
