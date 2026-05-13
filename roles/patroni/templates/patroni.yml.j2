@@ -1,0 +1,116 @@
+# {{ ansible_managed }}
+# Rendered by roles/patroni. Do not edit by hand. To change tunables,
+# edit inventory variables and re-run `make deploy`.
+
+scope: {{ patroni_scope | to_json }}
+namespace: {{ patroni_namespace | to_json }}
+name: {{ inventory_hostname | to_json }}
+
+restapi:
+  listen: {{ patroni_listen_address }}:{{ patroni_rest_port }}
+  connect_address: {{ patroni_advertise_address }}:{{ patroni_rest_port }}
+  certfile: {{ patroni_cert_file }}
+  keyfile: {{ patroni_key_file }}
+  cafile: {{ patroni_trusted_ca_file }}
+  verify_client: optional
+
+ctl:
+  certfile: {{ patroni_cert_file }}
+  keyfile: {{ patroni_key_file }}
+  cafile: {{ patroni_trusted_ca_file }}
+
+etcd3:
+  hosts:
+{% for h in groups['etcd'] %}
+    - "{{ patroni_etcd_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
+{% endfor %}
+  protocol: {{ patroni_etcd_protocol }}
+  cacert: {{ patroni_trusted_ca_file }}
+  cert: {{ patroni_cert_file }}
+  key: {{ patroni_key_file }}
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    synchronous_mode: false
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+{% set memtotal_mb = ansible_memtotal_mb | default(4096) | int %}
+{% set shared_buffers_mb = ((memtotal_mb * (patroni_shared_buffer_ratio | float)) | int) %}
+{% set effective_cache_mb = ((memtotal_mb * 0.6) | int) %}
+{% set work_mem_mb = ([(memtotal_mb // 64), 4] | max) %}
+{% set maint_mem_mb = ([(memtotal_mb // 16), 64] | max) %}
+        shared_buffers: {{ shared_buffers_mb }}MB
+        effective_cache_size: {{ effective_cache_mb }}MB
+        work_mem: {{ work_mem_mb }}MB
+        maintenance_work_mem: {{ maint_mem_mb }}MB
+        listen_addresses: {{ postgres_listen_address | to_json }}
+        port: {{ postgres_port }}
+        ssl: "on"
+        ssl_cert_file: {{ patroni_cert_file | to_json }}
+        ssl_key_file: {{ patroni_key_file | to_json }}
+        ssl_ca_file: {{ patroni_trusted_ca_file | to_json }}
+        ssl_min_protocol_version: "TLSv1.2"
+
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+    - locale: C.UTF-8
+
+  pg_hba:
+    - local all all peer
+    - host all postgres 127.0.0.1/32 trust
+    - host replication {{ patroni_replication_user }} 127.0.0.1/32 trust
+    - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 cert
+    - hostssl all all 0.0.0.0/0 scram-sha-256
+
+  users:
+    {{ patroni_superuser }}:
+      password: {{ patroni_superuser_password | to_json }}
+      options:
+        - SUPERUSER
+    {{ patroni_replication_user }}:
+      password: {{ patroni_replication_password | to_json }}
+      options:
+        - REPLICATION
+
+postgresql:
+  listen: {{ postgres_listen_address }}:{{ postgres_port }}
+  connect_address: {{ patroni_advertise_address }}:{{ postgres_port }}
+  data_dir: {{ postgres_data_dir }}
+  bin_dir: /usr/pgsql-{{ postgres_version }}/bin
+  pgpass: /var/lib/pgsql/.pgpass_patroni
+  authentication:
+    superuser:
+      username: {{ patroni_superuser }}
+      password: {{ patroni_superuser_password | to_json }}
+    replication:
+      username: {{ patroni_replication_user }}
+      password: {{ patroni_replication_password | to_json }}
+    rewind:
+      username: {{ patroni_rewind_user }}
+      password: {{ patroni_rewind_password | to_json }}
+
+  parameters:
+{% set tune_path = role_path ~ '/files/tuning/' ~ patroni_tune_profile ~ '.conf' %}
+{% for line in (lookup('file', tune_path)).splitlines() %}
+{%   set stripped = line.strip() %}
+{%   if stripped and not stripped.startswith('#') and '=' in stripped %}
+{%     set item = stripped.split('=', 1) %}
+    {{ item[0].strip() }}: {{ item[1].strip() | to_json }}
+{%   endif %}
+{% endfor %}
+{% for k, v in (postgres_extra_parameters | default({})).items() %}
+    {{ k }}: {{ v | to_json }}
+{% endfor %}
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
