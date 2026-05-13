@@ -1,0 +1,20 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [patroni, assert]
+
+- name: Install Patroni packages
+  ansible.builtin.import_tasks: _install.yml
+  tags: [patroni, install]
+
+- name: Configure Patroni
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [patroni, config]
+
+- name: Open firewalld for Patroni REST
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [patroni, firewall]
+
+- name: Start Patroni and wait for healthy cluster
+  ansible.builtin.import_tasks: _service.yml
+  tags: [patroni, service]

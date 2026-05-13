@@ -1,0 +1,33 @@
+---
+- name: Render patroni.yml
+  ansible.builtin.template:
+    src: patroni.yml.j2
+    dest: "{{ patroni_config_file }}"
+    owner: root
+    group: "{{ postgres_group }}"
+    mode: "0640"
+  notify: Restart patroni
+
+- name: Allow patroni to read its host private key
+  ansible.builtin.file:
+    path: "{{ patroni_key_file }}"
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0640"
+
+- name: Ensure patroni systemd drop-in dir exists
+  ansible.builtin.file:
+    path: "{{ patroni_systemd_dropin_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render patroni systemd drop-in
+  ansible.builtin.template:
+    src: systemd-override.conf.j2
+    dest: "{{ patroni_systemd_dropin_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart patroni

@@ -1,0 +1,46 @@
+---
+- name: Enable and start patroni
+  ansible.builtin.systemd:
+    name: "{{ patroni_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Patroni REST API to respond
+  ansible.builtin.uri:
+    url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/health"
+    method: GET
+    return_content: false
+    validate_certs: false
+    status_code: [200, 503]
+  register: patroni_rest_probe
+  retries: "{{ patroni_leader_wait_retries }}"
+  delay: "{{ patroni_leader_wait_delay }}"
+  until: patroni_rest_probe.status in [200, 503]
+
+- name: Wait for cluster to report exactly one leader
+  ansible.builtin.uri:
+    url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/cluster"
+    method: GET
+    return_content: true
+    validate_certs: false
+    status_code: 200
+  register: patroni_cluster_probe
+  retries: "{{ patroni_leader_wait_retries }}"
+  delay: "{{ patroni_leader_wait_delay }}"
+  until: >-
+    (patroni_cluster_probe.json.members | default([])
+     | selectattr('role', 'equalto', 'leader')
+     | list | length) == 1
+
+- name: Wait for this member to report state=running
+  ansible.builtin.uri:
+    url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/patroni"
+    method: GET
+    return_content: true
+    validate_certs: false
+    status_code: 200
+  register: patroni_member_probe
+  retries: "{{ patroni_leader_wait_retries }}"
+  delay: "{{ patroni_leader_wait_delay }}"
+  until: (patroni_member_probe.json.state | default('')) == 'running'

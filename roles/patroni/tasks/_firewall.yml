@@ -1,0 +1,20 @@
+---
+- name: Install custom patroni-rest firewalld service
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.file', role_path + '/../../files/firewalld/services/patroni-rest.xml') }}"
+    dest: /etc/firewalld/services/patroni-rest.xml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload firewalld
+
+- name: Apply patroni-rest service definition before enabling it
+  ansible.builtin.meta: flush_handlers
+
+- name: Open patroni-rest in default zone
+  ansible.posix.firewalld:
+    service: "{{ patroni_firewalld_service_name }}"
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ patroni_firewalld_zone }}"

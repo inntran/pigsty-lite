@@ -1,0 +1,47 @@
+---
+- name: Fail if etcd group is empty
+  ansible.builtin.assert:
+    that:
+      - groups.get('etcd', []) | length > 0
+    fail_msg: "Patroni requires the etcd DCS to exist; etcd group is empty."
+  run_once: true
+  delegate_to: localhost
+
+- name: Verify per-host certificate exists
+  ansible.builtin.stat:
+    path: "{{ patroni_cert_file }}"
+  register: patroni_cert_stat
+
+- name: Fail if certificate missing
+  ansible.builtin.assert:
+    that:
+      - patroni_cert_stat.stat.exists
+    fail_msg: >-
+      Expected per-host certificate at {{ patroni_cert_file }};
+      run the P0 _node.yml playbook (certs role) first.
+
+- name: Verify per-host private key exists
+  ansible.builtin.stat:
+    path: "{{ patroni_key_file }}"
+  register: patroni_key_stat
+
+- name: Fail if private key missing
+  ansible.builtin.assert:
+    that:
+      - patroni_key_stat.stat.exists
+    fail_msg: >-
+      Expected per-host private key at {{ patroni_key_file }};
+      run the P0 _node.yml playbook (certs role) first.
+
+- name: Verify postgres binary present
+  ansible.builtin.stat:
+    path: "/usr/pgsql-{{ postgres_version }}/bin/postgres"
+  register: patroni_pg_bin_stat
+
+- name: Fail if postgres binary missing
+  ansible.builtin.assert:
+    that:
+      - patroni_pg_bin_stat.stat.exists
+    fail_msg: >-
+      Expected postgres binary at /usr/pgsql-{{ postgres_version }}/bin/postgres;
+      ensure the postgres role ran first (_postgres_install.yml).

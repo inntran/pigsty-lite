@@ -1,0 +1,21 @@
+---
+- name: Install Patroni and DCS client
+  ansible.builtin.dnf:
+    name: "{{ patroni_packages }}"
+    state: present
+
+- name: Ensure patroni log dir exists
+  ansible.builtin.file:
+    path: "{{ patroni_log_dir }}"
+    state: directory
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0750"
+
+- name: Ensure patroni config dir exists
+  ansible.builtin.file:
+    path: "{{ patroni_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ postgres_group }}"
+    mode: "0750"
