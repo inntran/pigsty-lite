@@ -26,12 +26,12 @@
     setype: etcd_var_lib_t
     state: present
   register: etcd_sefcontext
-  when: ansible_selinux.status == "enabled"
+  when: ansible_facts.selinux.status == "enabled"
 
 - name: Relabel etcd data dir if fcontext changed
   ansible.builtin.command:
     cmd: "restorecon -RF {{ etcd_data_dir }}"
   when:
-    - ansible_selinux.status == "enabled"
+    - ansible_facts.selinux.status == "enabled"
     - etcd_sefcontext.changed
   changed_when: true
