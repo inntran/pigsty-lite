@@ -7,6 +7,7 @@ group_vars/response.yml
 pki/
 artifacts/
 dist/
+.worktrees/
 
 # ansible
 *.retry
