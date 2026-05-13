@@ -1,0 +1,6 @@
+---
+profile: enterprise
+cluster:
+  name: pg-prod
+nodes:
+  pgmon01: {ip: not-an-ip, role: monitor}

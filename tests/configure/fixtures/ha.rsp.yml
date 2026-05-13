@@ -1,0 +1,36 @@
+---
+profile: ha
+cluster:
+  name: pg-prod
+  domain: example.internal
+nodes:
+  pgmon01: {ip: 10.20.30.10, role: monitor}
+  pgnode01: {ip: 10.20.30.11, role: pg_primary}
+  pgnode02: {ip: 10.20.30.12, role: pg_replica}
+  pgnode03: {ip: 10.20.30.13, role: pg_replica}
+postgres:
+  version: 18
+  port: 5432
+  tune: oltp
+  shared_buffer_ratio: 0.25
+  extensions: [pg_stat_statements, pgvector]
+  databases: [{name: app, owner: app}]
+  users: []
+  hba_rules:
+    - {db: app, user: app, source: 10.20.40.0/24, method: scram-sha-256}
+pgbackrest:
+  enabled: true
+  schedule: {full: "0 1 * * 0", differential: "0 1 * * 1-6"}
+  retention: {full: 4}
+tls:
+  internal_ca: generate
+  user_facing: {mode: ca_signed}
+monitoring:
+  vmsingle_retention: 90d
+  vlsingle_retention: 30d
+  alertmanager: {receivers: []}
+repos:
+  pigsty: {enabled: false, packages: []}
+firewall:
+  operator_cidrs: ["10.0.0.0/8"]
+  postgres_client_cidrs: ["10.20.40.0/24"]
