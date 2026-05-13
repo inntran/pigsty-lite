@@ -1,2 +1,21 @@
 ---
-# postgres group defaults. Populated in P2.
+# group_vars/postgres.yml - per-cluster overrides for the postgres group.
+# Role defaults live in roles/postgres/defaults/main.yml and
+# roles/patroni/defaults/main.yml. Variables here encode shared decisions
+# that span both roles.
+
+# Patroni passwords. In dev / molecule these are fine. In production the
+# operator overrides them via the response file. Never check production
+# passwords in git.
+patroni_superuser_password: "{{ vault_patroni_superuser_password | default('postgres-dev-password-change-me') }}"
+patroni_replication_password: "{{ vault_patroni_replication_password | default('replicator-dev-password-change-me') }}"
+patroni_rewind_password: "{{ vault_patroni_rewind_password | default('rewind-dev-password-change-me') }}"
+
+# Memory tuning ratio, surfaced to patroni_shared_buffer_ratio.
+postgres_shared_buffer_ratio: 0.25
+
+# Tuning profile file selected from roles/patroni/files/tuning/.
+postgres_tune_profile: oltp
+
+# Operator overrides applied after tuning profile.
+postgres_extra_parameters: {}
