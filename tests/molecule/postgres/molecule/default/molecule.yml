@@ -31,7 +31,6 @@ provisioner:
           - "IP:127.0.0.1"
     host_vars:
       pigsty-lite-postgres:
-        ansible_host: 127.0.0.1
         postgres_role: primary
 verifier:
   name: ansible

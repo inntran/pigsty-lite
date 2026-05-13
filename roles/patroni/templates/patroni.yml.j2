@@ -22,7 +22,7 @@ ctl:
 etcd3:
   hosts:
 {% for h in groups['etcd'] %}
-    - "{{ patroni_etcd_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
+    - "{{ patroni_etcd_protocol }}://{{ hostvars[h].get('etcd_advertise_address', hostvars[h].get('ansible_host', h)) }}:{{ etcd_client_port | default(2379) }}"
 {% endfor %}
   protocol: {{ patroni_etcd_protocol }}
   cacert: {{ patroni_trusted_ca_file }}
