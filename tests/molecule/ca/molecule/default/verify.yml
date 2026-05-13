@@ -1,0 +1,43 @@
+---
+- name: Verify
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ca_dir: "{{ playbook_dir }}/_tmp_pki/ca"
+  tasks:
+    - name: ca.key exists, mode 0600
+      ansible.builtin.stat:
+        path: "{{ ca_dir }}/ca.key"
+      register: ca_key
+
+    - name: Assert ca.key
+      ansible.builtin.assert:
+        that:
+          - ca_key.stat.exists
+          - ca_key.stat.mode == "0600"
+
+    - name: ca.crt exists, mode 0644
+      ansible.builtin.stat:
+        path: "{{ ca_dir }}/ca.crt"
+      register: ca_crt
+
+    - name: Assert ca.crt
+      ansible.builtin.assert:
+        that:
+          - ca_crt.stat.exists
+          - ca_crt.stat.mode == "0644"
+
+    - name: ca.crt is a valid x509 with cluster CN
+      community.crypto.x509_certificate_info:
+        path: "{{ ca_dir }}/ca.crt"
+      register: info
+
+    - name: Assert CA subject
+      ansible.builtin.assert:
+        that:
+          - info.subject.commonName is search("pigsty-lite")
+
+    - name: Clean tmp dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/_tmp_pki"
+        state: absent

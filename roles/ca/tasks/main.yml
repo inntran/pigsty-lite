@@ -1,0 +1,36 @@
+---
+- name: Ensure CA directory exists
+  ansible.builtin.file:
+    path: "{{ ca_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Generate CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ ca_dir }}/ca.key"
+    size: "{{ ca_key_size }}"
+    type: RSA
+    mode: "0600"
+    state: present
+    backup: false
+
+- name: Generate CSR for self-signed CA
+  community.crypto.openssl_csr:
+    path: "{{ ca_dir }}/ca.csr"
+    privatekey_path: "{{ ca_dir }}/ca.key"
+    common_name: "{{ ca_common_name }}"
+    organization_name: "{{ ca_organization }}"
+    basic_constraints: ["CA:TRUE"]
+    basic_constraints_critical: true
+    key_usage: ["digitalSignature", "keyCertSign", "cRLSign"]
+    key_usage_critical: true
+    mode: "0640"
+
+- name: Self-sign CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ ca_dir }}/ca.crt"
+    privatekey_path: "{{ ca_dir }}/ca.key"
+    csr_path: "{{ ca_dir }}/ca.csr"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ ca_valid_days }}d"
+    mode: "0644"
