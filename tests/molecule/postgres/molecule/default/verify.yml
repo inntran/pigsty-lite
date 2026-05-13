@@ -1,0 +1,39 @@
+---
+- name: Verify
+  hosts: postgres
+  become: true
+  tasks:
+    - name: Check postgresql server binary
+      ansible.builtin.stat:
+        path: "/usr/pgsql-18/bin/postgres"
+      register: pg_bin
+
+    - name: Assert postgres binary installed
+      ansible.builtin.assert:
+        that:
+          - pg_bin.stat.exists
+          - pg_bin.stat.executable
+
+    - name: List data dir contents
+      ansible.builtin.command: ls -A /var/lib/pgsql/18/data
+      register: data_dir_listing
+      changed_when: false
+
+    - name: Assert data dir is empty
+      ansible.builtin.assert:
+        that:
+          - data_dir_listing.stdout == ""
+        fail_msg: "data dir contained files: {{ data_dir_listing.stdout_lines }}"
+
+    - name: Check vendor postgresql-18 unit state
+      ansible.builtin.systemd:
+        name: postgresql-18.service
+      register: vendor_state
+
+    - name: Assert vendor unit masked
+      ansible.builtin.assert:
+        that:
+          - vendor_state.status.UnitFileState in ["masked", "disabled"]
+        fail_msg: >-
+          vendor postgresql-18 unit is {{ vendor_state.status.UnitFileState }};
+          expected masked

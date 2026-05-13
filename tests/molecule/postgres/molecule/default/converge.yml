@@ -1,0 +1,10 @@
+---
+- name: Converge - apply postgres role
+  hosts: postgres
+  become: true
+  gather_facts: true
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+  roles:
+    - role: ../../../../../roles/postgres
