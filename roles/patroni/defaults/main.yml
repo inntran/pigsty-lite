@@ -1,0 +1,56 @@
+---
+# Variables prefixed `patroni_`. Patroni owns the PG cluster lifecycle:
+# initdb, recovery, replication slots, switchover. This role places the
+# binary, config, systemd unit settings, and firewalld rule.
+
+# Packages
+patroni_packages:
+  - patroni
+  - patroni-etcd
+  - python3-psycopg3
+
+# Filesystem
+patroni_config_dir: /etc/patroni
+patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
+patroni_log_dir: /var/log/patroni
+patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+
+# TLS (reuse per-host cert from P0 certs role) - Patroni REST and PG SSL
+patroni_cert_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.crt"
+patroni_key_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.key"
+patroni_trusted_ca_file: "{{ patroni_pki_dir }}/ca.crt"
+
+# Network
+patroni_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+patroni_advertise_address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+patroni_rest_port: 8008
+
+# DCS - rendered by template from groups['etcd']
+patroni_etcd_protocol: https
+
+# Cluster identity
+patroni_scope: "{{ cluster_name | default('pigsty-lite') }}"
+patroni_namespace: "/{{ patroni_scope }}/"
+
+# PG bootstrap - operator-tunable knobs.
+patroni_bootstrap_timeout_seconds: 300
+patroni_replication_user: replicator
+patroni_superuser: postgres
+patroni_rewind_user: rewind_user
+
+# Memory-derived params (overridable)
+patroni_shared_buffer_ratio: "{{ postgres_shared_buffer_ratio | default(0.25) }}"
+patroni_tune_profile: "{{ postgres_tune_profile | default('oltp') }}"
+
+# Service control
+patroni_service_name: patroni
+patroni_systemd_dropin_dir: "/etc/systemd/system/{{ patroni_service_name }}.service.d"
+patroni_systemd_dropin_file: "{{ patroni_systemd_dropin_dir }}/10-pigsty-lite.conf"
+
+# Firewall
+patroni_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+patroni_firewalld_service_name: patroni-rest
+
+# Health gates
+patroni_leader_wait_retries: "{{ (patroni_bootstrap_timeout_seconds | int) // 5 }}"
+patroni_leader_wait_delay: 5
