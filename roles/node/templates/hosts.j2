@@ -1,0 +1,16 @@
+# MANAGED BY pigsty-lite - DO NOT EDIT
+# Entries below are derived from inventory groups: postgres, monitor, backup_store, etcd.
+
+127.0.0.1   localhost localhost.localdomain
+::1         localhost localhost.localdomain
+
+{% set seen = [] %}
+{% for grp in ['monitor', 'backup_store', 'postgres', 'etcd'] %}
+{% for host in groups.get(grp, []) %}
+{% set ip = hostvars[host].ansible_host | default('') %}
+{% if ip and host not in seen %}
+{{ '%-15s' | format(ip) }} {{ host }} {{ host }}.{{ cluster_domain | default('local') }}
+{% set _ = seen.append(host) %}
+{% endif %}
+{% endfor %}
+{% endfor %}

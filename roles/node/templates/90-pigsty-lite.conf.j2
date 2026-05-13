@@ -1,0 +1,4 @@
+# MANAGED BY pigsty-lite node role
+{% for key, val in node_sysctl.items() %}
+{{ key }} = {{ val }}
+{% endfor %}

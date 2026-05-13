@@ -1,0 +1,84 @@
+---
+- name: Install node baseline packages
+  ansible.builtin.dnf:
+    name: "{{ node_required_packages }}"
+    state: present
+
+- name: Set hostname to inventory host
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: node_set_hostname | bool
+
+- name: Render /etc/hosts from inventory
+  ansible.builtin.template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: "0644"
+    unsafe_writes: true
+  when: node_manage_etc_hosts | bool
+
+- name: Ensure sysctl config directory exists
+  ansible.builtin.file:
+    path: /etc/sysctl.d
+    state: directory
+    mode: "0755"
+
+- name: Apply sysctl tuning
+  ansible.builtin.template:
+    src: 90-pigsty-lite.conf.j2
+    dest: /etc/sysctl.d/90-pigsty-lite.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: node_sysctl_render
+
+- name: Reload sysctl
+  ansible.builtin.command: sysctl --system
+  when:
+    - node_sysctl_render.changed
+    - node_sysctl_apply | bool
+  changed_when: true
+
+- name: Ensure journald config directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Configure journald sizing
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/10-pigsty-lite.conf
+    mode: "0644"
+    content: |
+      # MANAGED BY pigsty-lite node role
+      [Journal]
+      SystemMaxUse={{ node_journald_max_use }}
+      MaxFileSec={{ node_journald_max_file_sec }}
+  notify: restart journald
+
+- name: Ensure firewalld is enabled and running
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Read firewalld default zone
+  ansible.builtin.command: firewall-cmd --get-default-zone
+  register: node_firewalld_current_zone
+  changed_when: false
+
+- name: Set firewalld default zone
+  ansible.builtin.command: firewall-cmd --set-default-zone={{ node_firewalld_default_zone }}
+  changed_when: true
+  when: node_firewalld_current_zone.stdout != node_firewalld_default_zone
+
+- name: Open baseline services in default zone
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: "{{ node_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  loop: "{{ node_firewalld_baseline_services }}"

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: node
+  author: pigsty-lite
+  description: Baseline node OS configuration (hostname, hosts, firewalld, sysctl).
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags: [postgresql, node]
+dependencies: []
