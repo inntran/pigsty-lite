@@ -1,9 +1,10 @@
 # First run
 
-This guide walks through the minimal pigsty-lite P0+P1 workflow on a fresh
+This guide walks through the minimal pigsty-lite P0+P1+P2a workflow on a fresh
 control node. P0 ships the cross-cutting pieces: preflight, repos, node
-baseline, CA, and per-host certs. P1 adds the etcd cluster. Roles for
-PostgreSQL, monitoring, backups, and reverse proxy ship in later sub-plans.
+baseline, CA, and per-host certs. P1 adds the etcd cluster. P2a adds
+PostgreSQL and Patroni. Roles for monitoring, backups, and reverse proxy ship
+in later sub-plans.
 
 ## Prerequisites
 
@@ -74,6 +75,36 @@ ansible etcd -i inventory/site.yml -m command -b -a \
     --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key \
     endpoint health'
 ```
+
+### postgres + patroni (P2a)
+
+After `_etcd.yml` succeeds, two playbooks run against the `postgres` group:
+
+- `_postgres_install.yml` installs `postgresql18-server` and
+  `postgresql18-contrib` from PGDG, prepares `/var/lib/pgsql/18/data`, and
+  masks `postgresql-18.service` so Patroni owns the PostgreSQL lifecycle.
+- `_postgres_bootstrap.yml` installs Patroni, renders `/etc/patroni/patroni.yml`
+  with etcd/REST/PostgreSQL TLS backed by the pigsty-lite CA, opens firewalld
+  `patroni-rest` on 8008/tcp, starts `patroni.service`, and gates on a running
+  member plus exactly one cluster leader.
+
+Profile mapping:
+
+- `single`: 1 PG host with `postgres_role=primary`.
+- `ha`: 1 primary + replicas. Patroni elects the leader via etcd.
+
+Useful checks:
+
+```bash
+sudo -u postgres patronictl -c /etc/patroni/patroni.yml list
+curl -sk https://$(hostname -i):8008/cluster
+sudo -u postgres /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -c '\l'
+```
+
+Patroni passwords are not auto-generated in P2a. For now, override
+`patroni_superuser_password`, `patroni_replication_password`, and
+`patroni_rewind_password` via vault-encrypted inventory vars or
+`group_vars/response.yml`.
 
 ## Troubleshooting
 
