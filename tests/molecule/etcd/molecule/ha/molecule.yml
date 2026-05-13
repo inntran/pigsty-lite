@@ -1,0 +1,65 @@
+---
+driver:
+  name: podman
+platforms:
+  - name: pigsty-lite-etcd-ha-1
+    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    systemd: always
+    groups: [etcd]
+    network: pigsty-lite-etcd
+  - name: pigsty-lite-etcd-ha-2
+    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    systemd: always
+    groups: [etcd]
+    network: pigsty-lite-etcd
+  - name: pigsty-lite-etcd-ha-3
+    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    systemd: always
+    groups: [etcd]
+    network: pigsty-lite-etcd
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      collections_path: "../../../collections"
+  inventory:
+    group_vars:
+      all:
+        cluster_name: pigsty-lite-test
+        cluster_domain: test.local
+        pki_dir: /etc/pki/pigsty-lite
+        certs_subject_alternative_names:
+          - "DNS:{{ inventory_hostname }}"
+          - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ ansible_default_ipv4.address }}"
+      etcd:
+        etcd_initial_cluster_state: new
+verifier:
+  name: ansible
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy

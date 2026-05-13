@@ -1,0 +1,58 @@
+---
+- name: Verify - every member's service is active
+  hosts: etcd
+  gather_facts: true
+  tasks:
+    - name: Re-derive etcd advertise address
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_default_ipv4.address }}"
+
+    - name: Etcd service is active
+      ansible.builtin.systemd:
+        name: etcd
+      register: etcd_unit
+
+    - name: Assert etcd active
+      ansible.builtin.assert:
+        that:
+          - etcd_unit.status.ActiveState == "active"
+
+- name: Verify - quorum and leader from one member
+  hosts: etcd
+  run_once: true
+  tasks:
+    - name: List members from local endpoint
+      ansible.builtin.command:
+        cmd: >-
+          etcdctl
+          --endpoints=https://{{ hostvars[inventory_hostname].etcd_advertise_address }}:2379
+          --cacert=/etc/pki/pigsty-lite/ca.crt
+          --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt
+          --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key
+          member list
+      register: etcd_members
+      changed_when: false
+
+    - name: Assert three members
+      ansible.builtin.assert:
+        that:
+          - etcd_members.stdout_lines | length == 3
+        fail_msg: "expected 3 members, got: {{ etcd_members.stdout }}"
+
+    - name: Endpoint status across all peers
+      ansible.builtin.command:
+        cmd: >-
+          etcdctl
+          --endpoints={{ groups['etcd'] | map('extract', hostvars, 'etcd_advertise_address') | map('regex_replace', '^(.*)$', 'https://\1:2379') | join(',') }}
+          --cacert=/etc/pki/pigsty-lite/ca.crt
+          --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt
+          --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key
+          endpoint status --write-out=json
+      register: etcd_status
+      changed_when: false
+
+    - name: Assert a leader is elected
+      ansible.builtin.assert:
+        that:
+          - (etcd_status.stdout | from_json | map(attribute='Status.leader') | unique | reject('equalto', 0) | list | length) >= 1
+        fail_msg: "no leader reported: {{ etcd_status.stdout }}"

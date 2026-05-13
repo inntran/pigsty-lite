@@ -1,0 +1,12 @@
+---
+- name: Converge - apply etcd role to all members
+  hosts: etcd
+  gather_facts: true
+  vars:
+    firewalld_default_zone: public
+  pre_tasks:
+    - name: Use podman-network IPv4 for etcd advertise/peer URLs
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_default_ipv4.address }}"
+  roles:
+    - role: ../../../../../roles/etcd
