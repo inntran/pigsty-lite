@@ -12,7 +12,9 @@ initial-advertise-peer-urls: https://{{ etcd_advertise_address }}:{{ etcd_peer_p
 
 # Cluster bootstrap
 initial-cluster-token: {{ etcd_cluster_token }}
-initial-cluster: {{ etcd_initial_cluster }}
+initial-cluster: {% for h in groups['etcd'] -%}
+{{ h }}=https://{{ hostvars[h].etcd_advertise_address | default(hostvars[h].ansible_host | default(hostvars[h].ansible_default_ipv4.address)) }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}
+{%- endfor %}
 initial-cluster-state: {{ etcd_initial_cluster_state }}
 
 # TLS - client endpoint
