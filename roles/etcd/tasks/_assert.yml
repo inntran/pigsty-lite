@@ -29,3 +29,16 @@
     fail_msg: >-
       Expected per-host certificate at {{ etcd_cert_file }};
       run the P0 _node.yml playbook (certs role) first.
+
+- name: Verify host private key exists (from P0 certs role)
+  ansible.builtin.stat:
+    path: "{{ etcd_key_file }}"
+  register: etcd_key_stat
+
+- name: Fail if host private key missing
+  ansible.builtin.assert:
+    that:
+      - etcd_key_stat.stat.exists
+    fail_msg: >-
+      Expected per-host private key at {{ etcd_key_file }};
+      run the P0 _node.yml playbook (certs role) first.

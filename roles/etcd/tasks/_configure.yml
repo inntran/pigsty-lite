@@ -8,6 +8,13 @@
     mode: "0640"
   notify: restart etcd
 
+- name: Allow etcd service to read its host private key
+  ansible.builtin.file:
+    path: "{{ etcd_key_file }}"
+    owner: root
+    group: etcd
+    mode: "0640"
+
 - name: Ensure etcd systemd drop-in directory exists
   ansible.builtin.file:
     path: "{{ etcd_systemd_dropin_dir }}"
