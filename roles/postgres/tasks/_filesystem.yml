@@ -1,0 +1,53 @@
+---
+- name: Ensure base dir exists
+  ansible.builtin.file:
+    path: "{{ postgres_base_dir }}"
+    state: directory
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0755"
+
+- name: Ensure version dir exists
+  ansible.builtin.file:
+    path: "{{ postgres_version_dir }}"
+    state: directory
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0755"
+
+- name: Ensure data dir exists
+  ansible.builtin.file:
+    path: "{{ postgres_data_dir }}"
+    state: directory
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "{{ postgres_data_dir_mode }}"
+
+- name: Ensure log dir exists
+  ansible.builtin.file:
+    path: "{{ postgres_log_dir }}"
+    state: directory
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0700"
+
+- name: Register SELinux fcontext for custom data dir
+  community.general.sefcontext:
+    target: "{{ postgres_data_dir }}(/.*)?"
+    setype: postgresql_db_t
+    state: present
+  register: postgres_sefcontext
+  when:
+    - ansible_facts.selinux is defined
+    - ansible_facts.selinux.status == "enabled"
+    - postgres_data_dir != "/var/lib/pgsql/" ~ postgres_version ~ "/data"
+
+- name: Relabel data dir if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ postgres_data_dir }}"
+  when:
+    - ansible_facts.selinux is defined
+    - ansible_facts.selinux.status == "enabled"
+    - postgres_sefcontext is defined
+    - postgres_sefcontext.changed
+  changed_when: true

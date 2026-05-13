@@ -1,0 +1,13 @@
+---
+# Postgres on default 5432 already carries postgresql_port_t. We only label
+# custom ports.
+- name: Allow custom postgres port via SELinux
+  community.general.seport:
+    ports: "{{ postgres_port }}"
+    proto: tcp
+    setype: postgresql_port_t
+    state: present
+  when:
+    - ansible_facts.selinux is defined
+    - ansible_facts.selinux.status == "enabled"
+    - (postgres_port | int) != 5432

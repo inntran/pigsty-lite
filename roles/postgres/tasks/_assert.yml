@@ -1,0 +1,35 @@
+---
+- name: Fail if postgres group is empty
+  ansible.builtin.assert:
+    that:
+      - groups['postgres'] | length > 0
+    fail_msg: "Inventory group 'postgres' is empty; P2a requires at least one host."
+  run_once: true
+  delegate_to: localhost
+
+- name: Fail if exactly one host has postgres_role=primary
+  ansible.builtin.assert:
+    that:
+      - (groups['postgres']
+         | map('extract', hostvars)
+         | map(attribute='postgres_role', default='')
+         | select('equalto', 'primary')
+         | list | length) == 1
+    fail_msg: >-
+      Exactly one host in the 'postgres' group must have postgres_role=primary;
+      check your inventory.
+  run_once: true
+  delegate_to: localhost
+
+- name: Verify per-host certificate exists
+  ansible.builtin.stat:
+    path: "{{ pki_dir }}/{{ inventory_hostname }}.crt"
+  register: postgres_cert_stat
+
+- name: Fail if certificate missing
+  ansible.builtin.assert:
+    that:
+      - postgres_cert_stat.stat.exists
+    fail_msg: >-
+      Expected per-host certificate at {{ pki_dir }}/{{ inventory_hostname }}.crt;
+      run the P0 _node.yml playbook (certs role) first.

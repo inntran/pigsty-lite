@@ -1,0 +1,20 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [postgres, assert]
+
+- name: Install PostgreSQL packages
+  ansible.builtin.import_tasks: _install.yml
+  tags: [postgres, install]
+
+- name: Prepare PostgreSQL filesystem
+  ansible.builtin.import_tasks: _filesystem.yml
+  tags: [postgres, install]
+
+- name: Register SELinux ports
+  ansible.builtin.import_tasks: _seport.yml
+  tags: [postgres, install, selinux]
+
+- name: Mask vendor systemd unit
+  ansible.builtin.import_tasks: _mask_vendor.yml
+  tags: [postgres, install]
