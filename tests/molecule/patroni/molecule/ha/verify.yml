@@ -1,0 +1,87 @@
+---
+- name: Pin advertised address facts
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Use podman-network IPv4 for Patroni checks
+      ansible.builtin.set_fact:
+        patroni_advertise_address: "{{ ansible_default_ipv4.address }}"
+
+- name: Verify each member
+  hosts: postgres
+  tasks:
+    - name: Check patroni service state
+      ansible.builtin.systemd:
+        name: patroni
+      register: patroni_unit
+
+    - name: Assert patroni active
+      ansible.builtin.assert:
+        that:
+          - patroni_unit.status.ActiveState == "active"
+
+    - name: Query this member state
+      ansible.builtin.uri:
+        url: "https://{{ patroni_advertise_address }}:8008/patroni"
+        validate_certs: false
+        return_content: true
+      register: member_state
+      retries: 12
+      delay: 5
+      until: (member_state.json.state | default('')) == 'running'
+
+    - name: Assert member state running
+      ansible.builtin.assert:
+        that:
+          - member_state.json.state == "running"
+
+- name: Verify cluster from one node
+  hosts: postgres
+  run_once: true
+  tasks:
+    - name: Query cluster state until leader and replicas are visible
+      ansible.builtin.uri:
+        url: "https://{{ patroni_advertise_address }}:8008/cluster"
+        validate_certs: false
+        return_content: true
+      register: cluster_state
+      retries: 24
+      delay: 5
+      until:
+        - (cluster_state.json.members | length) == 3
+        - (cluster_state.json.members | selectattr('role', 'equalto', 'leader') | list | length) == 1
+        - (cluster_state.json.members | selectattr('role', 'equalto', 'replica') | list | length) == 2
+
+    - name: Assert two replicas in streaming state
+      ansible.builtin.assert:
+        that:
+          - (cluster_state.json.members
+             | selectattr('role', 'equalto', 'replica')
+             | selectattr('state', 'equalto', 'streaming')
+             | list | length) == 2
+        fail_msg: "Expected 2 streaming replicas. Got: {{ cluster_state.json.members }}"
+
+    - name: Write a probe row on this node
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres
+        -c "create table if not exists probe_p2a (id int); insert into probe_p2a values (42);"
+      register: probe_write
+      changed_when: "'CREATE TABLE' in probe_write.stdout or 'INSERT 0 1' in probe_write.stdout"
+
+- name: Verify replication on every member
+  hosts: postgres
+  tasks:
+    - name: Read probe row on this host
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres
+        -tAc "select id from probe_p2a where id=42 limit 1"
+      register: probe_read
+      retries: 12
+      delay: 5
+      changed_when: false
+      until: probe_read.stdout.strip() == "42"
+
+    - name: Assert probe row visible on this host
+      ansible.builtin.assert:
+        that:
+          - probe_read.stdout.strip() == "42"

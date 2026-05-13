@@ -1,0 +1,14 @@
+---
+- name: Converge - apply patroni role on all members
+  hosts: postgres
+  gather_facts: true
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  pre_tasks:
+    - name: Use podman-network IPv4 for Patroni advertise address
+      ansible.builtin.set_fact:
+        patroni_advertise_address: "{{ ansible_default_ipv4.address }}"
+  roles:
+    - role: ../../../../../roles/patroni
