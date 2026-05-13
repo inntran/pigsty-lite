@@ -6,10 +6,12 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Reload firewalld
+  register: patroni_fw_svc
 
-- name: Apply patroni-rest service definition before enabling it
-  ansible.builtin.meta: flush_handlers
+- name: Reload firewalld if patroni-rest definition changed  # noqa: no-handler
+  ansible.builtin.command: firewall-cmd --reload
+  when: patroni_fw_svc.changed
+  changed_when: true
 
 - name: Open patroni-rest in default zone
   ansible.posix.firewalld:
