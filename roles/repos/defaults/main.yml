@@ -1,6 +1,10 @@
 ---
 repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
 repos_pgdg_enabled: true
+repos_pgdg_repo_file: /etc/yum.repos.d/pgdg-redhat-all.repo
+repos_pgdg_extras_repo: pgdg-rhel10-extras
+repos_pgdg_postgres_version: "{{ postgres_version | default(18) }}"
+repos_pgdg_postgres_repo_versions: [14, 15, 16, 17, 18]
 repos_vendor_enabled: true
 repos_epel_enabled: false
 repos_pigsty_enabled: false

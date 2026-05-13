@@ -11,6 +11,12 @@
       ansible.builtin.assert:
         that:
           - "'pgdg' in repolist.stdout"
+          - "'pgdg-rhel10-extras' in repolist.stdout"
+          - "'pgdg18' in repolist.stdout"
+          - "'pgdg17' not in repolist.stdout"
+          - "'pgdg16' not in repolist.stdout"
+          - "'pgdg15' not in repolist.stdout"
+          - "'pgdg14' not in repolist.stdout"
 
     - name: EPEL not enabled by default
       ansible.builtin.assert:

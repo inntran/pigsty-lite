@@ -5,7 +5,6 @@
 
 # Package
 etcd_package: etcd
-etcd_package_enablerepo: pgdg-rhel10-extras
 etcd_service_name: etcd
 
 # Filesystem (vendor defaults)
