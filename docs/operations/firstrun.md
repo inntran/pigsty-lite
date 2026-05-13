@@ -13,7 +13,7 @@ Control node:
 - Python 3.11+
 - ansible-core 2.16+
 - git, make, gpg
-- One-time: `make install-collections`
+- One-time: `make init` (installs Galaxy collections and roles)
 
 Target hosts:
 

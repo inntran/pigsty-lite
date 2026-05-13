@@ -312,29 +312,30 @@ SHELL := /usr/bin/env bash
 
 include Makefile.d/lint.mk
 
-.PHONY: help configure plan deploy clean test-role install-collections
+.PHONY: help init configure plan deploy clean test-role
 
 help:
 	@echo "pigsty-lite — operator commands"
 	@echo
+	@echo "  make init          Set up the control node (install Galaxy collections + roles)"
 	@echo "  make configure     Interactive wizard; emits inventory + response file"
 	@echo "  make plan          Run site.yml in --check --diff mode"
 	@echo "  make deploy        Run site.yml against the active inventory"
 	@echo "  make lint          Run all linters"
 	@echo "  make test-role ROLE=<name>   Run molecule for a single role"
-	@echo "  make install-collections     Install Galaxy collections"
 	@echo "  make clean         Remove generated artifacts"
 
-install-collections:
+init:
 	ansible-galaxy collection install -r requirements.yml -p ./collections
+	ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
 configure:
 	./configure
 
-plan: install-collections
+plan: init
 	ansible-playbook playbooks/site.yml --check --diff
 
-deploy: install-collections
+deploy: init
 	ansible-playbook playbooks/site.yml
 
 test-role:
@@ -2947,7 +2948,7 @@ Control node (the machine you run Ansible from):
 - Python 3.11+
 - ansible-core 2.16+
 - git, make, gpg
-- One-time: `make install-collections`
+- One-time: `make init` (installs Galaxy collections and roles)
 
 Target hosts (1 for `single`, 4 for `ha`):
 

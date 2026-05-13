@@ -12,6 +12,7 @@ dist/
 *.retry
 .ansible/
 collections/
+roles.galaxy/
 tests/molecule/**/_tmp*/
 
 # python / tooling

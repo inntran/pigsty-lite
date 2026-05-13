@@ -31,8 +31,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install yamllint ansible-lint ruff ansible-core==2.20.* pyyaml pytest
 
-      - name: Install collections
-        run: ansible-galaxy collection install -r requirements.yml -p ./collections
+      - name: Install Galaxy content
+        run: |
+          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli2

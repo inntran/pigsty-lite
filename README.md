@@ -31,7 +31,7 @@ MinIO, Redis, MongoDB, FerretDB, Citus, MSSQL/MySQL compatibility, Docker apps, 
 - Linux or macOS
 - `ansible-core` (pin version in `requirements.yml`)
 - `git`, `make`, `gpg`, Python 3
-- `ansible-galaxy collection install -r requirements.yml` to fetch upstream collections
+- `make init` to fetch upstream Galaxy collections and roles
 
 **Target hosts:**
 
@@ -51,7 +51,7 @@ Playbooks never run `parted`, `mkfs`, `pvcreate`, `lvcreate`, or `mount`. Storag
 ```bash
 git clone <this repo>
 cd pigsty-lite
-ansible-galaxy collection install -r requirements.yml
+make init                    # install Galaxy collections + roles
 
 ./configure                  # interactive: profile, IPs, passwords
 make plan                    # ansible --check --diff

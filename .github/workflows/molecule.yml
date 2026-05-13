@@ -40,8 +40,10 @@ jobs:
             cryptography \
             pytest
 
-      - name: Install collections
-        run: ansible-galaxy collection install -r requirements.yml -p ./collections
+      - name: Install Galaxy content
+        run: |
+          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: molecule ${{ matrix.role }}
         env:
