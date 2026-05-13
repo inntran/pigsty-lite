@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: patroni
+  author: pigsty-lite
+  description: Install Patroni and run PostgreSQL under its supervision.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
