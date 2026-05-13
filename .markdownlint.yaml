@@ -1,0 +1,5 @@
+---
+default: true
+MD013: false  # line-length: rely on yamllint-style soft wrap
+MD033: false  # inline HTML allowed
+MD041: false  # first-line H1 not required (specs have YAML frontmatter)

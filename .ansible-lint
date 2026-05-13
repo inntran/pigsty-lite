@@ -1,0 +1,18 @@
+profile: production
+
+exclude_paths:
+  - .git/
+  - .ansible/
+  - collections/
+  - tests/molecule/*/molecule.yml
+
+skip_list:
+  - role-name  # we use single-word role names by design
+
+warn_list: []
+
+kinds:
+  - playbook: "playbooks/*.yml"
+  - tasks: "roles/*/tasks/*.yml"
+  - vars: "roles/*/vars/*.yml"
+  - meta: "roles/*/meta/main.yml"
