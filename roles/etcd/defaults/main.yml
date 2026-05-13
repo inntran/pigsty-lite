@@ -5,6 +5,9 @@
 
 # Package
 etcd_package: etcd
+etcd_support_packages:
+  - python3-libselinux
+  - policycoreutils-python-utils
 etcd_service_name: etcd
 
 # Filesystem (vendor defaults)

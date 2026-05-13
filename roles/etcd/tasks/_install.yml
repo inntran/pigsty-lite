@@ -1,7 +1,7 @@
 ---
 - name: Install etcd package
   ansible.builtin.dnf:
-    name: "{{ etcd_package }}"
+    name: "{{ [etcd_package] + etcd_support_packages }}"
     state: present
 
 - name: Ensure config directory exists
