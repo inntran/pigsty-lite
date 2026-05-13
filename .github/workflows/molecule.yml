@@ -11,12 +11,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        role:
-          - preflight
-          - repos
-          - node
-          - ca
-          - certs
+        include:
+          - role: preflight
+            scenario: default
+          - role: repos
+            scenario: default
+          - role: node
+            scenario: default
+          - role: ca
+            scenario: default
+          - role: certs
+            scenario: default
+          - role: etcd
+            scenario: single
+          - role: etcd
+            scenario: ha
     steps:
       - uses: actions/checkout@v6
 
@@ -45,9 +54,9 @@ jobs:
           ansible-galaxy collection install -r requirements.yml -p ./collections
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
-      - name: molecule ${{ matrix.role }}
+      - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
         run: |
           cd tests/molecule/${{ matrix.role }}
-          molecule test
+          molecule test -s ${{ matrix.scenario }}
