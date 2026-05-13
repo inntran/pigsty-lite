@@ -1,0 +1,6 @@
+---
+- name: Restart patroni
+  ansible.builtin.systemd:
+    name: "{{ patroni_service_name }}"
+    state: restarted
+    daemon_reload: true
