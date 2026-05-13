@@ -49,8 +49,8 @@ bootstrap:
         effective_cache_size: {{ effective_cache_mb }}MB
         work_mem: {{ work_mem_mb }}MB
         maintenance_work_mem: {{ maint_mem_mb }}MB
-        listen_addresses: {{ postgres_listen_address | to_json }}
-        port: {{ postgres_port }}
+        listen_addresses: {{ patroni_postgres_listen_address | to_json }}
+        port: {{ patroni_postgres_port }}
         ssl: "on"
         ssl_cert_file: {{ patroni_cert_file | to_json }}
         ssl_key_file: {{ patroni_key_file | to_json }}
@@ -80,9 +80,9 @@ bootstrap:
         - REPLICATION
 
 postgresql:
-  listen: {{ postgres_listen_address }}:{{ postgres_port }}
-  connect_address: {{ patroni_advertise_address }}:{{ postgres_port }}
-  data_dir: {{ postgres_data_dir }}
+  listen: {{ patroni_postgres_listen_address }}:{{ patroni_postgres_port }}
+  connect_address: {{ patroni_advertise_address }}:{{ patroni_postgres_port }}
+  data_dir: {{ patroni_postgres_data_dir }}
   bin_dir: /usr/pgsql-{{ postgres_version }}/bin
   pgpass: /var/lib/pgsql/.pgpass_patroni
   authentication:

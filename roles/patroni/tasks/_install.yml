@@ -8,8 +8,8 @@
   ansible.builtin.file:
     path: "{{ patroni_log_dir }}"
     state: directory
-    owner: "{{ postgres_user }}"
-    group: "{{ postgres_group }}"
+    owner: "{{ patroni_postgres_user }}"
+    group: "{{ patroni_postgres_group }}"
     mode: "0750"
 
 - name: Ensure patroni config dir exists
@@ -17,5 +17,5 @@
     path: "{{ patroni_config_dir }}"
     state: directory
     owner: root
-    group: "{{ postgres_group }}"
+    group: "{{ patroni_postgres_group }}"
     mode: "0750"

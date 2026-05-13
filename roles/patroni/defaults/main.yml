@@ -15,6 +15,14 @@ patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
 patroni_log_dir: /var/log/patroni
 patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
 
+# PostgreSQL contract consumed by this role. group_vars/postgres.yml normally
+# owns the postgres_* values; prefixed defaults keep direct role execution usable.
+patroni_postgres_user: "{{ postgres_user | default('postgres') }}"
+patroni_postgres_group: "{{ postgres_group | default('postgres') }}"
+patroni_postgres_data_dir: "{{ postgres_data_dir | default('/var/lib/pgsql/' ~ postgres_version ~ '/data') }}"
+patroni_postgres_listen_address: "{{ postgres_listen_address | default(network_any_address | default('0.0.0.0')) }}"
+patroni_postgres_port: "{{ postgres_port | default(5432) }}"
+
 # TLS (reuse per-host cert from P0 certs role) - Patroni REST and PG SSL
 patroni_cert_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.crt"
 patroni_key_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.key"
