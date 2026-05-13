@@ -1,0 +1,9 @@
+---
+repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+repos_pgdg_enabled: true
+repos_vendor_enabled: true
+repos_epel_enabled: false
+repos_pigsty_enabled: false
+repos_pigsty_packages: []
+repos_pigsty_baseurl: "https://repo.pigsty.io/yum/infra/$basearch"
+repos_pigsty_gpgkey: "https://repo.pigsty.io/key/RPM-GPG-KEY-pigsty"

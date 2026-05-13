@@ -1,0 +1,28 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: PGDG repo present
+      ansible.builtin.command: dnf repolist --enabled
+      register: repolist
+      changed_when: false
+
+    - name: Assert PGDG enabled
+      ansible.builtin.assert:
+        that:
+          - "'pgdg' in repolist.stdout"
+
+    - name: EPEL not enabled by default
+      ansible.builtin.assert:
+        that:
+          - "'epel' not in repolist.stdout"
+
+    - name: Pigsty repo not present
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/pigsty.repo
+      register: pigsty_repo_file
+
+    - name: Assert pigsty repo absent
+      ansible.builtin.assert:
+        that:
+          - not pigsty_repo_file.stat.exists

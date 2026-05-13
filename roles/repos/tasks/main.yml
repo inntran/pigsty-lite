@@ -1,0 +1,52 @@
+---
+- name: Install PGDG repo RPM
+  ansible.builtin.dnf:
+    name: "{{ repos_pgdg_rpm_url }}"
+    state: present
+    disable_gpg_check: true
+  when: repos_pgdg_enabled | bool
+
+- name: Check PG module disable marker
+  ansible.builtin.stat:
+    path: /etc/dnf/modules.d/postgresql-disabled
+  register: repos_pg_module_marker
+  when: repos_pgdg_enabled | bool
+
+- name: Disable default PG module if dnf supports modules
+  ansible.builtin.command: dnf -y module disable postgresql
+  register: repos_pg_module_disable
+  changed_when: >-
+    'Disabling' in repos_pg_module_disable.stdout
+    or 'Complete!' in repos_pg_module_disable.stdout
+  failed_when: false
+  when:
+    - repos_pgdg_enabled | bool
+    - not repos_pg_module_marker.stat.exists
+
+- name: Mark PG module disabled
+  ansible.builtin.copy:
+    dest: /etc/dnf/modules.d/postgresql-disabled
+    content: "disabled by pigsty-lite repos role\n"
+    mode: "0644"
+  when:
+    - repos_pgdg_enabled | bool
+    - not repos_pg_module_marker.stat.exists
+
+- name: Enable EPEL
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  when: repos_epel_enabled | bool
+
+- name: Render /etc/yum.repos.d/pigsty.repo
+  ansible.builtin.template:
+    src: pigsty.repo.j2
+    dest: /etc/yum.repos.d/pigsty.repo
+    mode: "0644"
+  when: repos_pigsty_enabled | bool
+
+- name: Remove pigsty.repo if disabled
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/pigsty.repo
+    state: absent
+  when: not (repos_pigsty_enabled | bool)
