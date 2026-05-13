@@ -11,6 +11,7 @@ BANNER = (
     "# GENERATED FILE - DO NOT EDIT; regenerate with configure.\n"
     "# Command: ./configure -s -f responses/site.rsp.yml\n"
     "# Source of truth: responses/site.rsp.yml\n"
+    "---\n"
 )
 
 

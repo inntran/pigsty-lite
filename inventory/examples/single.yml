@@ -1,0 +1,24 @@
+# GENERATED FILE - DO NOT EDIT; regenerate with configure.
+# Command: ./configure -s -f responses/site.rsp.yml
+# Source of truth: responses/site.rsp.yml
+---
+all:
+  children:
+    monitor:
+      hosts:
+        pgmon01: &id001
+          ansible_host: 10.20.30.10
+    backup_store:
+      hosts:
+        pgmon01: *id001
+    etcd:
+      hosts:
+        pgnode01:
+          ansible_host: 10.20.30.11
+          etcd_seq: 1
+    postgres:
+      hosts:
+        pgnode01:
+          ansible_host: 10.20.30.11
+          postgres_role: primary
+          postgres_seq: 1

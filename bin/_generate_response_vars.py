@@ -11,6 +11,7 @@ BANNER = (
     "# GENERATED FILE - DO NOT EDIT.\n"
     "# Regenerate via: ./configure -s -f responses/site.rsp.yml\n"
     "# This is the operator-facing variable layer; edit the response file.\n"
+    "---\n"
 )
 
 

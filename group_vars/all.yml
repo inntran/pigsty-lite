@@ -1,0 +1,57 @@
+---
+# Cross-role coordination for pigsty-lite. Generated examples in
+# inventory/examples/ illustrate identity-only host vars; this file
+# defines the shared defaults all roles depend on.
+#
+# Variable precedence (low -> high):
+#   role defaults -> group_vars/all -> group_vars/<group> ->
+#   inventory host vars -> group_vars/response.yml -> --extra-vars
+
+# Identity ----------------------------------------------------------
+cluster_profile: "ha"
+cluster_name: "pg-pigsty-lite"
+cluster_domain: "example.internal"
+
+# OS / SELinux / firewalld -----------------------------------------
+selinux_required_mode: "Enforcing"
+firewalld_default_zone: "public"
+
+# Paths (vendor defaults; do not change without strong reason) ------
+postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
+etcd_data_dir: "/var/lib/etcd"
+pgbackrest_repo_path: "/var/lib/pgbackrest"
+pki_dir: "/etc/pki/pigsty-lite"
+
+# Ports -------------------------------------------------------------
+postgres_port: 5432
+pgbouncer_port: 6432
+haproxy_default_port: 5432
+haproxy_primary_port: 5433
+haproxy_replica_port: 5434
+haproxy_stats_port: 7000
+patroni_rest_port: 8008
+etcd_client_port: 2379
+etcd_peer_port: 2380
+vmsingle_port: 8428
+vlsingle_port: 9428
+vmalert_port: 8880
+alertmanager_port: 9093
+grafana_port: 3000
+
+# Versions ----------------------------------------------------------
+postgres_version: 18
+
+# Repo policy -------------------------------------------------------
+repos_pgdg_enabled: true
+repos_vendor_enabled: true
+repos_epel_enabled: false
+repos_pigsty_enabled: false
+repos_pigsty_packages: []
+
+# Cert renewal ------------------------------------------------------
+cert_validity_days: 730
+cert_renewal_window_days: 30
+
+# Operator network defaults - override in response file -------------
+operator_cidrs: ["10.0.0.0/8"]
+postgres_client_cidrs: ["10.0.0.0/8"]
