@@ -13,6 +13,7 @@
 - `pgbouncer`
 - `haproxy`
 - `vip_manager`
+- `provision`
 
 ## Action tags (used inside roles in later sub-plans)
 
@@ -36,3 +37,6 @@
 - `--tags pgbouncer` - reconfigure pgBouncer (reload, not restart).
 - `--tags haproxy` - reconfigure HAProxy (reload). Use `haproxy,restart` to bounce the service.
 - `--tags vip_manager` - re-render vip-manager config and restart (only when enabled).
+- `--tags provision` - re-apply HBA / users / dbs / extensions on the leader.
+- `--tags provision,hba` - re-render pg_hba.conf only.
+- `--tags provision,users` - reconcile roles only.

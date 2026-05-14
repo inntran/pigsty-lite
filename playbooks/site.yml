@@ -27,3 +27,6 @@
 - name: Import P2b vip-manager playbook
   import_playbook: _vip_manager.yml
   tags: [vip_manager]
+- name: Import P3 provision playbook
+  import_playbook: _provision.yml
+  tags: [provision]
