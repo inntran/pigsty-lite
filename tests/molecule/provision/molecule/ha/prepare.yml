@@ -33,13 +33,13 @@
     node_sysctl_apply: false
   pre_tasks:
     - name: Read container IPv4 address
-      ansible.builtin.command: /usr/sbin/ip -4 -o addr show scope global
+      ansible.builtin.command: /usr/sbin/ip -4 route get 1.1.1.1
       register: provision_container_ips
       changed_when: false
 
     - name: Set molecule network addresses
       ansible.builtin.set_fact:
-        provision_container_ip: "{{ provision_container_ips.stdout | regex_search('inet ([0-9.]+)', '\\1') | first }}"
+        provision_container_ip: "{{ provision_container_ips.stdout | regex_search('src ([0-9.]+)', '\\1') | first }}"
 
     - name: Set molecule advertise addresses and SANs
       ansible.builtin.set_fact:
