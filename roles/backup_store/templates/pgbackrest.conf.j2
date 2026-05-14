@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# pgBackRest server-side config on the backup store host.
+[global]
+repo1-path={{ backup_store_path }}
+repo1-retention-full={{ backup_store_retention_full }}
+log-level-console=info
+log-level-file=detail
+log-path={{ backup_store_log_path }}
+start-fast=y
+{% if backup_store_secondary and backup_store_secondary.get('enabled') %}
+repo2-type={{ backup_store_secondary.type | default('s3') }}
+repo2-s3-bucket={{ backup_store_secondary.bucket }}
+repo2-s3-endpoint={{ backup_store_secondary.endpoint }}
+repo2-s3-region={{ backup_store_secondary.region | default('us-east-1') }}
+repo2-path={{ backup_store_secondary.path | default('/pgbackrest') }}
+repo2-retention-full={{ backup_store_secondary.retention_full | default(backup_store_retention_full) }}
+{% endif %}
+
+[{{ backup_store_stanza }}]
+{% for host in groups['postgres'] %}
+pg{{ loop.index }}-host={{ hostvars[host].ansible_host }}
+pg{{ loop.index }}-host-user={{ hostvars[host].backup_client_pg_user | default('postgres') }}
+pg{{ loop.index }}-path={{ hostvars[host].backup_client_pg_path | default(postgres_data_dir_pattern) }}
+pg{{ loop.index }}-port={{ hostvars[host].backup_client_pg_port | default(postgres_port) }}
+{% endfor %}
