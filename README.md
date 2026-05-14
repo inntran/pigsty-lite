@@ -2,10 +2,11 @@
 
 A turn-key Ansible deployment for production-grade PostgreSQL with HA, monitoring, and backups on RHEL-family Linux. A lean reinterpretation of [Pigsty](https://github.com/pgsty/pigsty) that drops the scope creep, follows Ansible best practices, reuses high-quality community collections, and respects the host OS — SELinux stays enforcing, paths stay vendor-default, firewalld stays in charge.
 
-**Status:** P0 (Foundation), P1 (etcd), and P2a (PostgreSQL + Patroni) are
-complete. Subsequent sub-plans (P2b connection layer, P3 provisioning, P4
-backups, P5 monitoring, P6 lifecycle/portability) are pending. The architecture
-and scope are defined in
+**Status:** P0 (Foundation), P1 (etcd), P2a (PostgreSQL + Patroni), and
+P2b (connection layer) are complete. Subsequent sub-plans (P2c
+integration tests, P3 provisioning, P4 backups, P5 monitoring, P6
+lifecycle/portability) are pending. The architecture and scope are
+defined in
 [`docs/superpowers/specs/2026-05-12-pigsty-lite-design.md`](docs/superpowers/specs/2026-05-12-pigsty-lite-design.md).
 
 ## What you get
@@ -72,7 +73,7 @@ See the full design document for details: [docs/superpowers/specs/2026-05-12-pig
 | P0 | Foundation: scaffolding, configure CLI, preflight/repos/node/ca/certs | done |
 | P1 | etcd cluster | done |
 | P2a | PostgreSQL + Patroni (HA cluster bootstrap) | done |
-| P2b | Connection layer: pgBouncer + HAProxy + vip-manager | pending |
+| P2b | Connection layer: pgBouncer + HAProxy + vip-manager | done |
 | P2c | Integration tests + RTO measurement | pending |
 | P3 | Provisioning (users, databases, extensions, HBA) | pending |
 | P4 | Backups (pgBackRest, repo host, S3 offsite, PITR) | pending |
