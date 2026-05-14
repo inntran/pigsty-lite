@@ -1,4 +1,13 @@
 ---
+- name: Install bootstrap tooling
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ensure iproute is present
+      ansible.builtin.dnf:
+        name: iproute
+        state: present
+
 - name: Prepare - generate CA on control side
   hosts: localhost
   gather_facts: false
@@ -20,11 +29,6 @@
     firewalld_default_zone: public
     node_sysctl_apply: false
   pre_tasks:
-    - name: Ensure iproute is present
-      ansible.builtin.dnf:
-        name: iproute
-        state: present
-
     - name: Pin advertise address to container IP
       ansible.builtin.set_fact:
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"

@@ -35,7 +35,7 @@ def test_haproxy_role_enables_nonlocal_bind_for_vip_manager():
 
 
 def test_haproxy_service_waits_for_bound_ports_not_loopback_data_ports():
-    service_tasks = _load_tasks("roles/haproxy/tasks/_service.yml")
+    service_tasks = _load_tasks("roles/haproxy/tasks/main.yml")
 
     assert any(
         "ss -H -ltn" in task.get("ansible.builtin.command", {}).get("cmd", "")
