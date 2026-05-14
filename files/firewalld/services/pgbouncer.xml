@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>pgbouncer</short>
+  <description>pgBouncer connection pooler. Disabled by default; apps go via HAProxy.</description>
+  <port protocol="tcp" port="6432"/>
+</service>
