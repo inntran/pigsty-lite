@@ -1,0 +1,137 @@
+---
+- name: Pin ansible_host
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Set ansible_host
+      ansible.builtin.set_fact:
+        ansible_host: "{{ ansible_default_ipv4.address }}"
+
+- name: Verify haproxy on every host
+  hosts: postgres
+  become: true
+  tasks:
+    - name: haproxy active
+      ansible.builtin.systemd:
+        name: haproxy
+      register: hap_unit
+
+    - name: Assert active
+      ansible.builtin.assert:
+        that:
+          - hap_unit.status.ActiveState == "active"
+
+- name: Identify the current Patroni leader
+  hosts: postgres
+  become: true
+  run_once: true
+  tasks:
+    - name: GET /cluster
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}:8008/cluster"
+        validate_certs: false
+        return_content: true
+      register: pre_cluster
+
+    - name: Extract leader hostname
+      ansible.builtin.set_fact:
+        leader_host: >-
+          {{ (pre_cluster.json.members
+              | selectattr('role', 'equalto', 'leader')
+              | list | first).name }}
+
+    - name: Print leader
+      ansible.builtin.debug:
+        msg: "Current leader: {{ leader_host }}"
+
+- name: "Probe HAProxy routing (5433 = leader, 5434 = replica)"
+  hosts: postgres
+  become: true
+  tasks:
+    - name: "psql 5433 \u2192 must hit a primary"
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select inet_server_addr() || ' is_replica=' || pg_is_in_recovery()"
+      register: probe_5433
+      changed_when: false
+      retries: 10
+      delay: 3
+      until: probe_5433.rc == 0
+
+    - name: Assert 5433 hit a primary
+      ansible.builtin.assert:
+        that:
+          - "'is_replica=f' in probe_5433.stdout or 'is_replica=false' in probe_5433.stdout"
+        fail_msg: "5433 routed to a replica. Got: {{ probe_5433.stdout }}"
+
+    - name: "psql 5434 \u2192 must hit a replica"
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select inet_server_addr() || ' is_replica=' || pg_is_in_recovery()"
+      register: probe_5434
+      changed_when: false
+      retries: 10
+      delay: 3
+      until: probe_5434.rc == 0
+
+    - name: Assert 5434 hit a replica
+      ansible.builtin.assert:
+        that:
+          - "'is_replica=t' in probe_5434.stdout or 'is_replica=true' in probe_5434.stdout"
+        fail_msg: "5434 routed to a primary. Got: {{ probe_5434.stdout }}"
+
+- name: Switchover and re-probe
+  hosts: postgres
+  become: true
+  run_once: true
+  tasks:
+    - name: "Pick a switchover candidate (any non-leader replica)"
+      ansible.builtin.set_fact:
+        candidate_host: >-
+          {{ (pre_cluster.json.members
+              | selectattr('role', 'equalto', 'replica')
+              | list | first).name }}
+
+    - name: patronictl switchover
+      ansible.builtin.command: >
+        patronictl -c /etc/patroni/patroni.yml switchover
+        --leader {{ leader_host }} --candidate {{ candidate_host }}
+        --force
+      become_user: postgres
+      changed_when: true
+      register: switchover
+
+    - name: Wait for new leader to be {{ candidate_host }}
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}:8008/cluster"
+        validate_certs: false
+        return_content: true
+      register: post_cluster
+      retries: 30
+      delay: 2
+      until: >-
+        (post_cluster.json.members
+         | selectattr('role', 'equalto', 'leader')
+         | map(attribute='name') | list | first) == candidate_host
+
+- name: 5433 follows the new leader
+  hosts: postgres
+  become: true
+  tasks:
+    - name: psql 5433 after switchover
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select pg_is_in_recovery()"
+      register: post_probe_5433
+      changed_when: false
+      retries: 30
+      delay: 2
+      until: post_probe_5433.rc == 0 and post_probe_5433.stdout.strip() in ['f', 'false']
+
+    - name: Assert 5433 still hits a primary after switchover
+      ansible.builtin.assert:
+        that:
+          - post_probe_5433.stdout.strip() in ['f', 'false']

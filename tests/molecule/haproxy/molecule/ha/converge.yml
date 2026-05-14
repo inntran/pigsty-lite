@@ -1,0 +1,19 @@
+---
+- name: Pin ansible_host to each container's network IP
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Set ansible_host = default IPv4
+      ansible.builtin.set_fact:
+        ansible_host: "{{ ansible_default_ipv4.address }}"
+
+- name: Converge - apply haproxy role on every host
+  hosts: postgres
+  become: true
+  gather_facts: true
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
+    - role: ../../../../../roles/haproxy
