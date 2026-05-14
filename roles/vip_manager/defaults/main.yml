@@ -1,0 +1,44 @@
+---
+# roles/vip_manager/defaults/main.yml
+# Variables prefixed `vip_manager_`. The vip-manager package ships in
+# PGDG-extras (already enabled by the P0 repos role).
+
+# Master gate - role is a no-op when false (the default).
+vip_manager_enabled: false
+
+# Package
+vip_manager_package: vip-manager
+vip_manager_service_name: vip-manager
+
+# Config
+vip_manager_config_file: /etc/vip-manager.yml
+
+# DCS
+vip_manager_dcs_type: etcd3
+vip_manager_dcs_protocol: https
+vip_manager_dcs_endpoints: >-
+  [{% for h in groups['etcd'] -%}
+    "{{ vip_manager_dcs_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
+    {%- if not loop.last %},{% endif %}
+  {%- endfor %}]
+vip_manager_dcs_cacert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/ca.crt"
+vip_manager_dcs_cert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
+vip_manager_dcs_key: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.key"
+
+# Cluster identity (matches patroni_scope from P2a)
+vip_manager_scope: "{{ cluster_name | default('pigsty-lite') }}"
+vip_manager_trigger_key: "/service/{{ vip_manager_scope }}/leader"
+vip_manager_trigger_value: "{{ inventory_hostname }}"
+
+# Networking
+# operator MUST set vip_manager_vip_cidr and vip_manager_interface if enabling.
+# We do not pick defaults that would silently bind a random address.
+vip_manager_vip_cidr: ""
+vip_manager_interface: ""
+vip_manager_hosting_type: basic  # basic | hetzner
+
+# Loop tuning
+vip_manager_loop_wait_seconds: 1
+vip_manager_retry_after_seconds: 2
+
+# Firewalld - vip-manager itself does not listen on a port; nothing to open.
