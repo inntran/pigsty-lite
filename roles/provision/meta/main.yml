@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: provision
+  author: pigsty-lite
+  description: Apply declarative HBA, roles, databases, and extensions on the Patroni leader.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
