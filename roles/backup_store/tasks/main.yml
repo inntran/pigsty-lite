@@ -1,0 +1,28 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [backup, assert]
+
+- name: Install pgBackRest and prepare the repository
+  ansible.builtin.import_tasks: _install.yml
+  tags: [backup, install]
+
+- name: Accept SSH keys from postgres nodes
+  ansible.builtin.import_tasks: _ssh.yml
+  tags: [backup, ssh]
+
+- name: Render server-side pgBackRest configuration
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [backup, config]
+
+- name: Open firewalld for SSH from postgres nodes
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [backup, firewall]
+
+- name: Create the pgBackRest stanza
+  ansible.builtin.import_tasks: _stanza.yml
+  tags: [backup, service]
+
+- name: Install scheduled backup timers
+  ansible.builtin.import_tasks: _timers.yml
+  tags: [backup, service]
