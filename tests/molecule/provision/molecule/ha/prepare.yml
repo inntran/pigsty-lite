@@ -13,7 +13,9 @@
   tasks:
     - name: Install sudo
       ansible.builtin.package:
-        name: sudo
+        name:
+          - sudo
+          - iproute
         state: present
 
 - name: Prepare - repos, node, certs, etcd, postgres, patroni
