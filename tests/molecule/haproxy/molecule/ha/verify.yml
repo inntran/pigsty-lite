@@ -11,7 +11,7 @@
   hosts: postgres
   become: true
   tasks:
-    - name: haproxy active
+    - name: Check HAProxy active
       ansible.builtin.systemd:
         name: haproxy
       register: hap_unit
@@ -48,7 +48,7 @@
   hosts: postgres
   become: true
   tasks:
-    - name: "psql 5433 \u2192 must hit a primary"
+    - name: "Probe psql 5433 \u2192 must hit a primary"
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.2 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
@@ -65,7 +65,7 @@
           - "'is_replica=f' in probe_5433.stdout or 'is_replica=false' in probe_5433.stdout"
         fail_msg: "5433 routed to a replica. Got: {{ probe_5433.stdout }}"
 
-    - name: "psql 5434 \u2192 must hit a replica"
+    - name: "Probe psql 5434 \u2192 must hit a replica"
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.2 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
@@ -94,11 +94,12 @@
               | selectattr('role', 'equalto', 'replica')
               | list | first).name }}
 
-    - name: patronictl switchover
+    - name: Run patronictl switchover
       ansible.builtin.command: >
         patronictl -c /etc/patroni/patroni.yml switchover
         --leader {{ leader_host }} --candidate {{ candidate_host }}
         --force
+      become: true
       become_user: postgres
       changed_when: true
       register: switchover
@@ -120,7 +121,7 @@
   hosts: postgres
   become: true
   tasks:
-    - name: psql 5433 after switchover
+    - name: Probe psql 5433 after switchover
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.2 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"

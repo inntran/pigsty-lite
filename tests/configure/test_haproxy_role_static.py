@@ -17,10 +17,7 @@ def _load_tasks(path: str) -> list[dict]:
 def test_haproxy_role_enables_nonlocal_bind_for_vip_manager():
     main_tasks = _load_tasks("roles/haproxy/tasks/main.yml")
 
-    assert any(
-        task.get("ansible.builtin.import_tasks") == "_sysctl.yml"
-        for task in main_tasks
-    )
+    assert any(task.get("ansible.builtin.import_tasks") == "_sysctl.yml" for task in main_tasks)
 
     sysctl_tasks = _load_tasks("roles/haproxy/tasks/_sysctl.yml")
     template_tasks = [
@@ -32,8 +29,7 @@ def test_haproxy_role_enables_nonlocal_bind_for_vip_manager():
     assert template_tasks[0]["src"] == "haproxy-vip-sysctl.conf.j2"
     assert template_tasks[0]["dest"] == "/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf"
     assert any(
-        task.get("ansible.builtin.command", {}).get("cmd")
-        == "sysctl --system"
+        task.get("ansible.builtin.command", {}).get("cmd") == "sysctl --system"
         for task in sysctl_tasks
     )
 

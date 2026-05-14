@@ -12,13 +12,13 @@
 - name: Fail if postgres binary missing
   ansible.builtin.stat:
     path: "/usr/pgsql-{{ postgres_version }}/bin/postgres"
-  register: pgb_pg_bin_stat
+  register: pgbouncer_pg_bin_stat
   tags: [pgbouncer, assert]
 
 - name: Assert postgres present
   ansible.builtin.assert:
     that:
-      - pgb_pg_bin_stat.stat.exists
+      - pgbouncer_pg_bin_stat.stat.exists
     fail_msg: >-
       pgBouncer requires the postgres role to have run first
       (P2a _postgres_install.yml).
@@ -89,13 +89,7 @@
     owner: root
     group: root
     mode: "0644"
-  register: pgb_fw_svc
-  tags: [pgbouncer, firewall]
-
-- name: Reload firewalld if service definition changed
-  ansible.builtin.command: firewall-cmd --reload
-  when: pgb_fw_svc.changed
-  changed_when: true
+  notify: Reload firewalld
   tags: [pgbouncer, firewall]
 
 - name: Open pgbouncer in default zone (only when explicitly enabled)

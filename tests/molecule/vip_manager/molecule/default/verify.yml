@@ -3,21 +3,19 @@
   hosts: postgres
   become: true
   tasks:
-    - name: vip-manager package NOT installed
-      ansible.builtin.command: rpm -q vip-manager
-      register: vipmgr_pkg
-      changed_when: false
-      failed_when: false
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: rpm
 
-    - name: Assert vip-manager rpm absent
+    - name: Check vip-manager package NOT installed
       ansible.builtin.assert:
         that:
-          - vipmgr_pkg.rc != 0
+          - "'vip-manager' not in ansible_facts.packages"
         fail_msg: >-
           vip-manager rpm is installed despite vip_manager_enabled=false.
           The disabled short-circuit in tasks/main.yml is broken.
 
-    - name: vip-manager.yml NOT rendered
+    - name: Check vip-manager.yml NOT rendered
       ansible.builtin.stat:
         path: /etc/vip-manager.yml
       register: vipmgr_cfg
@@ -27,13 +25,13 @@
         that:
           - not vipmgr_cfg.stat.exists
 
-    - name: vip-manager.service NOT running
-      ansible.builtin.command: systemctl is-active vip-manager
-      register: vipmgr_active
-      changed_when: false
+    - name: Check vip-manager.service NOT running
+      ansible.builtin.systemd:
+        name: vip-manager
+      register: vipmgr_unit
       failed_when: false
 
     - name: Assert service inactive
       ansible.builtin.assert:
         that:
-          - vipmgr_active.rc != 0
+          - vipmgr_unit.status.ActiveState != "active"

@@ -3,7 +3,7 @@
   hosts: postgres
   become: true
   tasks:
-    - name: pgbouncer service active
+    - name: Check PgBouncer service active
       ansible.builtin.systemd:
         name: pgbouncer
       register: pgb_unit
@@ -13,7 +13,7 @@
         that:
           - pgb_unit.status.ActiveState == "active"
 
-    - name: psql via pgbouncer (postgres user, scram auth)
+    - name: Connect via PgBouncer (postgres user, scram auth)
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.1 port=6432 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
@@ -26,7 +26,7 @@
         that:
           - "'pgbouncer-ok' in pgb_probe.stdout"
 
-    - name: pgbouncer firewalld rule is NOT in default zone (disabled by default)
+    - name: Check PgBouncer firewalld rule is NOT in default zone (disabled by default)
       ansible.builtin.command: firewall-cmd --zone=public --query-service=pgbouncer
       register: pgb_fw_query
       changed_when: false

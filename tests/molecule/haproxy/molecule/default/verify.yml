@@ -3,7 +3,7 @@
   hosts: postgres
   become: true
   tasks:
-    - name: haproxy service active
+    - name: Check HAProxy service active
       ansible.builtin.systemd:
         name: haproxy
       register: hap_unit
@@ -13,7 +13,7 @@
         that:
           - hap_unit.status.ActiveState == "active"
 
-    - name: haproxy config validates
+    - name: Validate HAProxy config
       ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
       changed_when: false
 

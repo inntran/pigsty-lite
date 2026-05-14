@@ -19,8 +19,7 @@ vip_manager_dcs_protocol: https
 vip_manager_dcs_endpoints: >-
   [{% for h in groups['etcd'] -%}
     "{{ vip_manager_dcs_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
-    {%- if not loop.last %},{% endif %}
-  {%- endfor %}]
+  {%- if not loop.last %},{% endif %}{%- endfor %}]
 vip_manager_dcs_cacert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/ca.crt"
 vip_manager_dcs_cert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
 vip_manager_dcs_key: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.key"

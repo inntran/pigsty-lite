@@ -5,7 +5,7 @@ pigsty-lite covers the critical PostgreSQL HA operational path with tighter code
 ## What pigsty-lite has that pigsty lacks
 
 | Capability | Notes |
-|---|---|
+| --- | --- |
 | Molecule CI test coverage | 11 automated scenarios across all roles; pigsty relies on manual VM testing |
 | SELinux enforcing | Required by pigsty-lite; pigsty disables it by default |
 | Galaxy-first role design | Heavy reuse of `community.postgresql`, `community.crypto`, `victoriametrics.cluster`, `grafana.grafana`; pigsty is mostly self-contained |
@@ -17,7 +17,7 @@ pigsty-lite covers the critical PostgreSQL HA operational path with tighter code
 These are the features that matter for a PostgreSQL operator. pigsty-lite covers all of them; P4 and P5 are planned phases, not missing features.
 
 | Feature | pigsty-lite | pigsty |
-|---|---|---|
+| --- | --- | --- |
 | PostgreSQL HA (Patroni + etcd) | ✅ | ✅ |
 | pgBouncer connection pooling | ✅ | ✅ |
 | HAProxy load balancing | ✅ | ✅ |
@@ -32,7 +32,7 @@ These are the features that matter for a PostgreSQL operator. pigsty-lite covers
 These are out of scope by design — pigsty-lite is a PostgreSQL operator, not an all-in-one platform.
 
 | Feature | Reason excluded |
-|---|---|
+| --- | --- |
 | Redis | Out of scope |
 | MinIO (S3-compatible object storage) | Out of scope |
 | MongoDB / FerretDB | Out of scope |
@@ -48,7 +48,7 @@ These are out of scope by design — pigsty-lite is a PostgreSQL operator, not a
 ## Architecture philosophy
 
 | Dimension | pigsty-lite | pigsty |
-|---|---|---|
+| --- | --- | --- |
 | Role count | 11 | 28 |
 | Largest role size | ~150 lines | ~1,400 lines (pgsql) |
 | External collection dependencies | Heavy (Galaxy-first) | Light (mostly self-contained) |
