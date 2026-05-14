@@ -1,0 +1,33 @@
+---
+- name: Leader was identified
+  ansible.builtin.assert:
+    that:
+      - provision_leader_host is defined
+      - provision_leader_host | length > 0
+    fail_msg: >-
+      Could not determine Patroni leader from /cluster output. Check that
+      Patroni REST is reachable and that the cluster has a leader.
+  run_once: true
+
+- name: psycopg3 is installed on the leader
+  ansible.builtin.command: /usr/bin/python3 -c "import psycopg"
+  register: provision_psycopg
+  changed_when: false
+  failed_when: provision_psycopg.rc != 0
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
+
+- name: Local socket directory exists on the leader
+  ansible.builtin.stat:
+    path: "{{ provision_dbsu_socket_dir }}"
+  register: provision_socket_dir
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
+
+- name: Local socket directory present
+  ansible.builtin.assert:
+    that:
+      - provision_socket_dir.stat.exists
+      - provision_socket_dir.stat.isdir
+    fail_msg: "PostgreSQL Unix socket dir {{ provision_dbsu_socket_dir }} missing on {{ provision_leader_host }}."
+  run_once: true
