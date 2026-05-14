@@ -1,7 +1,7 @@
 ---
 # Variables prefixed `provision_`. The role consumes `postgres_*` lists from
 # the response file (`postgres_users`, `postgres_databases`,
-# `postgres_extensions`, `postgres_hba_rules`); knobs below tune behaviour.
+# `postgres_extensions`, `postgres_hba_rules`); knobs below tune behavior.
 
 # Patroni REST endpoint for leader lookup. Per-host; the role iterates
 # until it gets a 200.

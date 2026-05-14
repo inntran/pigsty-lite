@@ -2,7 +2,7 @@
 # Render pg_hba.conf in three layers (system, monitor, operator) as a fully
 # managed file. `overwrite: true` removes pre-existing rules before writing
 # the canonical list, so hand-edits revert on the next deploy.
-- name: Initialise canonical HBA rule list
+- name: Initialize canonical HBA rule list
   ansible.builtin.set_fact:
     provision_pg_hba_rules: []
   run_once: true

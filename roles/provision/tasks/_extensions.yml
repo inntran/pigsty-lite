@@ -2,7 +2,7 @@
 # Extensions can be declared as bare strings (installed in
 # provision_extensions_in_db, default `postgres`) or as dicts with
 # explicit `db` (e.g. {name: pgvector, db: app}).
-- name: Initialise extension list
+- name: Initialize extension list
   ansible.builtin.set_fact:
     provision_extensions_full: []
   run_once: true

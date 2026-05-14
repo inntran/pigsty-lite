@@ -36,7 +36,7 @@
 
 **Modified files:**
 
-- `roles/patroni/templates/patroni.yml.j2:63-68` — shrink the bootstrap `pg_hba` to the minimum for first init: the role HBA section becomes `[local all all peer, host all postgres 127.0.0.1/32 trust, host replication <replicator> 127.0.0.1/32 trust, hostssl replication <replicator> 0.0.0.0/0 cert]`. The wildcard `hostssl all all 0.0.0.0/0 scram-sha-256` line is **removed** — it must be added by `provision` when the operator declares HBA rules. This is a behaviour change; see Task 12 for the migration test.
+- `roles/patroni/templates/patroni.yml.j2:63-68` — shrink the bootstrap `pg_hba` to the minimum for first init: the role HBA section becomes `[local all all peer, host all postgres 127.0.0.1/32 trust, host replication <replicator> 127.0.0.1/32 trust, hostssl replication <replicator> 0.0.0.0/0 cert]`. The wildcard `hostssl all all 0.0.0.0/0 scram-sha-256` line is **removed** — it must be added by `provision` when the operator declares HBA rules. This is a behavior change; see Task 12 for the migration test.
 - `bin/_response_schema.py` — extend `_validate_postgres` to also validate `postgres.users` (list of `{name, password, roles?}`) and `postgres.databases` (list of `{name, owner?}`) and `postgres.extensions` (list of strings). Today the generator copies these through but the schema does not check them.
 - `responses/single.rsp.yml.example` and `responses/ha.rsp.yml.example` — already declare `extensions`, `databases`, `users`, `hba_rules`. No content change; we add a comment block above them pointing at P3's day-2 workflow.
 - `.github/workflows/molecule.yml` — extend matrix with `provision/default` (single-node) and `provision/ha` (3-node).
@@ -85,7 +85,7 @@ postgres_osdba: postgres
 # roles/provision/defaults/main.yml
 # Variables prefixed `provision_`. The role consumes `postgres_*` lists from
 # the response file (`postgres_users`, `postgres_databases`,
-# `postgres_extensions`, `postgres_hba_rules`); knobs below tune behaviour.
+# `postgres_extensions`, `postgres_hba_rules`); knobs below tune behavior.
 # `postgres_osdba` is cluster-wide and lives in group_vars/all.yml, not here.
 
 # Patroni REST endpoint for leader lookup. Per-host; the role iterates
@@ -571,9 +571,9 @@ git commit -m "feat(provision): manage databases"
 # provision_extensions_in_db, default `postgres`) or as dicts with
 # explicit `db` (e.g. {name: pgvector, db: app}).
 
-- name: Normalise extension list
+- name: Normalize extension list
   ansible.builtin.set_fact:
-    provision_extensions_normalised: >-
+    provision_extensions_normalized: >-
       {{ (postgres_extensions | default([])) | map('community.general.dict_kv', 'name')
          | list
          | map('combine', {'db': provision_extensions_in_db}, recursive=False)
@@ -584,7 +584,7 @@ git commit -m "feat(provision): manage databases"
 
 # The set_fact above keeps the existing string entries usable. When an
 # operator declares dicts directly, those dicts win as-is.
-- name: Build per-entry extension list (full normalisation)
+- name: Build per-entry extension list (full normalization)
   ansible.builtin.set_fact:
     provision_extensions_full: >-
       {{ (postgres_extensions | default([])) | map(
