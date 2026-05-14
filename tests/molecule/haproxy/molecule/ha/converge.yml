@@ -5,7 +5,7 @@
   tasks:
     - name: Set ansible_host = default IPv4
       ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_default_ipv4.address }}"
+        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: Converge - apply haproxy role on every host
   hosts: postgres

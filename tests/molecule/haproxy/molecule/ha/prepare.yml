@@ -5,7 +5,7 @@
   tasks:
     - name: Set ansible_host = default IPv4
       ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_default_ipv4.address }}"
+        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: Prepare - generate CA on control side
   hosts: localhost
@@ -29,7 +29,7 @@
     certs_subject_alternative_names:
       - "DNS:{{ inventory_hostname }}"
       - "DNS:{{ inventory_hostname }}.test.local"
-      - "IP:{{ ansible_default_ipv4.address }}"
+      - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/certs

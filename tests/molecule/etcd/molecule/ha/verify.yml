@@ -5,7 +5,7 @@
   tasks:
     - name: Re-derive etcd advertise address
       ansible.builtin.set_fact:
-        etcd_advertise_address: "{{ ansible_default_ipv4.address }}"
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 
     - name: Etcd service is active
       ansible.builtin.systemd:

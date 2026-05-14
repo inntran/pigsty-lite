@@ -5,7 +5,7 @@
   tasks:
     - name: Use podman-network IPv4 for Patroni checks
       ansible.builtin.set_fact:
-        patroni_advertise_address: "{{ ansible_default_ipv4.address }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: Verify each member
   hosts: postgres

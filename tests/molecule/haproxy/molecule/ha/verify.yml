@@ -5,7 +5,7 @@
   tasks:
     - name: Set ansible_host
       ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_default_ipv4.address }}"
+        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: Verify haproxy on every host
   hosts: postgres
