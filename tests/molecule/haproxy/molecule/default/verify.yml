@@ -1,0 +1,75 @@
+---
+- name: Verify
+  hosts: postgres
+  become: true
+  tasks:
+    - name: haproxy service active
+      ansible.builtin.systemd:
+        name: haproxy
+      register: hap_unit
+
+    - name: Assert haproxy active
+      ansible.builtin.assert:
+        that:
+          - hap_unit.status.ActiveState == "active"
+
+    - name: haproxy config validates
+      ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
+      changed_when: false
+
+    - name: "5432 routes to primary (single-node cluster: same host)"
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5432 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select pg_is_in_recovery()"
+      register: probe_5432
+      changed_when: false
+      retries: 6
+      delay: 5
+      until: probe_5432.rc == 0
+
+    - name: "Assert 5432 hit primary (pg_is_in_recovery=false)"
+      ansible.builtin.assert:
+        that:
+          - probe_5432.stdout.strip() in ['f', 'false']
+
+    - name: 5433 routes to primary
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select pg_is_in_recovery()"
+      register: probe_5433
+      changed_when: false
+      retries: 6
+      delay: 5
+      until: probe_5433.rc == 0
+
+    - name: Assert 5433 hit primary
+      ansible.builtin.assert:
+        that:
+          - probe_5433.stdout.strip() in ['f', 'false']
+
+    - name: "5434 has no healthy backends on a single-node cluster"
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select 1"
+      register: probe_5434
+      changed_when: false
+      failed_when: false
+
+    - name: Assert 5434 refuses (no replicas exist in single profile)
+      ansible.builtin.assert:
+        that:
+          - probe_5434.rc != 0
+
+    - name: Stats listener bound to loopback only
+      ansible.builtin.command: ss -tln
+      register: ss_out
+      changed_when: false
+
+    - name: Assert stats on 127.0.0.1:7000, not on 0.0.0.0:7000
+      ansible.builtin.assert:
+        that:
+          - "'127.0.0.1:7000' in ss_out.stdout"
+          - "'0.0.0.0:7000' not in ss_out.stdout"

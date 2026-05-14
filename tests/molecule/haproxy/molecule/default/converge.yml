@@ -1,0 +1,11 @@
+---
+- name: Converge - apply haproxy role
+  hosts: postgres
+  become: true
+  gather_facts: true
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
+    - role: ../../../../../roles/haproxy
