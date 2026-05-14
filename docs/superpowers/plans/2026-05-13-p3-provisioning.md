@@ -4,7 +4,7 @@
 
 **Goal:** Make the cluster usable to applications. After P3, an operator edits `responses/site.rsp.yml` and `make deploy` creates/updates PostgreSQL roles, databases, installed extensions, and pg_hba rules from declarative input on the Patroni leader, with steady-state idempotence.
 
-**Architecture:** A single new thin role `roles/provision/` runs `run_once: true` against the `postgres` group, delegating to whichever host currently holds the Patroni leader (looked up via `https://<host>:8008/cluster`). It uses the official `community.postgresql` collection (`postgresql_user`, `postgresql_db`, `postgresql_ext`, `postgresql_pg_hba`) over the local Unix socket as the `postgres` superuser — no network round-trips, no password-in-flight. pg_hba is fully managed: the role renders the canonical rule set (system rules + monitor + operator rules from `postgres_hba_rules`) into `postgresql.auto.conf`'s `hba_file` location and signals Patroni to reload (`PATCH /config` with no body triggers `pg_reload_conf()`; we use `postgresql_query SELECT pg_reload_conf()` for clarity). Patroni's bootstrap-time `pg_hba` block in `patroni.yml.j2` is downgraded to the minimum required for first init (local + replication peers); steady-state HBA lives in the `provision` role.
+**Architecture:** A single new thin role `roles/provision/` runs `run_once: true` against the `postgres` group, delegating to whichever host currently holds the Patroni leader (looked up via `https://<host>:8008/cluster`). It uses the official `community.postgresql` collection (`postgresql_user`, `postgresql_db`, `postgresql_ext`, `postgresql_pg_hba`) over the local Unix socket as the OS database superuser (`postgres_osdba`, default `postgres` — the OS account that owns the data directory and the `postgres` process, analogous to Oracle's `oracle` software owner) — no network round-trips, no password-in-flight. pg_hba is fully managed: the role renders the canonical rule set (system rules + monitor + operator rules from `postgres_hba_rules`) into `postgresql.auto.conf`'s `hba_file` location and signals Patroni to reload (`PATCH /config` with no body triggers `pg_reload_conf()`; we use `postgresql_query SELECT pg_reload_conf()` for clarity). Patroni's bootstrap-time `pg_hba` block in `patroni.yml.j2` is downgraded to the minimum required for first init (local + replication peers); steady-state HBA lives in the `provision` role.
 
 **Tech Stack:** Ansible role + `community.postgresql` collection (already pinned in `requirements.yml`), `python3-psycopg3` (already installed by P2a's patroni role), `ansible.builtin.uri` for the Patroni REST leader lookup, Molecule + podman for the role test, single-node and ha scenarios.
 
@@ -14,11 +14,11 @@
 
 **New files (in `roles/provision/`):**
 
-- `roles/provision/defaults/main.yml` — empty defaults plus `provision_*` knobs (idempotence-related: `provision_pg_hba_managed: true`, `provision_db_owner_default: postgres`, `provision_extensions_in_db: postgres`).
+- `roles/provision/defaults/main.yml` — empty defaults plus `provision_*` knobs (idempotence-related: `provision_pg_hba_managed: true`, `provision_db_owner_default: postgres`, `provision_extensions_in_db: postgres`). The OS database superuser is **not** a `provision_` knob — it's a cluster-wide fact (`postgres_osdba`), so it lives in `group_vars/all.yml` (Task 1 Step 1) and the role just references it.
 - `roles/provision/meta/main.yml` — galaxy_info, no role deps (collection deps live in `requirements.yml`).
 - `roles/provision/tasks/main.yml` — orchestrate: leader lookup → run on leader → assert preconditions → render HBA → manage roles → manage dbs → manage extensions → reload PG.
 - `roles/provision/tasks/_leader.yml` — look up the current Patroni leader (sets `provision_leader_host`).
-- `roles/provision/tasks/_assert.yml` — assert leader found, postgres dbsu reachable, `community.postgresql` collection present.
+- `roles/provision/tasks/_assert.yml` — assert leader found, OS database superuser (`postgres_osdba`) socket reachable, `community.postgresql` collection present.
 - `roles/provision/tasks/_hba.yml` — render `pg_hba.conf` lines via `community.postgresql.postgresql_pg_hba` (one task per rule), then signal reload via handler.
 - `roles/provision/tasks/_users.yml` — `community.postgresql.postgresql_user` per `postgres_users` entry.
 - `roles/provision/tasks/_databases.yml` — `community.postgresql.postgresql_db` per `postgres_databases` entry.
@@ -31,6 +31,7 @@
 - `playbooks/_provision.yml` — runs the `provision` role with `become: true`, `become_user: postgres`, on `postgres` group with `run_once: true` semantics enforced inside the role via leader delegation.
 - `playbooks/site.yml` — modify to import `_provision.yml` after `_vip_manager.yml`.
 - `playbooks/tags.md` — add `provision` module tag.
+- `group_vars/all.yml` — add `postgres_osdba: postgres` (the OS account owning the data dir and `postgres` process; named for the Oracle `OSDBA` group convention). Cluster-wide, referenced by the `provision` role.
 - `group_vars/postgres.yml` — already carries `patroni_superuser` / `patroni_superuser_password`; no change needed unless we add `provision_*` knobs (we don't — defaults live in the role).
 
 **Modified files:**
@@ -58,12 +59,26 @@
 
 ---
 
-## Task 1: provision role defaults
+## Task 1: cluster-wide `postgres_osdba` + provision role defaults
 
 **Files:**
+- Modify: `group_vars/all.yml`
 - Create: `roles/provision/defaults/main.yml`
 
-- [ ] **Step 1: Write defaults**
+- [ ] **Step 1: Add `postgres_osdba` to `group_vars/all.yml`**
+
+Open `group_vars/all.yml`. In the postgres-related block (near `postgres_port` / `postgres_version`), add:
+
+```yaml
+# OS database superuser: the OS account that owns the PostgreSQL data
+# directory and runs the `postgres` process. Named for the Oracle
+# `OSDBA` group convention (cf. the `oracle` software owner). The
+# provision role connects over the local Unix socket as this account
+# (peer auth — no password on the wire).
+postgres_osdba: postgres
+```
+
+- [ ] **Step 2: Write provision role defaults**
 
 ```yaml
 ---
@@ -71,6 +86,7 @@
 # Variables prefixed `provision_`. The role consumes `postgres_*` lists from
 # the response file (`postgres_users`, `postgres_databases`,
 # `postgres_extensions`, `postgres_hba_rules`); knobs below tune behaviour.
+# `postgres_osdba` is cluster-wide and lives in group_vars/all.yml, not here.
 
 # Patroni REST endpoint for leader lookup. Per-host; the role iterates
 # until it gets a 200.
@@ -79,9 +95,11 @@ provision_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
 provision_patroni_rest_validate_certs: false
 provision_patroni_rest_timeout: 5
 
-# Become as the OS dbsu over the local Unix socket. Avoids password-on-the-wire.
-provision_dbsu: "{{ patroni_superuser | default('postgres') }}"
-provision_dbsu_socket_dir: /var/run/postgresql
+# Connect as the OS database superuser over the local Unix socket.
+# Avoids password-on-the-wire. `postgres_osdba` is defined in
+# group_vars/all.yml; the default below is a safety net only.
+provision_osdba: "{{ postgres_osdba | default('postgres') }}"
+provision_osdba_socket_dir: /var/run/postgresql
 
 # Where to install extensions when the response file doesn't say.
 # Most cluster-level extensions (pg_stat_statements) live in `postgres`;
@@ -101,16 +119,16 @@ provision_pg_hba_system_rules:
 provision_pg_hba_monitor_rules: []
 ```
 
-- [ ] **Step 2: Lint**
+- [ ] **Step 3: Lint**
 
-Run: `yamllint roles/provision/defaults/main.yml`
+Run: `yamllint group_vars/all.yml roles/provision/defaults/main.yml`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add roles/provision/defaults/main.yml
-git commit -m "feat(provision): role defaults"
+git add group_vars/all.yml roles/provision/defaults/main.yml
+git commit -m "feat(provision): cluster-wide postgres_osdba + role defaults"
 ```
 
 ---
@@ -330,7 +348,7 @@ git commit -m "feat(provision): patroni leader lookup"
 
 - name: Local socket directory exists on the leader
   ansible.builtin.stat:
-    path: "{{ provision_dbsu_socket_dir }}"
+    path: "{{ provision_osdba_socket_dir }}"
   register: provision_socket_dir
   delegate_to: "{{ provision_leader_host }}"
   run_once: true
@@ -340,7 +358,7 @@ git commit -m "feat(provision): patroni leader lookup"
     that:
       - provision_socket_dir.stat.exists
       - provision_socket_dir.stat.isdir
-    fail_msg: "PostgreSQL Unix socket dir {{ provision_dbsu_socket_dir }} missing on {{ provision_leader_host }}."
+    fail_msg: "PostgreSQL Unix socket dir {{ provision_osdba_socket_dir }} missing on {{ provision_leader_host }}."
   run_once: true
 ```
 
@@ -442,7 +460,7 @@ git commit -m "feat(provision): pg_hba management"
 
 ```yaml
 ---
-# Use the local Unix socket as the postgres dbsu. `login_unix_socket`
+# Connect over the local Unix socket as the OS database superuser. `login_unix_socket`
 # avoids passing a password and avoids depending on pg_hba ordering for
 # the bootstrap-time `local all all peer` rule.
 
@@ -453,11 +471,11 @@ git commit -m "feat(provision): pg_hba management"
     role_attr_flags: "{{ item.role_attr_flags | default('LOGIN') }}"
     db: "{{ item.db | default(omit) }}"
     state: present
-    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
-    login_user: "{{ provision_dbsu }}"
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
     encrypted: true
   become: true
-  become_user: "{{ provision_dbsu }}"
+  become_user: "{{ provision_osdba }}"
   loop: "{{ postgres_users | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
@@ -470,10 +488,10 @@ git commit -m "feat(provision): pg_hba management"
     source_role: "{{ item.0.name }}"
     target_roles: "{{ item.1 }}"
     state: present
-    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
-    login_user: "{{ provision_dbsu }}"
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
   become: true
-  become_user: "{{ provision_dbsu }}"
+  become_user: "{{ provision_osdba }}"
   loop: >-
     {{ (postgres_users | default([]))
        | subelements('roles', skip_missing=True) }}
@@ -509,16 +527,16 @@ git commit -m "feat(provision): manage PostgreSQL roles and memberships"
 - name: Create / update databases
   community.postgresql.postgresql_db:
     name: "{{ item.name }}"
-    owner: "{{ item.owner | default(provision_dbsu) }}"
+    owner: "{{ item.owner | default(provision_osdba) }}"
     encoding: "{{ item.encoding | default('UTF8') }}"
     lc_collate: "{{ item.lc_collate | default('C.UTF-8') }}"
     lc_ctype: "{{ item.lc_ctype | default('C.UTF-8') }}"
     template: "{{ item.template | default('template1') }}"
     state: present
-    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
-    login_user: "{{ provision_dbsu }}"
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
   become: true
-  become_user: "{{ provision_dbsu }}"
+  become_user: "{{ provision_osdba }}"
   loop: "{{ postgres_databases | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
@@ -582,10 +600,10 @@ git commit -m "feat(provision): manage databases"
     name: "{{ item.name }}"
     db: "{{ item.db | default(provision_extensions_in_db) }}"
     state: present
-    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
-    login_user: "{{ provision_dbsu }}"
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
   become: true
-  become_user: "{{ provision_dbsu }}"
+  become_user: "{{ provision_osdba }}"
   loop: "{{ provision_extensions_full }}"
   loop_control:
     label: "{{ item.name }} in {{ item.db | default(provision_extensions_in_db) }}"
@@ -619,11 +637,11 @@ git commit -m "feat(provision): manage extensions"
 - name: Reload PostgreSQL
   community.postgresql.postgresql_query:
     query: "SELECT pg_reload_conf()"
-    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
-    login_user: "{{ provision_dbsu }}"
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
     db: postgres
   become: true
-  become_user: "{{ provision_dbsu }}"
+  become_user: "{{ provision_osdba }}"
   delegate_to: "{{ provision_leader_host }}"
   run_once: true
 ```
@@ -1547,7 +1565,7 @@ No commit for this task — it's verification only.
 
 2. **Placeholder scan.** No `TBD`, no `TODO`, no `implement later`. Task 16 step 2 explicitly repeats the prepare.yml from Task 15 verbatim per the no-placeholder rule. Task 19 step 2 acknowledges minor wording drift in README and gives a fallback ("update what's there") but the engineer has the exact strings to look for via Step 1 grep.
 
-3. **Variable / type consistency.** `provision_leader_host` is set in Task 4 and referenced in Tasks 5, 6, 7, 8, 9, 10, 16. `provision_dbsu` and `provision_dbsu_socket_dir` defined in Task 1 and used everywhere consistently. `provision_extensions_in_db` defined Task 1, used Task 9. `provision_pg_hba_path` defined Task 1, used Task 6. `provision_pg_hba_system_rules` defined Task 1, consumed Task 6. `postgres_users`, `postgres_databases`, `postgres_extensions`, `postgres_hba_rules` come from `group_vars/response.yml` (already populated by `bin/_generate_response_vars.py`). `patroni_replication_user`, `patroni_superuser` defaults match the existing patroni role.
+3. **Variable / type consistency.** `provision_leader_host` is set in Task 4 and referenced in Tasks 5, 6, 7, 8, 9, 10, 16. `provision_osdba` and `provision_osdba_socket_dir` defined in Task 1 and used everywhere consistently. `provision_extensions_in_db` defined Task 1, used Task 9. `provision_pg_hba_path` defined Task 1, used Task 6. `provision_pg_hba_system_rules` defined Task 1, consumed Task 6. `postgres_users`, `postgres_databases`, `postgres_extensions`, `postgres_hba_rules` come from `group_vars/response.yml` (already populated by `bin/_generate_response_vars.py`). `patroni_replication_user`, `patroni_superuser` defaults match the existing patroni role.
 
 4. **Migration risk for Task 11 (Patroni HBA shrink).** Task 11 removes the bootstrap-time `hostssl all all 0.0.0.0/0 scram-sha-256` line. **For new clusters**, this is fine — `provision` runs on the same `make deploy` and adds the operator's HBA rules before any client tries to connect. **For pre-P3 clusters**, `pg_hba.conf` was already initdb'd with the wildcard; removing it from the bootstrap template does NOT touch a running cluster's pg_hba.conf, because Patroni's bootstrap block is only consulted at `initdb` time. So existing deployments are not regressed by Task 11's text change. The first `make deploy` after upgrading to P3 will rewrite pg_hba via `provision`, which will preserve operator rules (they're still in the response file).
 
