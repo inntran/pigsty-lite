@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 extend-exclude = [".venv", ".uv-cache", "collections", ".ansible"]
 
 [tool.ruff.lint]
@@ -14,3 +14,10 @@ quote-style = "double"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
+
+[dependency-groups]
+dev = [
+    "jinja2>=3.1.6",
+    "pytest>=9.0.3",
+    "pyyaml>=6.0.3",
+]
