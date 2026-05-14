@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: vip_manager
+  author: pigsty-lite
+  description: Optional L2 VIP bound to the current Patroni leader.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
