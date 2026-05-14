@@ -1,0 +1,75 @@
+---
+- name: Verify role / db / ext / HBA on leader
+  hosts: postgres
+  become: true
+  become_user: postgres
+  gather_facts: false
+  tasks:
+    - name: Role 'app' exists
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      register: q_role
+      changed_when: false
+
+    - name: Assert role exists
+      ansible.builtin.assert:
+        that:
+          - q_role.rowcount == 1
+
+    - name: Database 'app' exists
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      register: q_db
+      changed_when: false
+
+    - name: Assert database exists
+      ansible.builtin.assert:
+        that:
+          - q_db.rowcount == 1
+
+    - name: Extension pg_stat_statements installed in postgres db
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      register: q_pgss
+      changed_when: false
+
+    - name: Assert pg_stat_statements present
+      ansible.builtin.assert:
+        that:
+          - q_pgss.rowcount == 1
+
+    - name: Extension pgvector installed in app db
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
+        db: app
+        login_unix_socket: /var/run/postgresql
+      register: q_pgv
+      changed_when: false
+
+    - name: Assert pgvector present in app
+      ansible.builtin.assert:
+        that:
+          - q_pgv.rowcount == 1
+
+    - name: pg_hba contains app rule
+      ansible.builtin.command: >-
+        grep -E "^hostssl[[:space:]]+app[[:space:]]+app[[:space:]]+127\.0\.0\.1/32"
+        /var/lib/pgsql/18/data/pg_hba.conf
+      register: hba_grep
+      changed_when: false
+      failed_when: hba_grep.rc != 0
+
+    - name: psql as 'app' over the wire works
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 dbname=app user=app password=app-test-pw sslmode=require"
+        -tAc "select 1"
+      register: probe
+      changed_when: false
+      failed_when: probe.rc != 0 or probe.stdout.strip() != "1"
