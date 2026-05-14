@@ -1,0 +1,5 @@
+---
+- name: Install vip-manager from PGDG-extras
+  ansible.builtin.dnf:
+    name: "{{ vip_manager_package }}"
+    state: present

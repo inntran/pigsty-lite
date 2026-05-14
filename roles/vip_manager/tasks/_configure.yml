@@ -1,0 +1,9 @@
+---
+- name: Render vip-manager.yml
+  ansible.builtin.template:
+    src: vip-manager.yml.j2
+    dest: "{{ vip_manager_config_file }}"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart vip-manager

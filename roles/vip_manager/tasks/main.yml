@@ -1,0 +1,20 @@
+---
+- name: Short-circuit when vip-manager is disabled
+  ansible.builtin.meta: end_play
+  when: not (vip_manager_enabled | bool)
+
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [vip_manager, assert]
+
+- name: Install vip-manager
+  ansible.builtin.import_tasks: _install.yml
+  tags: [vip_manager, install]
+
+- name: Render vip-manager config
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [vip_manager, config]
+
+- name: Start vip-manager
+  ansible.builtin.import_tasks: _service.yml
+  tags: [vip_manager, service]
