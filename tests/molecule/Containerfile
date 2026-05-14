@@ -1,9 +1,15 @@
-FROM docker.io/rockylinux/rockylinux:10-ubi-init
+FROM container-registry.oracle.com/os/oraclelinux:10
+
+# Enable Oracle Linux repos needed for molecule packages
+RUN dnf install -y oracle-epel-release-el10 \
+    && dnf clean all
 
 # Install PGDG repo
 RUN dnf install -y \
     https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
-    && dnf --enablerepo=pgdg-common clean all
+    && dnf config-manager --enable pgdg-rhel10-extras \
+    && dnf config-manager --disable pgdg14 pgdg15 pgdg16 pgdg17 \
+    && dnf clean all
 
 # Install all packages needed across molecule scenarios
 RUN dnf install -y \
@@ -24,3 +30,5 @@ RUN dnf install -y \
     pgbouncer \
     haproxy \
     && dnf clean all
+
+CMD ["/sbin/init"]
