@@ -33,11 +33,11 @@
 - name: Scan the backup_store host key into known_hosts
   ansible.builtin.known_hosts:
     path: "{{ backup_client_ssh_dir }}/known_hosts"
-    name: "{{ hostvars[backup_client_repo_host].ansible_host }}"
+    name: "{{ hostvars[backup_client_store_host].ansible_host }}"
     key: >-
       {{ lookup('pipe',
          'ssh-keyscan -p ' ~ backup_client_ssh_port ~ ' -t ed25519 '
-         ~ hostvars[backup_client_repo_host].ansible_host) }}
+         ~ hostvars[backup_client_store_host].ansible_host) }}
     state: present
   become: true
   become_user: "{{ backup_client_pg_user }}"

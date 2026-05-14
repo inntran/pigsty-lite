@@ -1,8 +1,8 @@
 # {{ ansible_managed }}
 # pgBackRest client config for {{ inventory_hostname }}.
 [global]
-repo1-host={{ hostvars[backup_client_repo_host].ansible_host }}
-repo1-host-user={{ backup_client_repo_user }}
+repo1-host={{ hostvars[backup_client_store_host].ansible_host }}
+repo1-host-user={{ backup_client_store_user }}
 repo1-host-port={{ backup_client_ssh_port }}
 log-level-console=info
 log-level-file=detail

@@ -4,14 +4,14 @@ The pgBackRest client side. Targets the `postgres` group. On every
 postgres node it installs pgBackRest, generates a dedicated SSH keypair
 (owned by the `postgres` OS user), and renders the client config. On the
 current Patroni leader only, it sets PostgreSQL's `archive_command`
-through Patroni's dynamic config and creates the stanza.
+through Patroni's dynamic config.
 
 ## Inputs (from response file, via group_vars)
 
 | Variable | Meaning | Default |
 |---|---|---|
 | `backup_stanza` | stanza name | `{{ cluster_name }}` |
-| `backup_repo_user` | repo user on the store host | `pgbackrest` |
+| `backup_store_user` | store user on the store host | `pgbackrest` |
 | `postgres_osdba` | OS account running PostgreSQL | `postgres` |
 
 ## What this role owns
@@ -23,9 +23,9 @@ through Patroni's dynamic config and creates the stanza.
 
 ## What this role does NOT own
 
-- The repository directory or `authorized_keys` - that's `backup_store`.
-- Stanza creation - that's `backup_store` (the repo is remote from the
-  client's perspective, so `stanza-create` runs on the repo host).
+- The backup store directory or `authorized_keys` - that's `backup_store`.
+- Stanza creation - that's `backup_store` (the store is remote from the
+  client's perspective, so `stanza-create` runs on the backup store host).
 - Scheduled backup timers - that's `backup_store`.
 - Restore / PITR - separate plan.
 

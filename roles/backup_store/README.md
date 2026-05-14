@@ -1,7 +1,7 @@
 # backup_store
 
-The pgBackRest repository host. Targets the `backup_store` group (one
-host; by default colocated with `monitor`). Owns the repository at
+The pgBackRest backup store host. Targets the `backup_store` group (one
+host; by default colocated with `monitor`). Owns the backup store at
 `/var/lib/pgbackrest`, accepts SSH public keys from the postgres nodes,
 and runs scheduled backups via systemd timers that SSH into the current
 Patroni leader.
@@ -10,19 +10,19 @@ Patroni leader.
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `backup_repo_path` | repository directory | `/var/lib/pgbackrest` |
+| `backup_store_path` | backup store directory | `/var/lib/pgbackrest` |
 | `backup_stanza` | stanza name (one per cluster) | `{{ cluster_name }}` |
-| `backup_repo_user` | OS account owning the repo | `pgbackrest` |
+| `backup_store_user` | OS account owning the store | `pgbackrest` |
 | `backup_retention_full` | full backups to keep | `4` |
-| `backup_repo2` | optional S3 repo config | unset |
+| `backup_secondary_store` | optional S3 store config | unset |
 
 ## What this role owns
 
-- The `pgbackrest` repo user and its `~/.ssh/authorized_keys`.
+- The `pgbackrest` store user and its `~/.ssh/authorized_keys`.
 - `/var/lib/pgbackrest` (directory, ownership, SELinux label).
 - `/etc/pgbackrest/pgbackrest.conf` (server-side).
-- The stanza (`pgbackrest stanza-create`, run on the repo host; the
-  repo is local here, so this is where stanza-create belongs).
+- The stanza (`pgbackrest stanza-create`, run on the backup store host; the
+  store is local here, so this is where stanza-create belongs).
 - `pgbackrest-full`, `pgbackrest-diff`, `pgbackrest-expire`,
   `pgbackrest-check` systemd service + timer units.
 
@@ -39,7 +39,7 @@ Patroni leader.
 `_stanza` -> `_timers`. The `_ssh` step reads `backup_client_ssh_pubkey`
 facts that `backup_client` set earlier in the same `make deploy` run.
 `_stanza` runs after `_configure` so the server-side config (with the
-`pgN-host` SSH entries) exists, and after `_ssh`/`_firewall` so the repo
+`pgN-host` SSH entries) exists, and after `_ssh`/`_firewall` so the store
 host can reach the postgres nodes.
 
 ## Idempotence
@@ -51,7 +51,7 @@ units templated by content.
 ## Tags
 
 - `backup` - full role
-- `backup,install` - package + repo dir only
+- `backup,install` - package + store dir only
 - `backup,config` - render config only
 - `backup,firewall` - firewalld only
 - `backup,service` - timer units only

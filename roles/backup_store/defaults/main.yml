@@ -10,10 +10,10 @@ backup_store_support_packages:
   - python3-libselinux
   - policycoreutils-python-utils
 
-# Repository
-backup_store_repo_path: "{{ backup_repo_path | default('/var/lib/pgbackrest') }}"
-backup_store_repo_user: "{{ backup_repo_user | default('pgbackrest') }}"
-backup_store_repo_group: "{{ backup_repo_user | default('pgbackrest') }}"
+# Backup store
+backup_store_path: "/var/lib/pgbackrest"
+backup_store_user: pgbackrest
+backup_store_group: "{{ backup_store_user }}"
 backup_store_log_path: /var/log/pgbackrest
 backup_store_config_dir: /etc/pgbackrest
 backup_store_config_file: /etc/pgbackrest/pgbackrest.conf
@@ -34,11 +34,11 @@ backup_store_schedule_check: "*-*-* 04:00:00"
 
 # SSH
 backup_store_ssh_port: "{{ backup_ssh_port | default(22) }}"
-backup_store_repo_user_home: "/home/{{ backup_repo_user | default('pgbackrest') }}"
+backup_store_user_home: "/home/{{ backup_store_user }}"
 
-# Optional second repo (S3-compatible). Populated from the response
-# file's backup.repo2 when enabled.
-backup_store_repo2: "{{ backup_repo2 | default({}) }}"
+# Optional secondary store (S3-compatible). Populated from the response
+# file's backup.secondary_store when enabled.
+backup_store_secondary: "{{ backup_secondary_store | default({}) }}"
 
 # Firewalld
 backup_store_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"

@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: backup_store
   author: pigsty-lite
-  description: pgBackRest repository host - repo storage, SSH key acceptance, scheduled backup timers.
+  description: pgBackRest backup store host - storage, SSH key acceptance, scheduled backup timers.
   license: Apache-2.0
   min_ansible_version: "2.16"
   platforms:

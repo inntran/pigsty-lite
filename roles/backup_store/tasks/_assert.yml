@@ -14,7 +14,7 @@
     fail_msg: >-
       backup_store group must contain exactly one host;
       got {{ groups['backup_store'] | length }}.
-      Multi-host repository HA is out of scope.
+      Multi-host backup store HA is out of scope.
   run_once: true
   delegate_to: localhost
 
@@ -26,15 +26,15 @@
   run_once: true
   delegate_to: localhost
 
-- name: Stat the repository path
+- name: Stat the backup store path
   ansible.builtin.stat:
-    path: "{{ backup_store_repo_path }}"
-  register: backup_store_repo_stat
+    path: "{{ backup_store_path }}"
+  register: backup_store_path_stat
 
-- name: Warn if repository path is not yet a separate mount
+- name: Warn if backup store path is not yet a separate mount
   ansible.builtin.debug:
     msg: >-
-      WARNING: {{ backup_store_repo_path }} should be a separate mount
+      WARNING: {{ backup_store_path }} should be a separate mount
       sized for {{ backup_store_retention_full }} full backups plus WAL.
       Continuing - many valid single-disk dev setups exist.
-  when: not backup_store_repo_stat.stat.exists or not backup_store_repo_stat.stat.isdir
+  when: not backup_store_path_stat.stat.exists or not backup_store_path_stat.stat.isdir

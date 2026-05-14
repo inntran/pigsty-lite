@@ -5,7 +5,7 @@
       - groups['backup_store'] | length > 0
     fail_msg: >-
       Inventory group 'backup_store' is empty; backup_client needs a
-      repository host to push to.
+      backup store host to push to.
   run_once: true
   delegate_to: localhost
 

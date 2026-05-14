@@ -30,9 +30,9 @@ backup_client_ssh_key_path: "/var/lib/pgsql/.ssh/id_pgbackrest"
 backup_client_ssh_key_type: ed25519
 backup_client_ssh_dir: /var/lib/pgsql/.ssh
 
-# Repo host: the single backup_store host.
-backup_client_repo_host: "{{ groups['backup_store'][0] }}"
-backup_client_repo_user: "{{ backup_repo_user | default('pgbackrest') }}"
+# Store host: the single backup_store host.
+backup_client_store_host: "{{ groups['backup_store'][0] }}"
+backup_client_store_user: "{{ backup_store_user | default('pgbackrest') }}"
 backup_client_ssh_port: "{{ backup_ssh_port | default(22) }}"
 
 # Archive

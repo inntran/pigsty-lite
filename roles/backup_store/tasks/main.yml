@@ -3,7 +3,7 @@
   ansible.builtin.import_tasks: _assert.yml
   tags: [backup, assert]
 
-- name: Install pgBackRest and prepare the repository
+- name: Install pgBackRest and prepare the backup store
   ansible.builtin.import_tasks: _install.yml
   tags: [backup, install]
 
