@@ -1,0 +1,47 @@
+---
+# roles/backup_store/defaults/main.yml
+# All variables prefixed `backup_store_`. Operator-facing coordination
+# vars stay generic (`backup_*`) so future backup engines can reuse the
+# same response-file contract. This role is the pgBackRest backend.
+
+# Package
+backup_store_package: pgbackrest
+backup_store_support_packages:
+  - python3-libselinux
+  - policycoreutils-python-utils
+
+# Repository
+backup_store_repo_path: "{{ backup_repo_path | default('/var/lib/pgbackrest') }}"
+backup_store_repo_user: "{{ backup_repo_user | default('pgbackrest') }}"
+backup_store_repo_group: "{{ backup_repo_user | default('pgbackrest') }}"
+backup_store_log_path: /var/log/pgbackrest
+backup_store_config_dir: /etc/pgbackrest
+backup_store_config_file: /etc/pgbackrest/pgbackrest.conf
+
+# Stanza
+backup_store_stanza: "{{ backup_stanza | default('pigsty-lite') }}"
+
+# Retention (overridden by the response file's backup.retention)
+backup_store_retention_full: "{{ backup_retention_full | default(4) }}"
+
+# Schedule. The response file stores cron-style strings for a generic
+# backup contract. The configure generator derives systemd OnCalendar
+# values for this pgBackRest/systemd implementation.
+backup_store_schedule_full: "{{ backup_schedule_full_oncalendar | default('Sun *-*-* 01:00:00') }}"
+backup_store_schedule_diff: "{{ backup_schedule_differential_oncalendar | default('Mon,Tue,Wed,Thu,Fri,Sat *-*-* 01:00:00') }}"
+backup_store_schedule_expire: "*-*-* *:30:00"
+backup_store_schedule_check: "*-*-* 04:00:00"
+
+# SSH
+backup_store_ssh_port: "{{ backup_ssh_port | default(22) }}"
+backup_store_repo_user_home: "/home/{{ backup_repo_user | default('pgbackrest') }}"
+
+# Optional second repo (S3-compatible). Populated from the response
+# file's backup.repo2 when enabled.
+backup_store_repo2: "{{ backup_repo2 | default({}) }}"
+
+# Firewalld
+backup_store_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+
+# systemd
+backup_store_systemd_dir: /etc/systemd/system
