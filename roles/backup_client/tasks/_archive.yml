@@ -36,7 +36,7 @@
       | default('')) !=
     ('pgbackrest --stanza=' ~ backup_client_stanza ~ ' archive-push %p')
 
-- name: Report whether a restart is pending for archive_mode
+- name: Report whether a restart is pending for archive_mode  # noqa: no-handler
   ansible.builtin.debug:
     msg: >-
       Patroni archive_command set. If archive_mode flipped on for the
@@ -44,4 +44,4 @@
       `patronictl restart {{ cluster_name }} --pending` during a
       maintenance window.
   run_once: true
-  when: backup_client_archive_patch is changed
+  when: backup_client_archive_patch.changed | default(false)
