@@ -1,0 +1,12 @@
+---
+- name: Enable and start pgbouncer
+  ansible.builtin.systemd:
+    name: "{{ pgbouncer_service_name }}"
+    enabled: true
+    state: started
+
+- name: Wait for pgbouncer to listen on port {{ pgbouncer_listen_port }}
+  ansible.builtin.wait_for:
+    host: "{{ network_loopback_address | default('127.0.0.1') }}"
+    port: "{{ pgbouncer_listen_port }}"
+    timeout: 30

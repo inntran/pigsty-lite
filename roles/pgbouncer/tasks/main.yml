@@ -1,0 +1,24 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [pgbouncer, assert]
+
+- name: Install pgBouncer
+  ansible.builtin.import_tasks: _install.yml
+  tags: [pgbouncer, install]
+
+- name: Prepare filesystem
+  ansible.builtin.import_tasks: _filesystem.yml
+  tags: [pgbouncer, install]
+
+- name: Render pgBouncer configuration
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [pgbouncer, config]
+
+- name: Start pgBouncer
+  ansible.builtin.import_tasks: _service.yml
+  tags: [pgbouncer, service]
+
+- name: Apply firewalld rule (off by default)
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [pgbouncer, firewall]

@@ -1,0 +1,16 @@
+---
+- name: Ensure pgbouncer log directory exists
+  ansible.builtin.file:
+    path: "{{ pgbouncer_log_dir }}"
+    state: directory
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0750"
+
+- name: Ensure pgbouncer run directory exists
+  ansible.builtin.file:
+    path: "{{ pgbouncer_run_dir }}"
+    state: directory
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0755"
