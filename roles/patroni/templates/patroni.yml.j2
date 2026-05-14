@@ -65,7 +65,10 @@ bootstrap:
     - host all postgres 127.0.0.1/32 trust
     - host replication {{ patroni_replication_user }} 127.0.0.1/32 trust
     - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 cert
-    - hostssl all all 0.0.0.0/0 scram-sha-256
+    # Steady-state HBA is rendered by roles/provision (P3). The bootstrap
+    # block above contains only what initdb needs to elect the first
+    # leader and join replicas. Operators add wildcard auth via the
+    # response file's postgres.hba_rules.
 
   users:
     {{ patroni_superuser }}:
