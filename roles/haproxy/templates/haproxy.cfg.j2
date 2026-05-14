@@ -1,0 +1,61 @@
+# {{ ansible_managed }}
+# Rendered by roles/haproxy. Do not edit by hand.
+
+global
+    log         /dev/log local2
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     {{ haproxy_maxconn }}
+    user        haproxy
+    group       haproxy
+    daemon
+
+defaults
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    timeout connect         5s
+    timeout client          1h
+    timeout server          1h
+    timeout check           3s
+
+# ---- stats listener (loopback only, behind nginx_proxy in P5) ----
+listen stats
+    mode http
+    bind {{ haproxy_stats_listen_address }}:{{ haproxy_stats_port }}
+    stats enable
+    stats uri /
+    stats refresh {{ haproxy_stats_refresh_seconds }}s
+    stats auth {{ haproxy_stats_user }}:{{ haproxy_stats_password }}
+
+# ---- default (5432) → leader ----
+listen pg-default
+    bind {{ haproxy_listen_address }}:{{ haproxy_default_port }}
+    option httpchk OPTIONS /leader
+    http-check expect status 200
+    default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
+{% for h in groups['postgres'] %}
+    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify none
+{% endfor %}
+
+# ---- primary (5433) → leader (explicit RW) ----
+listen pg-primary
+    bind {{ haproxy_listen_address }}:{{ haproxy_primary_port }}
+    option httpchk OPTIONS /leader
+    http-check expect status 200
+    default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
+{% for h in groups['postgres'] %}
+    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify none
+{% endfor %}
+
+# ---- replica (5434) → any healthy replica (RO) ----
+listen pg-replica
+    bind {{ haproxy_listen_address }}:{{ haproxy_replica_port }}
+    balance roundrobin
+    option httpchk OPTIONS /replica
+    http-check expect status 200
+    default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
+{% for h in groups['postgres'] %}
+    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify none
+{% endfor %}
