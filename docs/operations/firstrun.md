@@ -11,7 +11,7 @@ in later sub-plans.
 Control node:
 
 - Linux or macOS
-- Python 3.11+
+- Python 3.12+
 - `ansible` Python package
 - git, make, gpg
 - One-time: `make init` (installs Galaxy collections and roles)

@@ -6,7 +6,7 @@
 
 **Architecture:** A standard Ansible repo (Approach B from the spec) rooted at the project top level. Roles are thin and use `community.postgresql`, `community.crypto`, `community.general`, and `ansible.posix` from Galaxy. A Python 3 `configure` script (stdlib only) translates an Oracle-style response file into both an inventory and a generated `group_vars/response.yml`. A `Makefile` wraps the common operator commands. SELinux stays enforcing; firewalld stays in charge; no shell scripts that aren't tested. Every change is TDD-driven via Molecule with the podman driver (P0 roles don't need libvirt).
 
-**Tech Stack:** Ansible ≥2.16, Python 3.11+ (control node), RHEL 10 / Rocky 10 / Alma 10 (managed hosts), Molecule + podman for role tests, yamllint + ansible-lint + ruff + shellcheck + xmllint for lint, GitHub Actions for CI Layer 1 + 2 only.
+**Tech Stack:** Ansible ≥2.16, Python 3.12+ (control node), RHEL 10 / Rocky 10 / Alma 10 (managed hosts), Molecule + podman for role tests, yamllint + ansible-lint + ruff + shellcheck + xmllint for lint, GitHub Actions for CI Layer 1 + 2 with Python/Node runtime setup and Galaxy dependency install.
 
 ---
 
@@ -59,8 +59,8 @@ Files created or modified in P0, with responsibility per file. Listed in depende
 | `.yamllint` | yamllint config |
 | `pyproject.toml` | ruff config + pytest config |
 | `Makefile.d/lint.mk` | Lint helper makefile included by `Makefile` (keeps lint logic isolated) |
-| `.github/workflows/lint.yml` | GitHub Actions workflow: yamllint + ansible-lint + ruff + shellcheck + xmllint + markdownlint |
-| `.github/workflows/molecule.yml` | GitHub Actions workflow: Molecule matrix over P0 roles (podman-only) |
+| `.github/workflows/lint.yml` | GitHub Actions workflow: installs system tooling, Python/Node runtimes, Galaxy collections/roles, then runs yamllint + ansible-lint + ruff + pytest + markdownlint + xmllint |
+| `.github/workflows/molecule.yml` | GitHub Actions workflow: installs podman plus Python tooling, then runs a Molecule role/scenario matrix (starting with P0 roles and extending as later plans land) |
 | `docs/operations/firstrun.md` | Operator-facing first-run guide |
 
 ---
@@ -2885,25 +2885,32 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Install system tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils shellcheck
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      - name: Set up Node (for markdownlint-cli2)
-        uses: actions/setup-node@v4
+      - name: Set up Node
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install python tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install yamllint ansible-lint ruff ansible-core==2.16.* pyyaml pytest
+          python -m pip install yamllint ansible-lint ruff ansible pyyaml pytest
 
-      - name: Install collections
-        run: ansible-galaxy collection install -r requirements.yml -p ./collections
+      - name: Install Galaxy content
+        run: |
+          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli2
@@ -2920,11 +2927,11 @@ jobs:
       - name: ruff format check
         run: ruff format --check .
 
-      - name: pytest (configure script unit tests)
+      - name: pytest configure tests
         run: python -m pytest tests/configure -v
 
       - name: markdownlint
-        run: markdownlint-cli2 "**/*.md" "#collections" "#.ansible"
+        run: markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#docs/superpowers"
 
       - name: xmllint firewalld services
         run: |
@@ -2941,12 +2948,12 @@ Run (optional): `act -j lint`
 
 ```bash
 git add .github/workflows/lint.yml
-git commit -m "ci: add lint workflow (yamllint, ansible-lint, ruff, pytest, markdownlint)"
+git commit -m "ci: add lint workflow"
 ```
 
 ---
 
-## Task 16: GitHub Actions — molecule workflow (podman roles only)
+## Task 16: GitHub Actions — molecule workflow matrix
 
 **Files:**
 - Create: `.github/workflows/molecule.yml`
@@ -2966,45 +2973,68 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        role:
-          - preflight
-          - repos
-          - node
-          - ca
-          - certs
+        include:
+          - role: preflight
+            scenario: default
+          - role: repos
+            scenario: default
+          - role: node
+            scenario: default
+          - role: ca
+            scenario: default
+          - role: certs
+            scenario: default
+          - role: etcd
+            scenario: single
+          - role: etcd
+            scenario: ha
+          - role: postgres
+            scenario: default
+          - role: patroni
+            scenario: single
+          - role: patroni
+            scenario: ha
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Install podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install python tooling
         run: |
           python -m pip install --upgrade pip
           python -m pip install \
-            "ansible-core==2.16.*" \
-            "molecule==24.*" \
-            "molecule-plugins[podman]==23.*" \
+            ansible \
+            "molecule==25.*" \
+            "molecule-plugins[podman]==25.*" \
+            cryptography \
             pytest
 
-      - name: Install collections
-        run: ansible-galaxy collection install -r requirements.yml -p ./collections
+      - name: Install Galaxy content
+        run: |
+          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
-      - name: molecule ${{ matrix.role }}
+      - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
         run: |
           cd tests/molecule/${{ matrix.role }}
-          molecule --debug test
+          molecule test -s ${{ matrix.scenario }}
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add .github/workflows/molecule.yml
-git commit -m "ci: molecule workflow for podman-driver P0 roles"
+git commit -m "ci: add molecule workflow matrix"
 ```
 
 ---
@@ -3029,7 +3059,7 @@ backups, and reverse proxy ship in later sub-plans.
 Control node (the machine you run Ansible from):
 
 - Linux or macOS
-- Python 3.11+
+- Python 3.12+
 - ansible-core 2.16+
 - git, make, gpg
 - One-time: `make init` (installs Galaxy collections and roles)
