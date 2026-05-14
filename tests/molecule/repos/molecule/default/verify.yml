@@ -32,4 +32,3 @@
       ansible.builtin.assert:
         that:
           - not pigsty_repo_file.stat.exists
-
