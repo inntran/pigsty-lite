@@ -1,7 +1,7 @@
 ---
-# Open SSH on the backup store host to the postgres nodes only. pgBackRest
-# pushes WAL and pulls backups over SSH; nothing else needs to reach the
-# backup store host on port 22 for the backup path.
+# On a dedicated backup_store host, open SSH to postgres nodes only.
+# When backup_store is colocated with monitor, leave SSH baseline policy
+# alone because the monitor host is the DBA/operator login host.
 
 - name: Build the postgres-node firewall source list
   ansible.builtin.set_fact:
@@ -25,3 +25,4 @@
     immediate: true
     zone: "{{ backup_store_firewalld_zone }}"
   loop: "{{ backup_store_firewall_sources | unique }}"
+  when: inventory_hostname not in (groups['monitor'] | default([]))
