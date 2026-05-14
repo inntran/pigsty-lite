@@ -37,7 +37,7 @@ pigsty-lite keeps what makes pigsty's PG offering strong (Patroni, pgBackRest, e
 - **PostgreSQL:** PGDG RPM, version 18 by default. Pinning to specific minor versions supported.
 - **HA:** Patroni on etcd. Streaming replication required to be TLS.
 - **Connection layer:** local HAProxy per postgres node (Patroni REST health checks) + pgBouncer sidecar. Optional L2 VIP via vip-manager.
-- **Backups:** pgBackRest with dedicated repo host (default colocated with monitor; splittable to its own host). Optional S3-compatible second repo. Weekly full + daily differential + continuous WAL.
+- **Backups:** pgBackRest with dedicated backup store host (default colocated with monitor; splittable to its own host). Optional S3-compatible secondary store. Weekly full + daily differential + continuous WAL.
 - **PITR:** operator-invoked `restore.yml` with explicit confirmation.
 - **Monitoring metrics:** VictoriaMetrics single-node (`vmsingle` + `vmagent`) via official `victoriametrics.cluster` collection. node/postgres/pgbouncer/pgbackrest exporters + Patroni REST + HAProxy stats.
 - **Monitoring logs:** VictoriaLogs (`vlsingle` + `vlagent`) — same collection, same vendor.
@@ -83,8 +83,9 @@ MinIO bundling, Redis, MongoDB, FerretDB, Greenplum, Citus, Polar, MSSQL/MySQL c
                                        (optional) ▼
                                        ┌─────────────────────────┐
                                        │  S3 / GCS / on-prem     │
-                                       │  pgbackrest repo2       │
-                                       │  (asynchronous)         │
+                                       │  secondary store        │
+                                       │  (pgbackrest repo2,     │
+                                       │   asynchronous)         │
                                        └─────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════
@@ -183,7 +184,7 @@ Each role does one thing.
 | `patroni` | postgres | Install Patroni, render `/etc/patroni/patroni.yml`, systemd unit, wait for leader election |
 | `pgbouncer` | postgres | Sidecar on every postgres node, userlist generation, HBA, listens on 6432 |
 | `backup_client` | postgres | Install pgbackrest, configure stanza pointing at `backup_store` host over SSH, register WAL archive command |
-| `backup_store` | backup_store | Install pgbackrest server-side, repo at `/var/lib/pgbackrest`, accept SSH keys from postgres nodes, systemd timers for scheduled backups, optional `repo2` for S3 |
+| `backup_store` | backup_store | Install pgbackrest server-side, backup store at `/var/lib/pgbackrest`, accept SSH keys from postgres nodes, systemd timers for scheduled backups, optional S3 secondary store |
 | `haproxy` | postgres | Local HAProxy: service `default` (5432→primary), `primary` (5433→leader), `replica` (5434→replicas). Health via Patroni REST |
 | `vip_manager` | postgres (optional) | Install vip-manager, watch Patroni REST, bind L2 VIP to leader |
 | `monitoring_agents` | all | vmagent + vlagent + node_exporter + postgres_exporter + pgbouncer_exporter + pgbackrest_exporter |
@@ -468,9 +469,9 @@ pgbackrest:
   enabled: true
   schedule: { full: "0 1 * * 0", differential: "0 1 * * 1-6" }
   retention: { full: 4 }
-  repo2:
+  secondary_store:           # optional S3-compatible offsite copy
     enabled: false
-    # type: s3, bucket, endpoint, access_key, secret_key
+    # type: s3, bucket, endpoint, region, access_key, secret_key
 
 tls:
   internal_ca: generate                # generate | existing | byo
@@ -536,7 +537,7 @@ Rendered in order: system rules (`postgres_osdba` peer, local socket, cluster re
 6. `_postgres_bootstrap` — render Patroni config, start on primary, wait for leader, start replicas, poll until N members healthy.
 7. `_pgbouncer`, `_haproxy`, `_vip_manager` (optional) — connection layer.
 8. `_provision` — HBA, roles, dbs, extensions on primary.
-9. `_backup_store` → `_backup_client` — repo first, then clients, then initial full backup.
+9. `_backup_store` → `_backup_client` — backup store first, then clients, then initial full backup.
 10. `_monitoring_server` → `_monitoring_agents` → `_grafana` → `_nginx_proxy`.
 11. Emit `artifacts/hosts.lite` and `artifacts/credentials.txt`.
 
@@ -582,7 +583,7 @@ pools connections to local PG. No client-visible port change is required.
 
 - Continuous WAL archive: PG `archive_command` → pgbackrest ssh push to `backup_store` (async, batched).
 - Scheduled: weekly full (Sun 01:00), daily differential (Mon-Sat 01:00), hourly expire, nightly check.
-- Optional `repo2` — async push to S3-compatible store on each backup operation.
+- Optional secondary store (`pgbackrest.secondary_store`, pgBackRest's `repo2`) — async push to an S3-compatible store on each backup operation.
 - PITR via `playbooks/restore.yml`: pause patroni → stop services → `pgbackrest restore --type=time` → reinit other replicas → resume.
 
 ### 8.5 Metrics and logs

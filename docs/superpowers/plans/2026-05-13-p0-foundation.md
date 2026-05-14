@@ -1076,8 +1076,8 @@ def _flatten_pgbackrest(pgbr: dict[str, Any]) -> dict[str, Any]:
     retention = pgbr.get("retention", {})
     if "full" in retention:
         out["pgbackrest_retention_full"] = retention["full"]
-    if pgbr.get("repo2", {}).get("enabled"):
-        out["pgbackrest_repo2"] = pgbr["repo2"]
+    if pgbr.get("secondary_store", {}).get("enabled"):
+        out["pgbackrest_secondary_store"] = pgbr["secondary_store"]
     return out
 
 
@@ -1389,7 +1389,7 @@ firewalld_default_zone: "public"
 # Paths (vendor defaults; do not change without strong reason) ------
 postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
 etcd_data_dir: "/var/lib/etcd"
-pgbackrest_repo_path: "/var/lib/pgbackrest"
+pgbackrest_store_path: "/var/lib/pgbackrest"
 pki_dir: "/etc/pki/pigsty-lite"
 
 # Ports -------------------------------------------------------------
@@ -3157,7 +3157,7 @@ Add a new section before **Credit**:
 | P1 | etcd cluster | pending |
 | P2 | PostgreSQL + Patroni + pgBouncer + HAProxy + VIP | pending |
 | P3 | Provisioning (users, databases, extensions, HBA) | pending |
-| P4 | Backups (pgBackRest, repo host, S3 offsite, PITR) | pending |
+| P4 | Backups (pgBackRest, backup store host, S3 offsite, PITR) | pending |
 | P5 | Monitoring stack (VictoriaMetrics, VictoriaLogs, Grafana, nginx_proxy) | pending |
 | P6 | Lifecycle ops + portability bundle | pending |
 | P7 | Integration tests (libvirt, chaos) | pending |

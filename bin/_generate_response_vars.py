@@ -29,8 +29,8 @@ def _flatten_pgbackrest(pgbackrest: dict[str, Any]) -> dict[str, Any]:
     retention = pgbackrest.get("retention", {})
     if "full" in retention:
         out["pgbackrest_retention_full"] = retention["full"]
-    if pgbackrest.get("repo2", {}).get("enabled"):
-        out["pgbackrest_repo2"] = pgbackrest["repo2"]
+    if pgbackrest.get("secondary_store", {}).get("enabled"):
+        out["pgbackrest_secondary_store"] = pgbackrest["secondary_store"]
     return out
 
 
