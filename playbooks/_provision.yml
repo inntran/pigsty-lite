@@ -1,0 +1,8 @@
+---
+- name: Apply declarative provisioning to the Patroni leader
+  hosts: postgres
+  become: true
+  gather_facts: false
+  roles:
+    - role: provision
+      tags: [provision]
