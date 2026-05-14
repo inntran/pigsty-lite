@@ -1,0 +1,4 @@
+{# {{ ansible_managed }} #}
+{% for entry in pgbouncer_userlist_system_entries + pgbouncer_userlist_extra %}
+"{{ entry.user }}" "{{ entry.password }}"
+{% endfor %}
