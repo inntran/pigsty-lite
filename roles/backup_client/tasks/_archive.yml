@@ -1,0 +1,47 @@
+---
+# WAL archiving is a PostgreSQL parameter, and Patroni owns PostgreSQL
+# parameters. We PATCH Patroni's dynamic config once (on any node; the
+# DCS broadcasts it cluster-wide). archive_mode requires a restart the
+# first time it flips from off to on; Patroni schedules that itself and
+# reports `pending_restart`. On already-archiving clusters this is a
+# no-op PATCH.
+
+- name: Read the current Patroni dynamic config
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}:{{ patroni_rest_port | default(8008) }}/config"
+    method: GET
+    validate_certs: false
+    return_content: true
+  register: backup_client_patroni_config
+  run_once: true
+
+- name: Patch Patroni with the pgBackRest archive_command
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}:{{ patroni_rest_port | default(8008) }}/config"
+    method: PATCH
+    validate_certs: false
+    body_format: json
+    body:
+      postgresql:
+        parameters:
+          archive_mode: "on"
+          archive_command: >-
+            pgbackrest --stanza={{ backup_client_stanza }} archive-push %p
+          archive_timeout: 60
+    status_code: [200]
+  register: backup_client_archive_patch
+  run_once: true
+  when: >-
+    (backup_client_patroni_config.json.postgresql.parameters.archive_command
+      | default('')) !=
+    ('pgbackrest --stanza=' ~ backup_client_stanza ~ ' archive-push %p')
+
+- name: Report whether a restart is pending for archive_mode
+  ansible.builtin.debug:
+    msg: >-
+      Patroni archive_command set. If archive_mode flipped on for the
+      first time, Patroni will report pending_restart; run
+      `patronictl restart {{ cluster_name }} --pending` during a
+      maintenance window.
+  run_once: true
+  when: backup_client_archive_patch is changed
