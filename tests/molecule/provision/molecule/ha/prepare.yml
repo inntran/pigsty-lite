@@ -29,6 +29,20 @@
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
     node_sysctl_apply: false
+  pre_tasks:
+    - name: Read container IPv4 address
+      ansible.builtin.command: hostname -I
+      register: provision_container_ips
+      changed_when: false
+
+    - name: Set molecule network addresses
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ provision_container_ips.stdout.split()[0] }}"
+        patroni_advertise_address: "{{ provision_container_ips.stdout.split()[0] }}"
+        certs_subject_alternative_names:
+          - "DNS:{{ inventory_hostname }}"
+          - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ provision_container_ips.stdout.split()[0] }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node
