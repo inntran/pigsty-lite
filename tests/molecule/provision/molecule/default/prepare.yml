@@ -11,12 +11,15 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Install sudo
-      ansible.builtin.package:
-        name:
-          - sudo
-          - iproute
-        state: present
+    - name: Install sudo and iproute
+      ansible.builtin.raw: dnf -y install sudo iproute
+      changed_when: false
+
+    - name: Disable PAM for sudo (broken in ubi-init containers)
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/nopam
+        content: "Defaults !pam_session\n"
+        mode: "0440"
 
 - name: Prepare - repos, node, certs, etcd, postgres, patroni
   hosts: all
