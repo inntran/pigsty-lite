@@ -32,6 +32,14 @@ jobs:
             scenario: single
           - role: patroni
             scenario: ha
+          - role: pgbouncer
+            scenario: default
+          - role: haproxy
+            scenario: default
+          - role: haproxy
+            scenario: ha
+          - role: vip_manager
+            scenario: default
     steps:
       - uses: actions/checkout@v6
 
