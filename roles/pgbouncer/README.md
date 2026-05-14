@@ -28,4 +28,4 @@ external pgBouncer access, set `pgbouncer_firewalld_enabled: true`.
 Most settings reload via `pgbouncer -R`; this role uses
 `systemctl reload` which sends `SIGHUP`. A handful of settings require
 restart (port, listen_addr) — those are gated to fire the
-`Restart pgbouncer` handler explicitly in `_configure.yml`.
+`Restart pgbouncer` handler explicitly in `tasks/main.yml`.

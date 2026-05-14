@@ -1,24 +1,108 @@
 ---
-- name: Validate preconditions
-  ansible.builtin.import_tasks: _assert.yml
+- name: Fail if patroni superuser password is not defined
+  ansible.builtin.assert:
+    that:
+      - patroni_superuser_password is defined
+      - patroni_superuser_password | length > 0
+    fail_msg: >-
+      pgBouncer userlist requires `patroni_superuser_password`. Set it via
+      response file or group_vars/postgres.yml. See P2a.
+  tags: [pgbouncer, assert]
+
+- name: Fail if postgres binary missing
+  ansible.builtin.stat:
+    path: "/usr/pgsql-{{ postgres_version }}/bin/postgres"
+  register: pgb_pg_bin_stat
+  tags: [pgbouncer, assert]
+
+- name: Assert postgres present
+  ansible.builtin.assert:
+    that:
+      - pgb_pg_bin_stat.stat.exists
+    fail_msg: >-
+      pgBouncer requires the postgres role to have run first
+      (P2a _postgres_install.yml).
   tags: [pgbouncer, assert]
 
 - name: Install pgBouncer
-  ansible.builtin.import_tasks: _install.yml
+  ansible.builtin.dnf:
+    name: "{{ pgbouncer_package }}"
+    state: present
   tags: [pgbouncer, install]
 
-- name: Prepare filesystem
-  ansible.builtin.import_tasks: _filesystem.yml
+- name: Ensure pgbouncer log directory exists
+  ansible.builtin.file:
+    path: "{{ pgbouncer_log_dir }}"
+    state: directory
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0750"
   tags: [pgbouncer, install]
 
-- name: Render pgBouncer configuration
-  ansible.builtin.import_tasks: _configure.yml
+- name: Ensure pgbouncer run directory exists
+  ansible.builtin.file:
+    path: "{{ pgbouncer_run_dir }}"
+    state: directory
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0755"
+  tags: [pgbouncer, install]
+
+- name: Render pgbouncer.ini
+  ansible.builtin.template:
+    src: pgbouncer.ini.j2
+    dest: "{{ pgbouncer_config_file }}"
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0640"
+  notify: Reload pgbouncer
   tags: [pgbouncer, config]
 
-- name: Start pgBouncer
-  ansible.builtin.import_tasks: _service.yml
+- name: Render userlist.txt
+  ansible.builtin.template:
+    src: userlist.txt.j2
+    dest: "{{ pgbouncer_userlist_file }}"
+    owner: "{{ pgbouncer_user }}"
+    group: "{{ pgbouncer_group }}"
+    mode: "0600"
+  notify: Reload pgbouncer
+  tags: [pgbouncer, config]
+
+- name: Enable and start pgbouncer
+  ansible.builtin.systemd:
+    name: "{{ pgbouncer_service_name }}"
+    enabled: true
+    state: started
   tags: [pgbouncer, service]
 
-- name: Apply firewalld rule (off by default)
-  ansible.builtin.import_tasks: _firewall.yml
+- name: Wait for pgbouncer to listen on port {{ pgbouncer_listen_port }}
+  ansible.builtin.wait_for:
+    host: "{{ network_loopback_address | default('127.0.0.1') }}"
+    port: "{{ pgbouncer_listen_port }}"
+    timeout: 30
+  tags: [pgbouncer, service]
+
+- name: Install pgbouncer firewalld service definition
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/files/firewalld/services/pgbouncer.xml"
+    dest: /etc/firewalld/services/pgbouncer.xml
+    owner: root
+    group: root
+    mode: "0644"
+  register: pgb_fw_svc
+  tags: [pgbouncer, firewall]
+
+- name: Reload firewalld if service definition changed
+  ansible.builtin.command: firewall-cmd --reload
+  when: pgb_fw_svc.changed
+  changed_when: true
+  tags: [pgbouncer, firewall]
+
+- name: Open pgbouncer in default zone (only when explicitly enabled)
+  ansible.posix.firewalld:
+    service: "{{ pgbouncer_firewalld_service_name }}"
+    permanent: true
+    state: "{{ 'enabled' if (pgbouncer_firewalld_enabled | bool) else 'disabled' }}"
+    immediate: true
+    zone: "{{ pgbouncer_firewalld_zone }}"
   tags: [pgbouncer, firewall]

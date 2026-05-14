@@ -1,6 +1,32 @@
 ---
-- name: Look up the Patroni leader
-  ansible.builtin.import_tasks: _leader.yml
+- name: Query any Patroni REST endpoint for cluster view
+  ansible.builtin.uri:
+    url: "{{ provision_patroni_rest_scheme }}://{{ ansible_host }}:{{ provision_patroni_rest_port }}/cluster"
+    method: GET
+    validate_certs: "{{ provision_patroni_rest_validate_certs }}"
+    timeout: "{{ provision_patroni_rest_timeout }}"
+    return_content: true
+  register: provision_cluster_view
+  retries: 30
+  delay: 2
+  until: provision_cluster_view.status == 200
+  delegate_to: "{{ groups['postgres'][0] }}"
+  run_once: true
+  tags: [provision, always]
+
+- name: Extract leader hostname from cluster view
+  ansible.builtin.set_fact:
+    provision_leader_host: >-
+      {{ (provision_cluster_view.json.members
+          | selectattr('role', 'equalto', 'leader')
+          | list | first).name }}
+  run_once: true
+  tags: [provision, always]
+
+- name: Announce leader
+  ansible.builtin.debug:
+    msg: "Patroni leader: {{ provision_leader_host }}; provisioning will run there."
+  run_once: true
   tags: [provision, always]
 
 - name: Validate preconditions
@@ -12,14 +38,92 @@
   when: provision_pg_hba_managed | bool
   tags: [provision, hba, config]
 
-- name: Manage PostgreSQL roles
-  ansible.builtin.import_tasks: _users.yml
+- name: Create / update PostgreSQL roles
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    role_attr_flags: "{{ item.role_attr_flags | default('LOGIN') }}"
+    db: "{{ item.db | default(omit) }}"
+    state: present
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
+    encrypted: true
+  become: true
+  become_user: "{{ provision_osdba }}"
+  loop: "{{ postgres_users | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
+  no_log: true
   tags: [provision, users, config]
 
-- name: Manage databases
-  ansible.builtin.import_tasks: _databases.yml
+- name: Apply role memberships
+  community.postgresql.postgresql_membership:
+    groups: "{{ item.1 }}"
+    target_roles: "{{ item.0.name }}"
+    state: present
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
+  become: true
+  become_user: "{{ provision_osdba }}"
+  loop: >-
+    {{ (postgres_users | default([]))
+       | subelements('roles', skip_missing=True) }}
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
+  tags: [provision, users, config]
+
+- name: Create / update databases
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(provision_osdba) }}"
+    encoding: "{{ item.encoding | default('UTF8') }}"
+    lc_collate: "{{ item.lc_collate | default('C.UTF-8') }}"
+    lc_ctype: "{{ item.lc_ctype | default('C.UTF-8') }}"
+    template: "{{ item.template | default('template1') }}"
+    state: present
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
+  become: true
+  become_user: "{{ provision_osdba }}"
+  loop: "{{ postgres_databases | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
   tags: [provision, databases, config]
 
-- name: Manage extensions
-  ansible.builtin.import_tasks: _extensions.yml
+- name: Initialize extension list
+  ansible.builtin.set_fact:
+    provision_extensions_full: []
+  run_once: true
+  tags: [provision, extensions, config]
+
+- name: Build per-entry extension list
+  ansible.builtin.set_fact:
+    provision_extensions_full: >-
+      {{ provision_extensions_full + [
+          ({'name': item} if item is string else item)
+        ] }}
+  loop: "{{ postgres_extensions | default([]) }}"
+  run_once: true
+  tags: [provision, extensions, config]
+
+- name: Install / upgrade extensions
+  community.postgresql.postgresql_ext:
+    name: "{{ item.name }}"
+    db: "{{ item.db | default(provision_extensions_in_db) }}"
+    state: present
+    login_unix_socket: "{{ provision_osdba_socket_dir }}"
+    login_user: "{{ provision_osdba }}"
+  become: true
+  become_user: "{{ provision_osdba }}"
+  loop: "{{ provision_extensions_full }}"
+  loop_control:
+    label: "{{ item.name }} in {{ item.db | default(provision_extensions_in_db) }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
   tags: [provision, extensions, config]

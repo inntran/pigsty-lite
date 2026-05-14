@@ -1,5 +1,0 @@
----
-- name: Install HAProxy
-  ansible.builtin.dnf:
-    name: "{{ haproxy_package }}"
-    state: present

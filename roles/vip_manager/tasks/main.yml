@@ -3,18 +3,46 @@
   ansible.builtin.meta: end_play
   when: not (vip_manager_enabled | bool)
 
-- name: Validate preconditions
-  ansible.builtin.import_tasks: _assert.yml
+- name: Fail unless VIP CIDR and interface are set
+  ansible.builtin.assert:
+    that:
+      - vip_manager_vip_cidr | length > 0
+      - vip_manager_interface | length > 0
+    fail_msg: >-
+      vip_manager_enabled is true but vip_manager_vip_cidr or
+      vip_manager_interface is empty. Set both in the response file.
   tags: [vip_manager, assert]
 
-- name: Install vip-manager
-  ansible.builtin.import_tasks: _install.yml
+- name: Verify interface exists on this host
+  ansible.builtin.assert:
+    that:
+      - vip_manager_interface in (ansible_facts.interfaces | default([]))
+    fail_msg: >-
+      Interface {{ vip_manager_interface }} not found on
+      {{ inventory_hostname }}. Existing interfaces:
+      {{ ansible_facts.interfaces | default([]) | join(', ') }}
+  tags: [vip_manager, assert]
+
+- name: Install vip-manager from PGDG-extras
+  ansible.builtin.dnf:
+    name: "{{ vip_manager_package }}"
+    state: present
   tags: [vip_manager, install]
 
-- name: Render vip-manager config
-  ansible.builtin.import_tasks: _configure.yml
+- name: Render vip-manager.yml
+  ansible.builtin.template:
+    src: vip-manager.yml.j2
+    dest: "{{ vip_manager_config_file }}"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart vip-manager
   tags: [vip_manager, config]
 
-- name: Start vip-manager
-  ansible.builtin.import_tasks: _service.yml
+- name: Enable and start vip-manager
+  ansible.builtin.systemd:
+    name: "{{ vip_manager_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
   tags: [vip_manager, service]

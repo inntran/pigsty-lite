@@ -3,16 +3,57 @@
   ansible.builtin.import_tasks: _assert.yml
   tags: [patroni, assert]
 
-- name: Install Patroni packages
-  ansible.builtin.import_tasks: _install.yml
+- name: Install Patroni and DCS client
+  ansible.builtin.dnf:
+    name: "{{ patroni_packages }}"
+    state: present
+  tags: [patroni, install]
+
+- name: Ensure patroni log dir exists
+  ansible.builtin.file:
+    path: "{{ patroni_log_dir }}"
+    state: directory
+    owner: "{{ patroni_postgres_user }}"
+    group: "{{ patroni_postgres_group }}"
+    mode: "0750"
+  tags: [patroni, install]
+
+- name: Ensure patroni config dir exists
+  ansible.builtin.file:
+    path: "{{ patroni_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ patroni_postgres_group }}"
+    mode: "0750"
   tags: [patroni, install]
 
 - name: Configure Patroni
   ansible.builtin.import_tasks: _configure.yml
   tags: [patroni, config]
 
-- name: Open firewalld for Patroni REST
-  ansible.builtin.import_tasks: _firewall.yml
+- name: Install custom patroni-rest firewalld service
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.file', role_path + '/../../files/firewalld/services/patroni-rest.xml') }}"
+    dest: /etc/firewalld/services/patroni-rest.xml
+    owner: root
+    group: root
+    mode: "0644"
+  register: patroni_fw_svc
+  tags: [patroni, firewall]
+
+- name: Reload firewalld if patroni-rest definition changed  # noqa: no-handler
+  ansible.builtin.command: firewall-cmd --reload
+  when: patroni_fw_svc.changed
+  changed_when: true
+  tags: [patroni, firewall]
+
+- name: Open patroni-rest in default zone
+  ansible.posix.firewalld:
+    service: "{{ patroni_firewalld_service_name }}"
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ patroni_firewalld_zone }}"
   tags: [patroni, firewall]
 
 - name: Start Patroni and wait for healthy cluster

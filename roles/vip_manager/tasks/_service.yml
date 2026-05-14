@@ -1,7 +1,0 @@
----
-- name: Enable and start vip-manager
-  ansible.builtin.systemd:
-    name: "{{ vip_manager_service_name }}"
-    enabled: true
-    state: started
-    daemon_reload: true
