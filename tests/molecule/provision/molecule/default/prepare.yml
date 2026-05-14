@@ -7,6 +7,15 @@
   roles:
     - role: ../../../../../roles/ca
 
+- name: Prepare - install sudo for become
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Install sudo
+      ansible.builtin.package:
+        name: sudo
+        state: present
+
 - name: Prepare - repos, node, certs, etcd, postgres, patroni
   hosts: all
   gather_facts: true
