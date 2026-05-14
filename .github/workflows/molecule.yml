@@ -67,6 +67,10 @@ jobs:
             scenario: default
           - role: provision
             scenario: ha
+          - role: backup
+            scenario: default
+          - role: backup
+            scenario: ha
     steps:
       - uses: actions/checkout@v6
 
