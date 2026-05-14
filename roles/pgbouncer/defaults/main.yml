@@ -1,0 +1,60 @@
+---
+# roles/pgbouncer/defaults/main.yml
+# Variables prefixed `pgbouncer_`. pgBouncer 1.21+ from PGDG; vendor paths
+# (/etc/pgbouncer, /var/log/pgbouncer) so SELinux fcontext is inherited.
+
+# Package
+pgbouncer_package: pgbouncer
+pgbouncer_service_name: pgbouncer
+
+# Filesystem (vendor defaults)
+pgbouncer_config_dir: /etc/pgbouncer
+pgbouncer_config_file: "{{ pgbouncer_config_dir }}/pgbouncer.ini"
+pgbouncer_userlist_file: "{{ pgbouncer_config_dir }}/userlist.txt"
+pgbouncer_log_dir: /var/log/pgbouncer
+pgbouncer_run_dir: /var/run/pgbouncer
+pgbouncer_pid_file: "{{ pgbouncer_run_dir }}/pgbouncer.pid"
+pgbouncer_user: pgbouncer
+pgbouncer_group: pgbouncer
+
+# Network
+pgbouncer_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+pgbouncer_listen_port: 6432
+pgbouncer_unix_socket_dir: "{{ pgbouncer_run_dir }}"
+
+# Auth
+pgbouncer_auth_type: scram-sha-256
+pgbouncer_auth_file: "{{ pgbouncer_userlist_file }}"
+pgbouncer_auth_user: "{{ patroni_superuser | default('postgres') }}"
+# Admin and stats users that can connect to the special `pgbouncer` database
+pgbouncer_admin_users: ["postgres"]
+pgbouncer_stats_users: ["postgres"]
+
+# Pooling
+pgbouncer_pool_mode: transaction
+pgbouncer_max_client_conn: 1000
+pgbouncer_default_pool_size: 25
+pgbouncer_reserve_pool_size: 5
+pgbouncer_server_idle_timeout: 600
+pgbouncer_server_lifetime: 3600
+
+# Upstream (local Patroni-managed PG)
+pgbouncer_upstream_host: "{{ network_loopback_address | default('127.0.0.1') }}"
+pgbouncer_upstream_port: "{{ postgres_port | default(5432) }}"
+
+# Logging
+pgbouncer_log_file: "{{ pgbouncer_log_dir }}/pgbouncer.log"
+pgbouncer_log_connections: 1
+pgbouncer_log_disconnections: 1
+pgbouncer_log_pooler_errors: 1
+
+# Firewalld (off by default - clients go via HAProxy)
+pgbouncer_firewalld_enabled: false
+pgbouncer_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+pgbouncer_firewalld_service_name: pgbouncer
+
+# Userlist content. Operators add business users by overriding
+# pgbouncer_userlist_extra; the system entries below are always present.
+pgbouncer_userlist_system_entries:
+  - {user: "{{ patroni_superuser | default('postgres') }}", password: "{{ patroni_superuser_password }}"}
+pgbouncer_userlist_extra: []
