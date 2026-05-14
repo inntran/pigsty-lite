@@ -26,7 +26,7 @@
         validate_certs: false
         return_content: true
       register: member_state
-      retries: 12
+      retries: 60
       delay: 5
       until: (member_state.json.state | default('')) == 'running'
 
