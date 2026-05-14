@@ -1,0 +1,27 @@
+---
+# Open SSH on the backup store host to the postgres nodes only. pgBackRest
+# pushes WAL and pulls backups over SSH; nothing else needs to reach the
+# backup store host on port 22 for the backup path.
+
+- name: Build the postgres-node firewall source list
+  ansible.builtin.set_fact:
+    backup_store_firewall_sources: >-
+      {{ (backup_store_firewall_sources | default([]))
+         + [{'address': backup_store_source_address,
+             'family': ('ipv6' if ':' in (backup_store_source_address | string) else 'ipv4')}] }}
+  loop: "{{ groups['postgres'] }}"
+  vars:
+    backup_store_source_address: >-
+      {{ hostvars[item].ansible_host
+         | default(hostvars[item].ansible_facts.default_ipv4.address) }}
+
+- name: Open SSH to postgres nodes on the backup store host
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ item.family }}" source address="{{ item.address }}"
+      port port="{{ backup_store_ssh_port }}" protocol="tcp" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ backup_store_firewalld_zone }}"
+  loop: "{{ backup_store_firewall_sources | unique }}"
