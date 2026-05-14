@@ -3,6 +3,10 @@
   hosts: postgres
   become: true
   gather_facts: true
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   vars:
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1

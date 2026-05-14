@@ -1,7 +1,7 @@
 ---
 - name: Query any Patroni REST endpoint for cluster view
   ansible.builtin.uri:
-    url: "{{ provision_patroni_rest_scheme }}://{{ ansible_host }}:{{ provision_patroni_rest_port }}/cluster"
+    url: "{{ provision_patroni_rest_scheme }}://{{ provision_patroni_rest_host }}:{{ provision_patroni_rest_port }}/cluster"
     method: GET
     validate_certs: "{{ provision_patroni_rest_validate_certs }}"
     timeout: "{{ provision_patroni_rest_timeout }}"

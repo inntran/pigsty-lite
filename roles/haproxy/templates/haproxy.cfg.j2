@@ -45,7 +45,7 @@ listen pg-default
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
 {% for h in groups['postgres'] %}
-    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
+    server {{ h }} {{ hostvars[h]['patroni_advertise_address'] | default(hostvars[h]['ansible_host']) }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
 {% endfor %}
 
 # ---- primary (5433) → leader (explicit RW) ----
@@ -57,7 +57,7 @@ listen pg-primary
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
 {% for h in groups['postgres'] %}
-    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
+    server {{ h }} {{ hostvars[h]['patroni_advertise_address'] | default(hostvars[h]['ansible_host']) }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
 {% endfor %}
 
 # ---- replica (5434) → any healthy replica (RO) ----
@@ -70,5 +70,5 @@ listen pg-replica
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
 {% for h in groups['postgres'] %}
-    server {{ h }} {{ hostvars[h].ansible_host }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
+    server {{ h }} {{ hostvars[h]['patroni_advertise_address'] | default(hostvars[h]['ansible_host']) }}:{{ haproxy_backend_port }} check port {{ haproxy_patroni_rest_port }} check-ssl verify required ca-file {{ haproxy_patroni_rest_ca_file }}
 {% endfor %}

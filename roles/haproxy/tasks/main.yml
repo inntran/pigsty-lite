@@ -71,12 +71,16 @@
 
 - name: Install haproxy-postgres firewalld service definition
   ansible.builtin.copy:
-    src: "{{ playbook_dir | dirname }}/files/firewalld/services/haproxy-postgres.xml"
+    src: "firewalld/services/haproxy-postgres.xml"
     dest: /etc/firewalld/services/haproxy-postgres.xml
     owner: root
     group: root
     mode: "0644"
   notify: Reload firewalld
+  tags: [haproxy, firewall]
+
+- name: Flush handlers so firewalld reloads before service rules are applied
+  ansible.builtin.meta: flush_handlers
   tags: [haproxy, firewall]
 
 - name: Open built-in postgresql service (5432)

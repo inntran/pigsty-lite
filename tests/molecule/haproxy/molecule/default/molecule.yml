@@ -36,6 +36,7 @@ provisioner:
       pigsty-lite-haproxy:
         postgres_role: primary
         etcd_seq: 1
+        haproxy_default_port: 5455
 verifier:
   name: ansible
 scenario:

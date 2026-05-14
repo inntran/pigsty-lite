@@ -6,6 +6,7 @@
 # Patroni REST endpoint for leader lookup. Per-host; the role iterates
 # until it gets a 200.
 provision_patroni_rest_scheme: https
+provision_patroni_rest_host: "{{ patroni_advertise_address | default(ansible_host) }}"
 provision_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
 provision_patroni_rest_validate_certs: false
 provision_patroni_rest_timeout: 5

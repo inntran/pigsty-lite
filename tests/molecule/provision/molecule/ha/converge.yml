@@ -2,6 +2,10 @@
 - name: Apply provisioning role
   hosts: postgres
   become: true
-  gather_facts: false
+  gather_facts: true
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/provision

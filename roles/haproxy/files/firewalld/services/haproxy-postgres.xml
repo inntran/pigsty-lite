@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>haproxy-postgres</short>
+  <description>HAProxy frontends in front of PostgreSQL: 5433 (RW), 5434 (RO).</description>
+  <port protocol="tcp" port="5433"/>
+  <port protocol="tcp" port="5434"/>
+</service>
