@@ -2,16 +2,16 @@
 
 A turn-key Ansible deployment for production-grade PostgreSQL with HA, monitoring, and backups on RHEL-family Linux. A lean reinterpretation of [Pigsty](https://github.com/pgsty/pigsty) that drops the scope creep, follows Ansible best practices, reuses high-quality community collections, and respects the host OS — SELinux stays enforcing, paths stay vendor-default, firewalld stays in charge.
 
-**Status:** P0 (Foundation), P1 (etcd), P2a (PostgreSQL + Patroni), and
-P2b (connection layer), and P3 (provisioning) are complete. Subsequent
-sub-plans (P2c integration tests, P4 backups, P5 monitoring, P6
+**Status:** P0 (Foundation), P1 (etcd), P2a (PostgreSQL + Patroni),
+P2b (connection layer), P3 (provisioning), and P4 (backups) are complete.
+Subsequent sub-plans (P2c integration tests, P5 monitoring, P6
 lifecycle/portability) are pending. The architecture and scope are defined in
 [`docs/superpowers/specs/2026-05-12-pigsty-lite-design.md`](docs/superpowers/specs/2026-05-12-pigsty-lite-design.md).
 
 ## What you get
 
 - **HA PostgreSQL 18** with Patroni on etcd, streaming replication over TLS, local HAProxy + pgBouncer on every database node.
-- **pgBackRest** with a dedicated repository host (colocated with monitoring by default), continuous WAL archiving, scheduled full + differential backups, optional S3-compatible offsite repo.
+- **pgBackRest** with a dedicated backup store host (colocated with monitoring by default), continuous WAL archiving, scheduled full + differential backups, optional S3-compatible second store.
 - **VictoriaMetrics + VictoriaLogs** for metrics and logs via the official `victoriametrics.cluster` collection.
 - **Grafana** dashboards (PG, HAProxy, node, Patroni, pgBouncer, pgBackRest) behind an nginx TLS reverse proxy.
 - **vmalert + Alertmanager** with sensible default rules.
@@ -40,7 +40,7 @@ MinIO, Redis, MongoDB, FerretDB, Citus, MSSQL/MySQL compatibility, Docker apps, 
 - Storage layout pre-provisioned by the operator:
   - PostgreSQL data dir on its own LV/PV
   - etcd data dir on a *different* block device than PG data
-  - Backup repo host has a separate mount sized for retention
+  - Backup store host has a separate mount sized for retention
 - SSH access from the control node with `become` privileges
 
 Playbooks never run `parted`, `mkfs`, `pvcreate`, `lvcreate`, or `mount`. Storage is operator responsibility; preflight checks warn on layout, fail fast on SELinux state.
@@ -75,7 +75,7 @@ See the full design document for details: [docs/superpowers/specs/2026-05-12-pig
 | P2b | Connection layer: pgBouncer + HAProxy + vip-manager | done |
 | P2c | Integration tests + RTO measurement | pending |
 | P3 | Provisioning (users, databases, extensions, HBA) | done |
-| P4 | Backups (pgBackRest, repo host, S3 offsite, PITR) | pending |
+| P4 | Backups (pgBackRest, backup store, S3 offsite, PITR) | done |
 | P5 | Monitoring stack (VictoriaMetrics, VictoriaLogs, Grafana, nginx_proxy) | pending |
 | P6 | Lifecycle ops + portability bundle | pending |
 | P7 | Integration tests (libvirt, chaos) | pending |
