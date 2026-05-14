@@ -1,0 +1,60 @@
+---
+# roles/haproxy/defaults/main.yml
+# Variables prefixed `haproxy_`. HAProxy is the only inbound for PG
+# clients in the standard topology. Three frontends, three backends, all
+# health-checked via Patroni REST.
+
+haproxy_package: haproxy
+haproxy_service_name: haproxy
+
+# Filesystem (vendor defaults)
+haproxy_config_dir: /etc/haproxy
+haproxy_config_file: "{{ haproxy_config_dir }}/haproxy.cfg"
+
+# Ports
+haproxy_default_port: 5432
+haproxy_primary_port: 5433
+haproxy_replica_port: 5434
+haproxy_stats_port: 7000
+
+# Bind addresses
+haproxy_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+haproxy_stats_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
+
+# Stats
+haproxy_stats_user: pigsty
+haproxy_stats_password: "{{ vault_haproxy_stats_password | default('haproxy-dev-stats-change-me') }}"
+haproxy_stats_refresh_seconds: 10
+
+# Health-check tuning. The three RTO profiles control how aggressively
+# HAProxy declares Patroni unhealthy. Defaults map to the spec's `norm`
+# profile (~45s end-to-end RTO).
+haproxy_rto_profile: norm  # tight | norm | loose
+haproxy_check_intervals:
+  tight: {inter: 1000, fall: 2, rise: 2}
+  norm: {inter: 3000, fall: 3, rise: 2}
+  loose: {inter: 5000, fall: 5, rise: 2}
+haproxy_check_interval_ms: "{{ haproxy_check_intervals[haproxy_rto_profile].inter }}"
+haproxy_check_fall: "{{ haproxy_check_intervals[haproxy_rto_profile].fall }}"
+haproxy_check_rise: "{{ haproxy_check_intervals[haproxy_rto_profile].rise }}"
+
+# Patroni REST upstream config
+haproxy_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
+haproxy_patroni_rest_scheme: https
+haproxy_pgbouncer_port: "{{ pgbouncer_listen_port | default(6432) }}"
+
+# Backend connection target. Two valid choices:
+#   `postgres`  - HAProxy goes directly to PG on 5432 (skips pgbouncer)
+#   `pgbouncer` - HAProxy goes through the local pgbouncer on 6432
+# `pgbouncer` is the default because that's the architecture the design
+# describes (HAProxy in front, pgBouncer pooling per host).
+haproxy_backend_target: pgbouncer  # pgbouncer | postgres
+haproxy_backend_port: >-
+  {{ haproxy_pgbouncer_port if haproxy_backend_target == 'pgbouncer'
+     else (postgres_port | default(5432)) }}
+
+# Limits
+haproxy_maxconn: 4096
+
+# Firewalld
+haproxy_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
