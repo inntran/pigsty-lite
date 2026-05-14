@@ -12,13 +12,18 @@ Health checks talk to Patroni REST (`/leader` returns 200 on the leader,
 503 elsewhere; `/replica` returns 200 on a running replica). HAProxy
 uses TLS for the health checks (Patroni REST requires it).
 
-When vip-manager is enabled, HAProxy binds the configured default
-interface addresses plus the VIP addresses. IPv6 addresses are emitted
-with bracket syntax, for example `[2001:db8::20]:5432`. The role writes
-`/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` so HAProxy can bind that
-non-local address before vip-manager attaches the VIP to the local host.
-vip-manager controls packet ownership by moving the VIP to the current
-Patroni leader.
+HAProxy always binds the dedicated local service address `127.0.0.2` in
+addition to the configured default interface addresses. Linux already
+routes `127.0.0.0/8` to loopback, so no interface alias is required.
+Local tests and tools that intentionally target HAProxy should use
+`127.0.0.2`; raw PostgreSQL keeps `127.0.0.1` and, when IPv6 is enabled,
+`::1`. When vip-manager is enabled, HAProxy also binds the VIP
+addresses. IPv6 VIP and interface addresses are emitted with bracket
+syntax, for example `[2001:db8::20]:5432`. The role writes
+`/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` so HAProxy can bind
+non-local VIP addresses before vip-manager attaches the VIP to the local
+host. vip-manager controls packet ownership by moving the VIP to the
+current Patroni leader.
 
 ## Why both 5432 and 5433 go to the leader
 

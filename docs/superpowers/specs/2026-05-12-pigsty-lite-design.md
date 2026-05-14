@@ -559,15 +559,18 @@ Apps connect to the PostgreSQL service on 5432. When vip-manager is enabled,
 the canonical client address is the VIP: `VIP:5432` routes through HAProxy to
 pgBouncer and then to PostgreSQL. HAProxy also exposes `VIP:5433` for explicit
 RW traffic and `VIP:5434` for RO replica traffic. HAProxy runs on every
-postgres node and binds both the configured default interface addresses and the
-VIP addresses; IPv6 bind addresses are rendered in bracket form such as
-`[2001:db8::20]:5432`. Linux non-local bind is enabled from
+postgres node and binds dedicated local service address `127.0.0.2`, the
+configured default interface addresses, and the VIP addresses. Linux already
+routes `127.0.0.0/8` to loopback, so this does not require a separate
+interface alias. IPv6 VIP and interface bind addresses are rendered in bracket
+form such as `[2001:db8::20]:5432`. Linux non-local bind is enabled from
 `/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` so HAProxy can bind VIP
 addresses before the local host owns them. vip-manager decides which node
 receives packets by moving the VIP to the current Patroni leader. Raw
 PostgreSQL remains on port 5432 for replication and local DBA checks, but it
-listens on the node address plus loopback instead of wildcard so it does not
-compete with the VIP service bind.
+listens on the node address plus raw PostgreSQL loopback addresses instead of
+wildcard. In dual-stack and IPv6 modes, that includes `::1`; local HAProxy
+checks should use `127.0.0.2` to avoid ambiguity with raw PostgreSQL.
 
 During failover, Patroni lets the old leader key expire, promotes a replica,
 vip-manager attaches the VIP to the new leader, and existing client sessions

@@ -727,11 +727,13 @@ haproxy_listen_addresses:
     {{ ansible_host | default(haproxy_listen_address)
        if (vip_manager_enabled | default(false) | bool)
        else haproxy_listen_address }}
+haproxy_loopback_listen_addresses:
+  - 127.0.0.2
 haproxy_vip_listen_addresses: >-
   {{ [vip_manager_vip_cidr.split('/')[0]]
      if (vip_manager_enabled | default(false) | bool)
      else [] }}
-haproxy_client_listen_addresses: "{{ haproxy_listen_addresses + haproxy_vip_listen_addresses }}"
+haproxy_client_listen_addresses: "{{ haproxy_loopback_listen_addresses + haproxy_listen_addresses + haproxy_vip_listen_addresses }}"
 haproxy_stats_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
 
 # Stats
@@ -1380,7 +1382,7 @@ scenario:
     - name: 5432 routes to primary (single-node cluster: same host)
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5432 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5432 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select pg_is_in_recovery()"
       register: probe_5432
       changed_when: false
@@ -1396,7 +1398,7 @@ scenario:
     - name: 5433 routes to primary
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select pg_is_in_recovery()"
       register: probe_5433
       changed_when: false
@@ -1412,7 +1414,7 @@ scenario:
     - name: 5434 has no healthy backends on a single-node cluster
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select 1"
       register: probe_5434
       changed_when: false
@@ -1672,7 +1674,7 @@ scenario:
     - name: psql 5433 → must hit a primary
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select inet_server_addr() || ' is_replica=' || pg_is_in_recovery()"
       register: probe_5433
       changed_when: false
@@ -1689,7 +1691,7 @@ scenario:
     - name: psql 5434 → must hit a replica
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select inet_server_addr() || ' is_replica=' || pg_is_in_recovery()"
       register: probe_5434
       changed_when: false
@@ -1744,7 +1746,7 @@ scenario:
     - name: psql 5433 after switchover
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host=127.0.0.1 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        "host=127.0.0.2 port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
         -tAc "select pg_is_in_recovery()"
       register: post_probe_5433
       changed_when: false
@@ -2558,8 +2560,9 @@ connection_layer:
 ```
 
 Then `./configure -s -f responses/site.rsp.yml && make deploy`. HAProxy
-binds the configured default interface addresses plus
-`10.20.30.20:5432`, `:5433`, and `:5434` on every postgres node, using
+binds dedicated local service address `127.0.0.2`, the configured
+default interface addresses, plus `10.20.30.20:5432`,
+`:5433`, and `:5434` on every postgres node, using
 `/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` to enable non-local
 binds. IPv6 addresses are rendered with brackets, for example
 `[2001:db8::20]:5432`. vip-manager controls which node actually

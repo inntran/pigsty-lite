@@ -14,6 +14,7 @@ cluster_domain: "example.internal"
 network_ip_version: "dual"
 network_ipv6_single_stack: false
 network_loopback_address: "127.0.0.1"
+network_loopback_addresses: ["127.0.0.1", "::1"]
 network_any_address: "0.0.0.0"
 
 # OS / SELinux / firewalld -----------------------------------------
@@ -33,6 +34,7 @@ haproxy_default_port: 5432
 haproxy_primary_port: 5433
 haproxy_replica_port: 5434
 haproxy_stats_port: 7000
+haproxy_loopback_listen_addresses: ["127.0.0.2"]
 patroni_rest_port: 8008
 etcd_client_port: 2379
 etcd_peer_port: 2380

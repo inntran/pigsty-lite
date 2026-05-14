@@ -43,6 +43,9 @@ def generate(response: dict[str, Any]) -> str:
     repos = response.get("repos", {})
     ip_version = response.get("network", {}).get("ip_version", "dual")
     ipv6_single_stack = ip_version == "ipv6"
+    loopback_addresses = ["::1"] if ipv6_single_stack else ["127.0.0.1"]
+    if ip_version == "dual":
+        loopback_addresses.append("::1")
 
     out: dict[str, Any] = {
         "cluster_profile": response["profile"],
@@ -51,7 +54,9 @@ def generate(response: dict[str, Any]) -> str:
         "network_ip_version": ip_version,
         "network_ipv6_single_stack": ipv6_single_stack,
         "network_loopback_address": "::1" if ipv6_single_stack else "127.0.0.1",
+        "network_loopback_addresses": loopback_addresses,
         "network_any_address": "::" if ipv6_single_stack else "0.0.0.0",
+        "haproxy_loopback_listen_addresses": ["127.0.0.2"],
         "postgres_version": postgres["version"],
         "postgres_port": postgres["port"],
         "postgres_tune_profile": postgres["tune"],

@@ -26,5 +26,10 @@ postgres_mask_vendor_unit: true
 
 # Network (Patroni reads these via group_vars)
 postgres_listen_address: >-
-  {{ ansible_host | default(ansible_default_ipv4.address) }},{{ network_loopback_address | default('127.0.0.1') }}
+  {{
+    ([ansible_host | default(ansible_default_ipv4.address)]
+     + (network_loopback_addresses
+        | default([network_loopback_address | default('127.0.0.1')])))
+    | unique | join(',')
+  }}
 postgres_port: 5432

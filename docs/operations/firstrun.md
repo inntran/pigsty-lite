@@ -99,6 +99,8 @@ Useful checks:
 sudo -u postgres patronictl -c /etc/patroni/patroni.yml list
 curl -sk https://$(hostname -i):8008/cluster
 sudo -u postgres /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -c '\l'
+# In dual-stack or IPv6 mode, raw PostgreSQL also listens on ::1.
+sudo -u postgres /usr/pgsql-18/bin/psql -h ::1 -U postgres -c '\l'
 ```
 
 Patroni passwords are not auto-generated in P2a. For now, override
@@ -121,8 +123,11 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
   health-checked against Patroni REST (`/leader` for 5432/5433,
   `/replica` for 5434), enables `haproxy.service`, opens the built-in
   `postgresql` firewalld service (5432) and the custom `haproxy-postgres`
-  service (5433+5434), and toggles the `haproxy_connect_any` SELinux
-  boolean so HAProxy can reach Patroni REST on peer hosts.
+  service (5433+5434), binds dedicated local service address
+  `127.0.0.2`, and toggles the `haproxy_connect_any` SELinux boolean so
+  HAProxy can reach Patroni REST on peer hosts. Tests and local clients
+  that intentionally target HAProxy should use this dedicated local
+  address rather than raw PostgreSQL's `127.0.0.1`.
 - `_vip_manager.yml` (vip-manager role) is a no-op unless the operator
   sets `connection_layer.vip_manager.enabled: true` in the response
   file. When enabled, it installs `vip-manager` from PGDG-extras,
@@ -172,8 +177,9 @@ deployment, `ip addr show eth0` on the current leader will show
 `10.20.30.20/24` as a secondary address; the other hosts will not have
 it. After a Patroni switchover the address migrates within ~3–5 seconds.
 Clients should use `10.20.30.20:5432` as the stable default service.
-For local troubleshooting, use `127.0.0.1:5432` for raw PostgreSQL and
-`127.0.0.1:6432` for local pgBouncer.
+For local troubleshooting, use `127.0.0.1:5432` or `[::1]:5432` for raw
+PostgreSQL, `127.0.0.2:5432` for local HAProxy, and `127.0.0.1:6432`
+for local pgBouncer.
 
 ## Troubleshooting
 

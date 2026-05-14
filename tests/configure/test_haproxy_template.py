@@ -51,6 +51,7 @@ def test_haproxy_health_checks_verify_patroni_tls():
 def test_haproxy_binds_client_services_to_all_client_addresses():
     rendered = _render_haproxy_config(
         haproxy_client_listen_addresses=[
+            "127.0.0.2",
             "10.0.0.11",
             "10.20.30.20",
             "2001:db8::11",
@@ -58,11 +59,14 @@ def test_haproxy_binds_client_services_to_all_client_addresses():
         ]
     )
 
+    assert "bind 127.0.0.2:5432" in rendered
     assert "bind 10.0.0.11:5432" in rendered
     assert "bind 10.20.30.20:5432" in rendered
     assert "bind [2001:db8::11]:5432" in rendered
     assert "bind [2001:db8::20]:5432" in rendered
+    assert "bind 127.0.0.2:5433" in rendered
     assert "bind 10.0.0.11:5433" in rendered
     assert "bind 10.20.30.20:5433" in rendered
+    assert "bind 127.0.0.2:5434" in rendered
     assert "bind [2001:db8::11]:5434" in rendered
     assert "bind [2001:db8::20]:5434" in rendered

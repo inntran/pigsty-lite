@@ -44,7 +44,9 @@ def test_network_defaults_to_dual_stack():
     assert out["network_ip_version"] == "dual"
     assert out["network_ipv6_single_stack"] is False
     assert out["network_loopback_address"] == "127.0.0.1"
+    assert out["network_loopback_addresses"] == ["127.0.0.1", "::1"]
     assert out["network_any_address"] == "0.0.0.0"
+    assert out["haproxy_loopback_listen_addresses"] == ["127.0.0.2"]
 
 
 def test_ipv6_single_stack_network_vars():
@@ -52,7 +54,9 @@ def test_ipv6_single_stack_network_vars():
     assert out["network_ip_version"] == "ipv6"
     assert out["network_ipv6_single_stack"] is True
     assert out["network_loopback_address"] == "::1"
+    assert out["network_loopback_addresses"] == ["::1"]
     assert out["network_any_address"] == "::"
+    assert out["haproxy_loopback_listen_addresses"] == ["127.0.0.2"]
     assert out["operator_cidrs"] == ["2001:db8::/32"]
     assert out["postgres_client_cidrs"] == ["2001:db8:40::/64"]
 
