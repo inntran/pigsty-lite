@@ -1,0 +1,9 @@
+---
+- name: Converge - apply vip_manager role with enabled=false
+  hosts: postgres
+  become: true
+  gather_facts: true
+  vars:
+    vip_manager_enabled: false
+  roles:
+    - role: ../../../../../roles/vip_manager

@@ -1,0 +1,43 @@
+---
+driver:
+  name: podman
+platforms:
+  - name: pigsty-lite-vipmgr
+    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    systemd: always
+    groups: [etcd, postgres]
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      collections_path: "../../../collections"
+  inventory:
+    group_vars:
+      all:
+        cluster_name: pigsty-lite-test
+        pki_dir: /etc/pki/pigsty-lite
+        postgres_version: 18
+      etcd:
+        etcd_initial_cluster_state: new
+    host_vars:
+      pigsty-lite-vipmgr:
+        ansible_host: 127.0.0.1
+        postgres_role: primary
+        etcd_seq: 1
+verifier:
+  name: ansible
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy
