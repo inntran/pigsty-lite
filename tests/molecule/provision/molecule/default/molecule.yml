@@ -53,7 +53,6 @@ provisioner:
         postgres_tune_profile: tiny
     host_vars:
       pigsty-lite-provision-default-1:
-        ansible_host: 127.0.0.1
         postgres_role: primary
         etcd_seq: 1
 verifier:
