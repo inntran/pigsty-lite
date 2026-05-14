@@ -11,6 +11,10 @@
   ansible.builtin.import_tasks: _selinux.yml
   tags: [haproxy, install, selinux]
 
+- name: Configure kernel networking
+  ansible.builtin.import_tasks: _sysctl.yml
+  tags: [haproxy, install, sysctl]
+
 - name: Render HAProxy config
   ansible.builtin.import_tasks: _configure.yml
   tags: [haproxy, config]

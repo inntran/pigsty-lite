@@ -722,6 +722,16 @@ haproxy_stats_port: "{{ haproxy_stats_port | default(7000) }}"
 
 # Bind addresses
 haproxy_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+haproxy_listen_addresses:
+  - >-
+    {{ ansible_host | default(haproxy_listen_address)
+       if (vip_manager_enabled | default(false) | bool)
+       else haproxy_listen_address }}
+haproxy_vip_listen_addresses: >-
+  {{ [vip_manager_vip_cidr.split('/')[0]]
+     if (vip_manager_enabled | default(false) | bool)
+     else [] }}
+haproxy_client_listen_addresses: "{{ haproxy_listen_addresses + haproxy_vip_listen_addresses }}"
 haproxy_stats_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
 
 # Stats
@@ -774,6 +784,61 @@ Expected: no errors.
 git add roles/haproxy/defaults/main.yml
 git commit -m "feat(haproxy): role defaults"
 ```
+
+---
+
+## Task 7a: HAProxy VIP non-local bind sysctl
+
+**Files:**
+- Create: `roles/haproxy/templates/haproxy-vip-sysctl.conf.j2`
+- Create: `roles/haproxy/tasks/_sysctl.yml`
+- Modify: `roles/haproxy/tasks/main.yml`
+
+- [ ] **Step 1: Render a dedicated sysctl.d file**
+
+```jinja
+# {{ ansible_managed }}
+# Allow HAProxy to bind the vip-manager service address before this node owns it.
+
+net.ipv4.ip_nonlocal_bind = 1
+net.ipv6.ip_nonlocal_bind = 1
+```
+
+- [ ] **Step 2: Add the sysctl task file**
+
+```yaml
+---
+- name: Render sysctl file for vip-manager HAProxy binds
+  ansible.builtin.template:
+    src: haproxy-vip-sysctl.conf.j2
+    dest: /etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: haproxy_vip_sysctl_file
+  when: vip_manager_enabled | default(false) | bool
+
+- name: Apply sysctl file for vip-manager HAProxy binds
+  ansible.builtin.command:
+    cmd: sysctl --system
+  changed_when: haproxy_vip_sysctl_file.changed
+  when:
+    - vip_manager_enabled | default(false) | bool
+    - haproxy_vip_sysctl_file.changed
+```
+
+- [ ] **Step 3: Import before HAProxy config rendering**
+
+```yaml
+- name: Configure kernel networking
+  ansible.builtin.import_tasks: _sysctl.yml
+  tags: [haproxy, install, sysctl]
+```
+
+- [ ] **Step 4: Lint**
+
+Run: `yamllint roles/haproxy/tasks/_sysctl.yml roles/haproxy/templates/haproxy-vip-sysctl.conf.j2`
+Expected: no errors.
 
 ---
 
@@ -1039,6 +1104,13 @@ git commit -m "feat(haproxy): install, configure, firewall, service tasks"
 ```jinja
 # {{ ansible_managed }}
 # Rendered by roles/haproxy. Do not edit by hand.
+{% macro haproxy_bind_address(address, port) -%}
+{% if ':' in address and not address.startswith('[') -%}
+[{{ address }}]:{{ port }}
+{%- else -%}
+{{ address }}:{{ port }}
+{%- endif %}
+{%- endmacro %}
 
 global
     log         /dev/log local2
@@ -1070,7 +1142,9 @@ listen stats
 
 # ---- default (5432) → leader ----
 listen pg-default
-    bind {{ haproxy_listen_address }}:{{ haproxy_default_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_default_port) }}
+{% endfor %}
     option httpchk OPTIONS /leader
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
@@ -1080,7 +1154,9 @@ listen pg-default
 
 # ---- primary (5433) → leader (explicit RW) ----
 listen pg-primary
-    bind {{ haproxy_listen_address }}:{{ haproxy_primary_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_primary_port) }}
+{% endfor %}
     option httpchk OPTIONS /leader
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
@@ -1090,7 +1166,9 @@ listen pg-primary
 
 # ---- replica (5434) → any healthy replica (RO) ----
 listen pg-replica
-    bind {{ haproxy_listen_address }}:{{ haproxy_replica_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_replica_port) }}
+{% endfor %}
     balance roundrobin
     option httpchk OPTIONS /replica
     http-check expect status 200
@@ -2479,10 +2557,17 @@ connection_layer:
     interface: "eth0"
 ```
 
-Then `./configure -s -f responses/site.rsp.yml && make deploy`. After
+Then `./configure -s -f responses/site.rsp.yml && make deploy`. HAProxy
+binds the configured default interface addresses plus
+`10.20.30.20:5432`, `:5433`, and `:5434` on every postgres node, using
+`/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` to enable non-local
+binds. IPv6 addresses are rendered with brackets, for example
+`[2001:db8::20]:5432`. vip-manager controls which node actually
+receives packets by attaching the VIP to the current Patroni leader. After
 deployment, `ip addr show eth0` on the current leader will show
 `10.20.30.20/24` as a secondary address; the other hosts will not have
-it. After a Patroni switchover the address migrates within ~3–5 seconds.
+it. After a Patroni switchover the address migrates within ~3–5 seconds,
+and clients keep reconnecting to `10.20.30.20:5432`.
 ````
 
 - [ ] **Step 2: Update `README.md`**

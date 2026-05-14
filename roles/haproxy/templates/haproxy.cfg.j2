@@ -1,5 +1,12 @@
 # {{ ansible_managed }}
 # Rendered by roles/haproxy. Do not edit by hand.
+{% macro haproxy_bind_address(address, port) -%}
+{% if ':' in address and not address.startswith('[') -%}
+[{{ address }}]:{{ port }}
+{%- else -%}
+{{ address }}:{{ port }}
+{%- endif %}
+{%- endmacro %}
 
 global
     log         /dev/log local2
@@ -31,7 +38,9 @@ listen stats
 
 # ---- default (5432) → leader ----
 listen pg-default
-    bind {{ haproxy_listen_address }}:{{ haproxy_default_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_default_port) }}
+{% endfor %}
     option httpchk OPTIONS /leader
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
@@ -41,7 +50,9 @@ listen pg-default
 
 # ---- primary (5433) → leader (explicit RW) ----
 listen pg-primary
-    bind {{ haproxy_listen_address }}:{{ haproxy_primary_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_primary_port) }}
+{% endfor %}
     option httpchk OPTIONS /leader
     http-check expect status 200
     default-server inter {{ haproxy_check_interval_ms }}ms fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions
@@ -51,7 +62,9 @@ listen pg-primary
 
 # ---- replica (5434) → any healthy replica (RO) ----
 listen pg-replica
-    bind {{ haproxy_listen_address }}:{{ haproxy_replica_port }}
+{% for address in haproxy_client_listen_addresses | unique %}
+    bind {{ haproxy_bind_address(address, haproxy_replica_port) }}
+{% endfor %}
     balance roundrobin
     option httpchk OPTIONS /replica
     http-check expect status 200

@@ -6,12 +6,7 @@
     owner: root
     group: root
     mode: "0644"
-  register: hap_fw_svc
-
-- name: Reload firewalld if service definition changed
-  ansible.builtin.command: firewall-cmd --reload
-  when: hap_fw_svc.changed
-  changed_when: true
+  notify: Reload firewalld
 
 - name: Open built-in postgresql service (5432)
   ansible.posix.firewalld:

@@ -128,7 +128,11 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
   file. When enabled, it installs `vip-manager` from PGDG-extras,
   renders `/etc/vip-manager.yml` pointing at the etcd cluster, and
   binds the configured VIP to the configured interface on whichever
-  host is currently the Patroni leader.
+  host is currently the Patroni leader. HAProxy binds the configured
+  default interface addresses plus the VIP service addresses on every
+  postgres node, including IPv6 addresses, and writes
+  `/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` so those non-local
+  binds are valid before the VIP moves.
 
 Try the cluster:
 
@@ -167,6 +171,9 @@ Then `./configure -s -f responses/site.rsp.yml && make deploy`. After
 deployment, `ip addr show eth0` on the current leader will show
 `10.20.30.20/24` as a secondary address; the other hosts will not have
 it. After a Patroni switchover the address migrates within ~3–5 seconds.
+Clients should use `10.20.30.20:5432` as the stable default service.
+For local troubleshooting, use `127.0.0.1:5432` for raw PostgreSQL and
+`127.0.0.1:6432` for local pgBouncer.
 
 ## Troubleshooting
 

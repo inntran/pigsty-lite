@@ -8,3 +8,8 @@
   ansible.builtin.systemd:
     name: "{{ haproxy_service_name }}"
     state: restarted
+
+- name: Reload firewalld
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: true

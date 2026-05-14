@@ -6,12 +6,20 @@
     state: started
 
 - name: Wait for HAProxy frontends to listen
-  ansible.builtin.wait_for:
-    host: "{{ network_loopback_address | default('127.0.0.1') }}"
-    port: "{{ item }}"
-    timeout: 30
+  ansible.builtin.command:
+    cmd: "ss -H -ltn sport = :{{ item }}"
+  register: haproxy_listener_probe
+  changed_when: false
+  retries: 30
+  delay: 1
+  until: haproxy_listener_probe.stdout | length > 0
   loop:
     - "{{ haproxy_default_port }}"
     - "{{ haproxy_primary_port }}"
     - "{{ haproxy_replica_port }}"
-    - "{{ haproxy_stats_port }}"
+
+- name: Wait for HAProxy stats listener
+  ansible.builtin.wait_for:
+    host: "{{ haproxy_stats_listen_address }}"
+    port: "{{ haproxy_stats_port }}"
+    timeout: 30

@@ -19,6 +19,16 @@ haproxy_stats_port: 7000
 
 # Bind addresses
 haproxy_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+haproxy_listen_addresses:
+  - >-
+    {{ ansible_host | default(haproxy_listen_address)
+       if (vip_manager_enabled | default(false) | bool)
+       else haproxy_listen_address }}
+haproxy_vip_listen_addresses: >-
+  {{ [vip_manager_vip_cidr.split('/')[0]]
+     if (vip_manager_enabled | default(false) | bool)
+     else [] }}
+haproxy_client_listen_addresses: "{{ haproxy_listen_addresses + haproxy_vip_listen_addresses }}"
 haproxy_stats_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
 
 # Stats

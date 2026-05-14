@@ -555,7 +555,25 @@ Target RTO under default `haproxy_rto_profile: norm`: ~45s end-to-end.
 
 ### 8.3 Client connection path
 
-Apps connect to local HAProxy (5432 → default = primary, 5433 → rw = primary only, 5434 → ro = replicas) on any postgres node, or via L2 VIP. HAProxy uses Patroni REST health checks. pgBouncer pools connections to local PG. No client-visible change on failover.
+Apps connect to the PostgreSQL service on 5432. When vip-manager is enabled,
+the canonical client address is the VIP: `VIP:5432` routes through HAProxy to
+pgBouncer and then to PostgreSQL. HAProxy also exposes `VIP:5433` for explicit
+RW traffic and `VIP:5434` for RO replica traffic. HAProxy runs on every
+postgres node and binds both the configured default interface addresses and the
+VIP addresses; IPv6 bind addresses are rendered in bracket form such as
+`[2001:db8::20]:5432`. Linux non-local bind is enabled from
+`/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf` so HAProxy can bind VIP
+addresses before the local host owns them. vip-manager decides which node
+receives packets by moving the VIP to the current Patroni leader. Raw
+PostgreSQL remains on port 5432 for replication and local DBA checks, but it
+listens on the node address plus loopback instead of wildcard so it does not
+compete with the VIP service bind.
+
+During failover, Patroni lets the old leader key expire, promotes a replica,
+vip-manager attaches the VIP to the new leader, and existing client sessions
+reconnect to the same `VIP:5432` endpoint. HAProxy health checks continue to use
+Patroni REST (`/leader` for 5432/5433, `/replica` for 5434), while pgBouncer
+pools connections to local PG. No client-visible port change is required.
 
 ### 8.4 Backup and PITR
 

@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# Allow HAProxy to bind the vip-manager service address before this node owns it.
+
+net.ipv4.ip_nonlocal_bind = 1
+net.ipv6.ip_nonlocal_bind = 1

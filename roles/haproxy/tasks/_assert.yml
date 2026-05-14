@@ -10,7 +10,7 @@
 - name: Stat patroni-rest firewalld service (P2a should have installed it)
   ansible.builtin.stat:
     path: /etc/firewalld/services/patroni-rest.xml
-  register: hap_patroni_svc_stat
+  register: haproxy_patroni_svc_stat
 
 - name: Warn if patroni-rest firewalld service missing
   ansible.builtin.debug:
@@ -19,4 +19,4 @@
       /etc/firewalld/services/patroni-rest.xml. HAProxy will still work
       (it talks to Patroni REST locally over loopback), but the cross-host
       health checks won't traverse firewalld until P2a's patroni role runs.
-  when: not hap_patroni_svc_stat.stat.exists
+  when: not haproxy_patroni_svc_stat.stat.exists
