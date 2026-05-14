@@ -38,8 +38,6 @@ jobs:
             scenario: default
           - role: haproxy
             scenario: ha
-          - role: vip_manager
-            scenario: default
           - role: provision
             scenario: default
           - role: provision
