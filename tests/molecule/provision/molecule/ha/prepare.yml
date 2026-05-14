@@ -1,21 +1,29 @@
 ---
-- name: Bring up full P0+P1+P2a stack
-  ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
-- name: Bring up CA
-  ansible.builtin.import_playbook: ../../../../../playbooks/_ca.yml
-- name: Bring up node + repos + certs
-  ansible.builtin.import_playbook: ../../../../../playbooks/_node.yml
-- name: Bring up etcd
-  ansible.builtin.import_playbook: ../../../../../playbooks/_etcd.yml
-- name: Install postgres
-  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_install.yml
-- name: Bootstrap patroni
-  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_bootstrap.yml
+- name: Prepare - generate CA on control side
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ca_dir: "{{ playbook_dir }}/_tmp_ca"
+  roles:
+    - role: ../../../../../roles/ca
 
-- name: Pin ansible_host
+- name: Prepare - repos, node, certs, etcd, postgres, patroni
   hosts: all
   gather_facts: true
-  tasks:
-    - name: Set ansible_host to default IPv4
-      ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_default_ipv4.address }}"
+  become: true
+  vars:
+    certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
+    repos_pgdg_enabled: true
+    repos_epel_enabled: true
+    repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+    node_sysctl_apply: false
+  roles:
+    - role: ../../../../../roles/repos
+    - role: ../../../../../roles/node
+    - role: ../../../../../roles/certs
+    - role: ../../../../../roles/etcd
+    - role: ../../../../../roles/postgres
+    - role: ../../../../../roles/patroni

@@ -1,3 +1,7 @@
 ---
 - name: Apply provisioning role
-  ansible.builtin.import_playbook: ../../../../../playbooks/_provision.yml
+  hosts: postgres
+  become: true
+  gather_facts: false
+  roles:
+    - role: ../../../../../roles/provision
