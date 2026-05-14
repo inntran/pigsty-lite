@@ -4,8 +4,9 @@
   gather_facts: false
   tasks:
     - name: Ensure iproute and sudo are present
-      ansible.builtin.raw: dnf -y install iproute sudo
-      changed_when: false
+      ansible.builtin.dnf:
+        name: [iproute, sudo]
+        state: present
 
 - name: Prepare - generate CA on control side
   hosts: localhost

@@ -12,8 +12,9 @@
   gather_facts: false
   tasks:
     - name: Install sudo and iproute
-      ansible.builtin.raw: dnf -y install sudo iproute
-      changed_when: false
+      ansible.builtin.dnf:
+        name: [sudo, iproute]
+        state: present
 
     - name: Disable PAM for sudo (broken in ubi-init containers)
       ansible.builtin.copy:
@@ -34,6 +35,15 @@
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
     node_sysctl_apply: false
+  pre_tasks:
+    - name: Pin advertise addresses and SANs to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        certs_subject_alternative_names:
+          - "DNS:{{ inventory_hostname }}"
+          - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node

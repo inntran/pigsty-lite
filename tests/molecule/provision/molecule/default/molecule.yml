@@ -26,10 +26,6 @@ provisioner:
         pki_dir: /etc/pki/pigsty-lite
         postgres_version: 18
         postgres_port: 5432
-        certs_subject_alternative_names:
-          - "DNS:{{ inventory_hostname }}"
-          - "DNS:{{ inventory_hostname }}.test.local"
-          - "IP:127.0.0.1"
         postgres_users:
           - name: app
             password: "app-test-pw"
@@ -43,10 +39,8 @@ provisioner:
         postgres_hba_rules:
           - { db: app, user: app, source: 127.0.0.1/32, method: scram-sha-256 }
       etcd:
-        etcd_advertise_address: 127.0.0.1
         etcd_initial_cluster_state: new
       postgres:
-        patroni_advertise_address: 127.0.0.1
         patroni_superuser_password: superuser-test-pw
         patroni_replication_password: replicator-test-pw
         patroni_rewind_password: rewind-test-pw

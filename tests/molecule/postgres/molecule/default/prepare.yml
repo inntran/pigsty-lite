@@ -14,6 +14,18 @@
     certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
     repos_pgdg_enabled: true
     repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+  pre_tasks:
+    - name: Ensure iproute is present
+      ansible.builtin.dnf:
+        name: iproute
+        state: present
+
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        certs_subject_alternative_names:
+          - "DNS:{{ inventory_hostname }}"
+          - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/certs

@@ -6,5 +6,10 @@
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/patroni

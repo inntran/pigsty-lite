@@ -23,12 +23,7 @@ provisioner:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pki_dir: /etc/pki/pigsty-lite
-        certs_subject_alternative_names:
-          - "DNS:{{ inventory_hostname }}"
-          - "DNS:{{ inventory_hostname }}.test.local"
-          - "IP:127.0.0.1"
       etcd:
-        etcd_advertise_address: 127.0.0.1
         etcd_initial_cluster_state: new
 verifier:
   name: ansible

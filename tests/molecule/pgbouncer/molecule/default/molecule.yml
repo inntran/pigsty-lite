@@ -25,10 +25,6 @@ provisioner:
         pki_dir: /etc/pki/pigsty-lite
         postgres_version: 18
         postgres_port: 5432
-        certs_subject_alternative_names:
-          - "DNS:{{ inventory_hostname }}"
-          - "DNS:{{ inventory_hostname }}.test.local"
-          - "IP:127.0.0.1"
       etcd:
         etcd_initial_cluster_state: new
       postgres:
@@ -38,7 +34,6 @@ provisioner:
         postgres_tune_profile: tiny
     host_vars:
       pigsty-lite-pgbouncer:
-        ansible_host: 127.0.0.1
         postgres_role: primary
         etcd_seq: 1
 verifier:

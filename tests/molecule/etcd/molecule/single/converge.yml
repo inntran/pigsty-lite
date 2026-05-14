@@ -4,5 +4,9 @@
   gather_facts: true
   vars:
     firewalld_default_zone: public
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/etcd

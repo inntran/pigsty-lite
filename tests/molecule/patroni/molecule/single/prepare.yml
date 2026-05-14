@@ -19,6 +19,20 @@
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
     node_sysctl_apply: false
+  pre_tasks:
+    - name: Ensure iproute is present
+      ansible.builtin.dnf:
+        name: iproute
+        state: present
+
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        certs_subject_alternative_names:
+          - "DNS:{{ inventory_hostname }}"
+          - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node
