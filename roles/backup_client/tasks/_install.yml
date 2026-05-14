@@ -1,0 +1,37 @@
+---
+- name: Install pgBackRest and SELinux helpers
+  ansible.builtin.dnf:
+    name: "{{ [backup_client_package] + backup_client_support_packages }}"
+    state: present
+
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: "{{ backup_client_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ backup_client_pg_user }}"
+    mode: "0750"
+
+- name: Ensure the log directory exists
+  ansible.builtin.file:
+    path: "{{ backup_client_log_path }}"
+    state: directory
+    owner: "{{ backup_client_pg_user }}"
+    group: "{{ backup_client_pg_user }}"
+    mode: "0750"
+
+- name: Register SELinux fcontext for the log directory
+  community.general.sefcontext:
+    target: "{{ backup_client_log_path }}(/.*)?"
+    setype: postgresql_log_t
+    state: present
+  register: backup_client_sefcontext
+  when: ansible_facts.selinux.status == "enabled"
+
+- name: Relabel the log directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ backup_client_log_path }}"
+  when:
+    - ansible_facts.selinux.status == "enabled"
+    - backup_client_sefcontext.changed
+  changed_when: true
