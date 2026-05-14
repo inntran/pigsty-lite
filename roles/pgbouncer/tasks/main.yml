@@ -84,7 +84,7 @@
 
 - name: Install pgbouncer firewalld service definition
   ansible.builtin.copy:
-    src: "{{ playbook_dir | dirname }}/files/firewalld/services/pgbouncer.xml"
+    src: "firewalld/services/pgbouncer.xml"
     dest: /etc/firewalld/services/pgbouncer.xml
     owner: root
     group: root

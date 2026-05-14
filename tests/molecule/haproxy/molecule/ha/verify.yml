@@ -1,12 +1,4 @@
 ---
-- name: Pin ansible_host
-  hosts: all
-  gather_facts: true
-  tasks:
-    - name: Set ansible_host
-      ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
-
 - name: Verify haproxy on every host
   hosts: postgres
   become: true
@@ -28,7 +20,7 @@
   tasks:
     - name: GET /cluster
       ansible.builtin.uri:
-        url: "https://{{ ansible_host }}:8008/cluster"
+        url: "https://{{ ansible_facts['default_ipv4']['address'] }}:8008/cluster"
         validate_certs: false
         return_content: true
       register: pre_cluster
@@ -106,7 +98,7 @@
 
     - name: Wait for new leader to be {{ candidate_host }}
       ansible.builtin.uri:
-        url: "https://{{ ansible_host }}:8008/cluster"
+        url: "https://{{ ansible_facts['default_ipv4']['address'] }}:8008/cluster"
         validate_certs: false
         return_content: true
       register: post_cluster

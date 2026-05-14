@@ -2,11 +2,12 @@
 - name: Identify the current Patroni leader
   hosts: postgres
   become: true
+  gather_facts: true
   run_once: true
   tasks:
     - name: GET /cluster
       ansible.builtin.uri:
-        url: "https://{{ ansible_host }}:8008/cluster"
+        url: "https://{{ ansible_facts['default_ipv4']['address'] }}:8008/cluster"
         validate_certs: false
         return_content: true
       register: cluster
@@ -69,12 +70,13 @@
 - name: Probe psql 5433 (HAProxy not in this scenario; use leader directly)
   hosts: postgres
   become: true
+  gather_facts: true
   run_once: true
   tasks:
     - name: Psql as app over TLS to the leader
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
-        "host={{ hostvars[leader_host].ansible_host }} dbname=app user=app
+        "host={{ hostvars[leader_host].ansible_facts['default_ipv4']['address'] }} dbname=app user=app
          password=app-test-pw sslmode=require"
         -tAc "select 1"
       register: probe

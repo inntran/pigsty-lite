@@ -83,7 +83,10 @@
 
 - name: Enable EPEL
   ansible.builtin.dnf:
-    name: epel-release
+    name: >-
+      {{ 'oracle-epel-release-el' + ansible_distribution_major_version
+         if ansible_distribution == 'OracleLinux'
+         else 'epel-release' }}
     state: present
   when: repos_epel_enabled | bool
 

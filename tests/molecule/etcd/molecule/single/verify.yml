@@ -1,6 +1,11 @@
 ---
 - name: Verify
   hosts: all
+  gather_facts: true
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   tasks:
     - name: Etcd service is active
       ansible.builtin.systemd:
