@@ -1,0 +1,3 @@
+---
+- name: Apply provisioning role
+  ansible.builtin.import_playbook: ../../../../playbooks/_provision.yml

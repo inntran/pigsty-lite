@@ -1,0 +1,82 @@
+---
+- name: Identify the current Patroni leader
+  hosts: postgres
+  become: true
+  run_once: true
+  tasks:
+    - name: GET /cluster
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}:8008/cluster"
+        validate_certs: false
+        return_content: true
+      register: cluster
+
+    - name: Set leader fact
+      ansible.builtin.set_fact:
+        leader_host: >-
+          {{ (cluster.json.members
+              | selectattr('role', 'equalto', 'leader')
+              | list | first).name }}
+
+- name: Verify provisioning state propagates to every node
+  hosts: postgres
+  become: true
+  become_user: postgres
+  gather_facts: false
+  tasks:
+    - name: Role 'app' visible on every host (via streaming replication)
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      register: q_role
+      changed_when: false
+
+    - name: Assert role visible everywhere
+      ansible.builtin.assert:
+        that:
+          - q_role.rowcount == 1
+        fail_msg: "Role 'app' not visible on {{ inventory_hostname }}"
+
+    - name: Database 'app' visible on every host
+      community.postgresql.postgresql_query:
+        query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      register: q_db
+      changed_when: false
+
+    - name: Assert database visible everywhere
+      ansible.builtin.assert:
+        that:
+          - q_db.rowcount == 1
+        fail_msg: "Database 'app' not visible on {{ inventory_hostname }}"
+
+- name: Verify pg_hba on the leader contains the app rule
+  hosts: postgres
+  become: true
+  run_once: true
+  tasks:
+    - name: Grep app rule on the leader's pg_hba
+      ansible.builtin.command: >-
+        grep -E "^hostssl[[:space:]]+app[[:space:]]+app[[:space:]]+0\.0\.0\.0/0"
+        /var/lib/pgsql/18/data/pg_hba.conf
+      register: hba_grep
+      changed_when: false
+      delegate_to: "{{ leader_host }}"
+      failed_when: hba_grep.rc != 0
+
+- name: Probe psql 5433 (HAProxy not in this scenario; use leader directly)
+  hosts: postgres
+  become: true
+  run_once: true
+  tasks:
+    - name: psql as app over TLS to the leader
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host={{ hostvars[leader_host].ansible_host }} dbname=app user=app
+         password=app-test-pw sslmode=require"
+        -tAc "select 1"
+      register: probe
+      changed_when: false
+      failed_when: probe.rc != 0 or probe.stdout.strip() != "1"
