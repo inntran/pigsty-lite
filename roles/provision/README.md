@@ -9,7 +9,7 @@ is: edit the response file, `make deploy`.
 ## Inputs (from response file)
 
 | Variable | Shape | Example |
-|---|---|---|
+| --- | --- | --- |
 | `postgres_users` | list of `{name, password, roles?}` | `[{name: app, password: "...", roles: [pg_read_all_data]}]` |
 | `postgres_databases` | list of `{name, owner?, encoding?}` | `[{name: app, owner: app}]` |
 | `postgres_extensions` | list of strings or `{name, db?}` dicts | `[pg_stat_statements, {name: pgvector, db: app}]` |
