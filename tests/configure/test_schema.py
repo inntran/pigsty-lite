@@ -53,6 +53,48 @@ def test_ipv6_single_stack_rejects_ipv4_hba_source():
         validate(data)
 
 
+def test_postgres_users_must_be_list_of_dicts():
+    data = _load("single.rsp.yml")
+    data["postgres"]["users"] = ["bare-string-not-dict"]
+    with pytest.raises(SchemaError, match=r"postgres\.users\[0\]: must be a mapping"):
+        validate(data)
+
+
+def test_postgres_users_require_name():
+    data = _load("single.rsp.yml")
+    data["postgres"]["users"] = [{"password": "pw"}]
+    with pytest.raises(SchemaError, match=r"postgres\.users\[0\]\.name"):
+        validate(data)
+
+
+def test_postgres_databases_must_be_list_of_dicts():
+    data = _load("single.rsp.yml")
+    data["postgres"]["databases"] = ["bare-string"]
+    with pytest.raises(SchemaError, match=r"postgres\.databases\[0\]: must be a mapping"):
+        validate(data)
+
+
+def test_postgres_databases_require_name():
+    data = _load("single.rsp.yml")
+    data["postgres"]["databases"] = [{"owner": "app"}]
+    with pytest.raises(SchemaError, match=r"postgres\.databases\[0\]\.name"):
+        validate(data)
+
+
+def test_postgres_extensions_must_be_strings_or_name_dicts():
+    data = _load("single.rsp.yml")
+    data["postgres"]["extensions"] = [42]
+    with pytest.raises(SchemaError, match=r"postgres\.extensions\[0\]"):
+        validate(data)
+
+
+def test_postgres_extensions_dict_requires_name():
+    data = _load("single.rsp.yml")
+    data["postgres"]["extensions"] = [{"db": "app"}]
+    with pytest.raises(SchemaError, match=r"postgres\.extensions\[0\]\.name"):
+        validate(data)
+
+
 def test_unknown_network_ip_version_rejected():
     data = _load("single.rsp.yml")
     data["network"] = {"ip_version": "ipv5"}

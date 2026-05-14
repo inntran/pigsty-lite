@@ -146,6 +146,54 @@ def _validate_hba_rules(postgres: dict, ip_version: str) -> None:
                     raise
 
 
+def _validate_users(postgres: dict) -> None:
+    users = postgres.get("users", [])
+    if not isinstance(users, list):
+        raise SchemaError("postgres.users: must be a list")
+    for index, user in enumerate(users):
+        path = f"postgres.users[{index}]"
+        if not isinstance(user, dict):
+            raise SchemaError(f"{path}: must be a mapping")
+        if "name" not in user:
+            raise SchemaError(f"{path}.name: missing required key 'name'")
+        _require_str(user, "name", path)
+        roles = user.get("roles", [])
+        if not isinstance(roles, list):
+            raise SchemaError(f"{path}.roles: must be a list of role names")
+        for role_index, role in enumerate(roles):
+            if not isinstance(role, str):
+                raise SchemaError(f"{path}.roles[{role_index}]: expected string")
+
+
+def _validate_databases(postgres: dict) -> None:
+    dbs = postgres.get("databases", [])
+    if not isinstance(dbs, list):
+        raise SchemaError("postgres.databases: must be a list")
+    for index, db in enumerate(dbs):
+        path = f"postgres.databases[{index}]"
+        if not isinstance(db, dict):
+            raise SchemaError(f"{path}: must be a mapping")
+        if "name" not in db:
+            raise SchemaError(f"{path}.name: missing required key 'name'")
+        _require_str(db, "name", path)
+
+
+def _validate_extensions(postgres: dict) -> None:
+    exts = postgres.get("extensions", [])
+    if not isinstance(exts, list):
+        raise SchemaError("postgres.extensions: must be a list")
+    for index, ext in enumerate(exts):
+        path = f"postgres.extensions[{index}]"
+        if isinstance(ext, str):
+            continue
+        if isinstance(ext, dict):
+            if "name" not in ext:
+                raise SchemaError(f"{path}.name: missing required key 'name'")
+            _require_str(ext, "name", path)
+            continue
+        raise SchemaError(f"{path}: must be a string or a mapping with at least 'name'")
+
+
 def _validate_postgres(postgres: dict, ip_version: str) -> None:
     if not isinstance(postgres, dict):
         raise SchemaError("postgres: must be a mapping")
@@ -162,6 +210,9 @@ def _validate_postgres(postgres: dict, ip_version: str) -> None:
     if not isinstance(shared_buffer_ratio, int | float) or not 0.05 <= shared_buffer_ratio <= 0.6:
         raise SchemaError("postgres.shared_buffer_ratio: must be a float in 0.05..0.6")
     _validate_hba_rules(postgres, ip_version)
+    _validate_users(postgres)
+    _validate_databases(postgres)
+    _validate_extensions(postgres)
 
 
 def _validate_tls(tls: dict) -> None:
