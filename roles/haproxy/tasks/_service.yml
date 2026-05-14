@@ -1,0 +1,17 @@
+---
+- name: Enable and start haproxy
+  ansible.builtin.systemd:
+    name: "{{ haproxy_service_name }}"
+    enabled: true
+    state: started
+
+- name: Wait for HAProxy frontends to listen
+  ansible.builtin.wait_for:
+    host: "{{ network_loopback_address | default('127.0.0.1') }}"
+    port: "{{ item }}"
+    timeout: 30
+  loop:
+    - "{{ haproxy_default_port }}"
+    - "{{ haproxy_primary_port }}"
+    - "{{ haproxy_replica_port }}"
+    - "{{ haproxy_stats_port }}"

@@ -1,0 +1,30 @@
+---
+- name: Install haproxy-postgres firewalld service definition
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/files/firewalld/services/haproxy-postgres.xml"
+    dest: /etc/firewalld/services/haproxy-postgres.xml
+    owner: root
+    group: root
+    mode: "0644"
+  register: hap_fw_svc
+
+- name: Reload firewalld if service definition changed
+  ansible.builtin.command: firewall-cmd --reload
+  when: hap_fw_svc.changed
+  changed_when: true
+
+- name: Open built-in postgresql service (5432)
+  ansible.posix.firewalld:
+    service: postgresql
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ haproxy_firewalld_zone }}"
+
+- name: Open custom haproxy-postgres service (5433, 5434)
+  ansible.posix.firewalld:
+    service: haproxy-postgres
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ haproxy_firewalld_zone }}"

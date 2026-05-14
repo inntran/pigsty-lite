@@ -1,0 +1,7 @@
+---
+- name: Allow HAProxy to connect to arbitrary TCP ports (Patroni REST 8008 on peers)
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+  when: ansible_facts.selinux.status == "enabled"

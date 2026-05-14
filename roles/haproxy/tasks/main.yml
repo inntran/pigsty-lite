@@ -1,0 +1,24 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [haproxy, assert]
+
+- name: Install HAProxy
+  ansible.builtin.import_tasks: _install.yml
+  tags: [haproxy, install]
+
+- name: Configure SELinux booleans
+  ansible.builtin.import_tasks: _selinux.yml
+  tags: [haproxy, install, selinux]
+
+- name: Render HAProxy config
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [haproxy, config]
+
+- name: Open HAProxy ports in firewalld
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [haproxy, firewall]
+
+- name: Start HAProxy
+  ansible.builtin.import_tasks: _service.yml
+  tags: [haproxy, service]

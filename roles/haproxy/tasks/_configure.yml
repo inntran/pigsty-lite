@@ -1,0 +1,10 @@
+---
+- name: Render haproxy.cfg
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ haproxy_config_file }}"
+    owner: root
+    group: root
+    mode: "0640"
+    validate: "haproxy -c -f %s"
+  notify: Reload haproxy
