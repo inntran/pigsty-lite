@@ -1,0 +1,19 @@
+---
+- name: Create / update databases
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(provision_dbsu) }}"
+    encoding: "{{ item.encoding | default('UTF8') }}"
+    lc_collate: "{{ item.lc_collate | default('C.UTF-8') }}"
+    lc_ctype: "{{ item.lc_ctype | default('C.UTF-8') }}"
+    template: "{{ item.template | default('template1') }}"
+    state: present
+    login_unix_socket: "{{ provision_dbsu_socket_dir }}"
+    login_user: "{{ provision_dbsu }}"
+  become: true
+  become_user: "{{ provision_dbsu }}"
+  loop: "{{ postgres_databases | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
