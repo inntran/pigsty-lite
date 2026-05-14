@@ -26,6 +26,7 @@ pgbouncer_unix_socket_dir: "{{ pgbouncer_run_dir }}"
 pgbouncer_auth_type: scram-sha-256
 pgbouncer_auth_file: "{{ pgbouncer_userlist_file }}"
 pgbouncer_auth_user: "{{ patroni_superuser | default('postgres') }}"
+pgbouncer_auth_query: "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
 # Admin and stats users that can connect to the special `pgbouncer` database
 pgbouncer_admin_users: ["postgres"]
 pgbouncer_stats_users: ["postgres"]

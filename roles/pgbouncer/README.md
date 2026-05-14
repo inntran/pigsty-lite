@@ -10,10 +10,11 @@ PG dies and is recreated when PG comes back.
 
 ## Auth
 
-`scram-sha-256`. The userlist is rendered from
-`pgbouncer_userlist_system_entries` + `pgbouncer_userlist_extra`.
-System entries include the postgres superuser by default. Add business
-users via the response file → `pgbouncer_userlist_extra`.
+`scram-sha-256` with `auth_query` against `pg_shadow`, so pgBouncer
+verifies client credentials using the SCRAM verifier stored by
+PostgreSQL. The `auth_user` entry is still rendered into the userlist so
+pgBouncer can connect upstream to run the query. Add additional
+userlist entries only if you intentionally bypass `auth_query`.
 
 ## Firewall
 

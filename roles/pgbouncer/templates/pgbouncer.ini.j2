@@ -13,6 +13,9 @@ pidfile = {{ pgbouncer_pid_file }}
 auth_type = {{ pgbouncer_auth_type }}
 auth_file = {{ pgbouncer_auth_file }}
 auth_user = {{ pgbouncer_auth_user }}
+{% if pgbouncer_auth_query %}
+auth_query = {{ pgbouncer_auth_query }}
+{% endif %}
 
 admin_users = {{ pgbouncer_admin_users | join(',') }}
 stats_users = {{ pgbouncer_stats_users | join(',') }}
