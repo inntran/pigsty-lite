@@ -24,8 +24,11 @@ postgres:
   users: []
   hba_rules:
     - {db: app, user: app, source: 10.20.40.0/24, method: scram-sha-256}
-pgbackrest:
+# P4 day-2 workflow: edit this block, then run make deploy. See
+# docs/operations/day2-backups.md.
+backup:
   enabled: true
+  tool: pgbackrest
   schedule: {full: "0 1 * * 0", differential: "0 1 * * 1-6"}
   retention: {full: 4}
 tls:

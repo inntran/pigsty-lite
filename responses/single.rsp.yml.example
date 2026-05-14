@@ -25,7 +25,9 @@ postgres:
   databases: []
   users: []
   hba_rules: []
-pgbackrest:
+# P4 day-2 workflow: edit this block, then run make deploy. See
+# docs/operations/day2-backups.md.
+backup:
   enabled: false
 tls:
   internal_ca: generate

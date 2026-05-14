@@ -14,6 +14,7 @@
 - `haproxy`
 - `vip_manager`
 - `provision`
+- `backup`
 
 ## Action tags (used inside roles in later sub-plans)
 
@@ -40,3 +41,6 @@
 - `--tags provision` - re-apply HBA / users / dbs / extensions on the leader.
 - `--tags provision,hba` - re-render pg_hba.conf only.
 - `--tags provision,users` - reconcile roles only.
+- `--tags backup` - install/reconfigure pgBackRest (client + store).
+- `--tags backup,config` - re-render pgBackRest configs only.
+- `--tags backup,service` - re-apply archive_command, stanza, and timers.
