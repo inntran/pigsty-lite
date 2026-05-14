@@ -1,0 +1,61 @@
+---
+- name: Install pgBackRest and SELinux helpers
+  ansible.builtin.dnf:
+    name: "{{ [backup_store_package] + backup_store_support_packages }}"
+    state: present
+
+- name: Create the pgBackRest repository group
+  ansible.builtin.group:
+    name: "{{ backup_store_repo_group }}"
+    system: true
+    state: present
+
+- name: Create the pgBackRest repository user
+  ansible.builtin.user:
+    name: "{{ backup_store_repo_user }}"
+    group: "{{ backup_store_repo_group }}"
+    home: "{{ backup_store_repo_user_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+    state: present
+
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: "{{ backup_store_config_dir }}"
+    state: directory
+    owner: "{{ backup_store_repo_user }}"
+    group: "{{ backup_store_repo_group }}"
+    mode: "0750"
+
+- name: Ensure the repository directory exists
+  ansible.builtin.file:
+    path: "{{ backup_store_repo_path }}"
+    state: directory
+    owner: "{{ backup_store_repo_user }}"
+    group: "{{ backup_store_repo_group }}"
+    mode: "0750"
+
+- name: Ensure the log directory exists
+  ansible.builtin.file:
+    path: "{{ backup_store_log_path }}"
+    state: directory
+    owner: "{{ backup_store_repo_user }}"
+    group: "{{ backup_store_repo_group }}"
+    mode: "0750"
+
+- name: Register SELinux fcontext for the repository directory
+  community.general.sefcontext:
+    target: "{{ backup_store_repo_path }}(/.*)?"
+    setype: var_t
+    state: present
+  register: backup_store_sefcontext
+  when: ansible_facts.selinux.status == "enabled"
+
+- name: Relabel the repository directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ backup_store_repo_path }}"
+  when:
+    - ansible_facts.selinux.status == "enabled"
+    - backup_store_sefcontext.changed
+  changed_when: true
