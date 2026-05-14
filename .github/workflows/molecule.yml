@@ -40,6 +40,10 @@ jobs:
             scenario: ha
           - role: vip_manager
             scenario: default
+          - role: provision
+            scenario: default
+          - role: provision
+            scenario: ha
     steps:
       - uses: actions/checkout@v6
 
