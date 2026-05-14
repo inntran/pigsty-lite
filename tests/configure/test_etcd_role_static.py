@@ -44,10 +44,16 @@ def test_etcd_flushes_config_handlers_before_health_gate():
         for index, task in enumerate(tasks)
         if task.get("ansible.builtin.meta") == "flush_handlers"
     )
-    service_index = next(
+    service_start_index = next(
         index
         for index, task in enumerate(tasks)
-        if task.get("ansible.builtin.import_tasks") == "_service.yml"
+        if task.get("ansible.builtin.systemd", {}).get("name") == "{{ etcd_service_name }}"
+    )
+    health_gate_index = next(
+        index
+        for index, task in enumerate(tasks)
+        if "endpoint health" in task.get("ansible.builtin.command", {}).get("cmd", "")
     )
 
-    assert flush_index < service_index
+    assert flush_index < service_start_index
+    assert flush_index < health_gate_index
