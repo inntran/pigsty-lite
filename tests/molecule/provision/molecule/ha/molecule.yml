@@ -55,6 +55,9 @@ provisioner:
         certs_subject_alternative_names:
           - "DNS:{{ inventory_hostname }}"
           - "DNS:{{ inventory_hostname }}.test.local"
+          - "IP:{{ ansible_all_ipv4_addresses | first }}"
+        etcd_advertise_address: "{{ ansible_all_ipv4_addresses | first }}"
+        patroni_advertise_address: "{{ ansible_all_ipv4_addresses | first }}"
         postgres_users:
           - name: app
             password: "app-test-pw"
@@ -75,18 +78,12 @@ provisioner:
         postgres_tune_profile: tiny
     host_vars:
       pigsty-lite-provision-ha-1:
-        etcd_advertise_address: pigsty-lite-provision-ha-1
-        patroni_advertise_address: pigsty-lite-provision-ha-1
         postgres_role: primary
         etcd_seq: 1
       pigsty-lite-provision-ha-2:
-        etcd_advertise_address: pigsty-lite-provision-ha-2
-        patroni_advertise_address: pigsty-lite-provision-ha-2
         postgres_role: replica
         etcd_seq: 2
       pigsty-lite-provision-ha-3:
-        etcd_advertise_address: pigsty-lite-provision-ha-3
-        patroni_advertise_address: pigsty-lite-provision-ha-3
         postgres_role: replica
         etcd_seq: 3
 verifier:
