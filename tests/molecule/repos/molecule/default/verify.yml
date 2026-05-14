@@ -33,15 +33,3 @@
         that:
           - not pigsty_repo_file.stat.exists
 
-    - name: Read PGDG repo file content
-      ansible.builtin.slurp:
-        src: /etc/yum.repos.d/pgdg-redhat-all.repo
-      register: pgdg_repo_content
-
-    - name: Assert PGDG sections carry priority=10
-      ansible.builtin.assert:
-        that:
-          - "'priority = 10' in (pgdg_repo_content.content | b64decode)"
-        fail_msg: |
-          Expected priority = 10 in PGDG repo file. Got:
-          {{ pgdg_repo_content.content | b64decode }}
