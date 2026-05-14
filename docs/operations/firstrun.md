@@ -180,3 +180,19 @@ it. After a Patroni switchover the address migrates within ~3–5 seconds.
   each member; ensure every host in the `etcd` group has a reachable
   `ansible_host` value, or override `etcd_advertise_address` in
   `host_vars/<host>.yml`.
+
+## After P3 (provisioning)
+
+Once `make deploy` runs end-to-end, your declared databases, users,
+extensions, and HBA rules from `responses/site.rsp.yml` are applied on
+the Patroni leader and propagate to replicas via streaming replication.
+
+Verify:
+
+```bash
+ssh pgnode01 sudo -iu postgres psql -d <your-db> -c "SELECT current_user;"
+ssh pgnode01 sudo grep -v '^#' /var/lib/pgsql/18/data/pg_hba.conf
+```
+
+To add a database, user, or extension day-2, see
+[docs/operations/day2-provisioning.md](day2-provisioning.md).
