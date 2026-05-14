@@ -1,0 +1,51 @@
+---
+- name: Verify the stanza and a full backup from the backup store host
+  hosts: backup_store
+  become: true
+  gather_facts: false
+  tasks:
+    - name: PgBackRest info reports the stanza
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: pgbackrest
+      register: pgbr_info
+      changed_when: false
+
+    - name: Assert stanza present
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info.stdout | from_json) | first).name == "pigsty-lite-test"
+
+    - name: Run an on-demand full backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test --type=full backup
+      become: true
+      become_user: pgbackrest
+      register: pgbr_backup
+      changed_when: >-
+        'completed successfully' in pgbr_backup.stderr
+        or 'completed successfully' in pgbr_backup.stdout
+
+    - name: Assert a backup is recorded
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: pgbackrest
+      register: pgbr_info_after_backup
+      changed_when: false
+      failed_when: ((pgbr_info_after_backup.stdout | from_json) | first).backup | length < 1
+
+    - name: The full and diff timers are enabled
+      ansible.builtin.systemd:
+        name: "pgbackrest-backup@{{ item }}.timer"
+      loop:
+        - full
+        - diff
+      register: timer_state
+
+    - name: Assert full and diff timers are enabled
+      ansible.builtin.assert:
+        that:
+          - item.status.UnitFileState == "enabled"
+      loop: "{{ timer_state.results }}"
