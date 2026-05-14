@@ -1,0 +1,40 @@
+---
+# roles/backup_client/defaults/main.yml
+# All variables prefixed `backup_client_`. Operator-facing coordination
+# vars stay generic (`backup_*`) so future backup engines can reuse the
+# same response-file contract. This role is the pgBackRest backend.
+
+# Package
+backup_client_package: pgbackrest
+backup_client_support_packages:
+  - python3-libselinux
+  - policycoreutils-python-utils
+
+# Config
+backup_client_config_dir: /etc/pgbackrest
+backup_client_config_file: /etc/pgbackrest/pgbackrest.conf
+backup_client_log_path: /var/log/pgbackrest
+
+# Stanza
+backup_client_stanza: "{{ backup_stanza | default('pigsty-lite') }}"
+
+# PostgreSQL paths (match the postgres role's vendor layout)
+backup_client_pg_path: "{{ postgres_data_dir_pattern | default('/var/lib/pgsql/' ~ postgres_version ~ '/data') }}"
+backup_client_pg_port: "{{ postgres_port | default(5432) }}"
+backup_client_pg_user: "{{ postgres_osdba | default('postgres') }}"
+
+# Dedicated SSH keypair, owned by the postgres OS user. The public half
+# is collected by the backup_store role via the backup_client_ssh_pubkey
+# fact (set in _ssh.yml).
+backup_client_ssh_key_path: "/var/lib/pgsql/.ssh/id_pgbackrest"
+backup_client_ssh_key_type: ed25519
+backup_client_ssh_dir: /var/lib/pgsql/.ssh
+
+# Repo host: the single backup_store host.
+backup_client_repo_host: "{{ groups['backup_store'][0] }}"
+backup_client_repo_user: "{{ backup_repo_user | default('pgbackrest') }}"
+backup_client_ssh_port: "{{ backup_ssh_port | default(22) }}"
+
+# Archive
+backup_client_archive_async: true
+backup_client_archive_process_max: 2
