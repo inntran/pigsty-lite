@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: haproxy
+  author: pigsty-lite
+  description: Per-host HAProxy routing PG clients to Patroni leader / replicas via REST health checks.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
