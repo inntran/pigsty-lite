@@ -74,6 +74,17 @@ def generate(response: dict[str, Any]) -> str:
     }
     out.update(_flatten_pgbackrest(response.get("pgbackrest", {})))
 
+    conn = response.get("connection_layer", {}) or {}
+    hap = conn.get("haproxy", {}) or {}
+    vip = conn.get("vip_manager", {}) or {}
+
+    out["haproxy_rto_profile"] = hap.get("rto_profile", "norm")
+    out["haproxy_backend_target"] = hap.get("backend_target", "pgbouncer")
+    out["vip_manager_enabled"] = bool(vip.get("enabled", False))
+    if out["vip_manager_enabled"]:
+        out["vip_manager_vip_cidr"] = vip["vip_cidr"]
+        out["vip_manager_interface"] = vip["interface"]
+
     buf = StringIO()
     buf.write(BANNER)
     yaml.safe_dump(out, buf, sort_keys=False, default_flow_style=False)

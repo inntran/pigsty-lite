@@ -39,3 +39,13 @@ repos:
 firewall:
   operator_cidrs: ["10.0.0.0/8"]
   postgres_client_cidrs: ["10.20.40.0/24"]
+
+# Optional. Defaults: rto_profile=norm, backend_target=pgbouncer, vip-manager disabled.
+# connection_layer:
+#   haproxy:
+#     rto_profile: norm        # tight | norm | loose
+#     backend_target: pgbouncer  # pgbouncer | postgres
+#   vip_manager:
+#     enabled: false
+#     vip_cidr: "10.20.30.20/24"
+#     interface: "eth0"
