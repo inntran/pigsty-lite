@@ -209,3 +209,30 @@ ssh pgnode01 sudo grep -v '^#' /var/lib/pgsql/18/data/pg_hba.conf
 
 To add a database, user, or extension day-2, see
 [docs/operations/day2-provisioning.md](day2-provisioning.md).
+
+## After P4 (backups)
+
+`make deploy` installs pgBackRest on the backup store host and every
+postgres node, creates the stanza, wires PostgreSQL's `archive_command`
+through Patroni, and installs systemd timers for weekly full + daily
+differential backups.
+
+Verify:
+
+```bash
+# On any postgres node, as the postgres user:
+ssh pgnode01 sudo -iu postgres pgbackrest --stanza=<cluster_name> info
+
+# On the backup store host, confirm the timers are active:
+ssh pgmon01 systemctl list-timers 'pgbackrest-*'
+```
+
+If `archive_mode` flipped on for the first time, Patroni reports
+`pending_restart`. Apply it during a maintenance window:
+
+```bash
+ssh pgnode01 sudo patronictl restart <cluster_name> --pending
+```
+
+To trigger a manual backup, change retention, or enable an S3 second
+store, see [docs/operations/day2-backups.md](day2-backups.md).
