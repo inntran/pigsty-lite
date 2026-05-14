@@ -73,17 +73,22 @@ def test_monitoring_retention_namespaced():
     assert out["vlsingle_retention"] == "30d"
 
 
-def test_pgbackrest_disabled_when_response_says_so():
+def test_backup_disabled_when_response_says_so():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
-    assert out["pgbackrest_enabled"] is False
+    assert out["backup_enabled"] is False
 
 
-def test_pgbackrest_schedule_promoted():
+def test_backup_schedule_promoted():
     out = yaml.safe_load(generate(_load("ha.rsp.yml")))
-    assert out["pgbackrest_enabled"] is True
-    assert out["pgbackrest_schedule_full"] == "0 1 * * 0"
-    assert out["pgbackrest_schedule_differential"] == "0 1 * * 1-6"
-    assert out["pgbackrest_retention_full"] == 4
+    assert out["backup_enabled"] is True
+    assert out["backup_tool"] == "pgbackrest"
+    assert out["backup_schedule_full"] == "0 1 * * 0"
+    assert out["backup_schedule_differential"] == "0 1 * * 1-6"
+    assert out["backup_schedule_full_oncalendar"] == "Sun *-*-* 01:00:00"
+    assert (
+        out["backup_schedule_differential_oncalendar"] == "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 01:00:00"
+    )
+    assert out["backup_retention_full"] == 4
 
 
 def test_generated_file_has_banner():

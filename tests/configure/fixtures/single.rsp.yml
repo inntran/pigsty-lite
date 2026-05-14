@@ -19,7 +19,7 @@ postgres:
   databases: []
   users: []
   hba_rules: []
-pgbackrest:
+backup:
   enabled: false
 tls:
   internal_ca: generate

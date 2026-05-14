@@ -15,22 +15,41 @@ BANNER = (
 )
 
 
-def _flatten_pgbackrest(pgbackrest: dict[str, Any]) -> dict[str, Any]:
-    out: dict[str, Any] = {"pgbackrest_enabled": bool(pgbackrest.get("enabled", False))}
-    if not out["pgbackrest_enabled"]:
+DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+
+def _cron_to_oncalendar(value: str) -> str:
+    minute, hour, _, _, day_of_week = value.split()
+    if "-" in day_of_week:
+        start, end = (int(part) for part in day_of_week.split("-", maxsplit=1))
+        days = ",".join(DAY_NAMES[day] for day in range(start, end + 1))
+    else:
+        days = DAY_NAMES[int(day_of_week)]
+    return f"{days} *-*-* {int(hour):02d}:{int(minute):02d}:00"
+
+
+def _flatten_backup(backup: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {"backup_enabled": bool(backup.get("enabled", False))}
+    if not out["backup_enabled"]:
         return out
 
-    schedule = pgbackrest.get("schedule", {})
-    if "full" in schedule:
-        out["pgbackrest_schedule_full"] = schedule["full"]
-    if "differential" in schedule:
-        out["pgbackrest_schedule_differential"] = schedule["differential"]
+    out["backup_tool"] = backup.get("tool", "pgbackrest")
 
-    retention = pgbackrest.get("retention", {})
+    schedule = backup.get("schedule", {})
+    if "full" in schedule:
+        out["backup_schedule_full"] = schedule["full"]
+        out["backup_schedule_full_oncalendar"] = _cron_to_oncalendar(schedule["full"])
+    if "differential" in schedule:
+        out["backup_schedule_differential"] = schedule["differential"]
+        out["backup_schedule_differential_oncalendar"] = _cron_to_oncalendar(
+            schedule["differential"]
+        )
+
+    retention = backup.get("retention", {})
     if "full" in retention:
-        out["pgbackrest_retention_full"] = retention["full"]
-    if pgbackrest.get("secondary_store", {}).get("enabled"):
-        out["pgbackrest_secondary_store"] = pgbackrest["secondary_store"]
+        out["backup_retention_full"] = retention["full"]
+    if backup.get("secondary_store", {}).get("enabled"):
+        out["backup_secondary_store"] = backup["secondary_store"]
     return out
 
 
@@ -77,7 +96,7 @@ def generate(response: dict[str, Any]) -> str:
         "repos_pigsty_enabled": bool(repos.get("pigsty", {}).get("enabled", False)),
         "repos_pigsty_packages": repos.get("pigsty", {}).get("packages", []),
     }
-    out.update(_flatten_pgbackrest(response.get("pgbackrest", {})))
+    out.update(_flatten_backup(response.get("backup", {})))
 
     conn = response.get("connection_layer", {}) or {}
     hap = conn.get("haproxy", {}) or {}

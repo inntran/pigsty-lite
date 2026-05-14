@@ -292,6 +292,79 @@ def _validate_monitoring(monitoring: dict) -> None:
             raise SchemaError(f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)")
 
 
+def _validate_backup_cron(value: str, field: str) -> None:
+    parts = value.split()
+    if len(parts) != 5:
+        raise SchemaError(f"{field}: unsupported cron expression")
+
+    minute, hour, day_of_month, month, day_of_week = parts
+    if day_of_month != "*" or month != "*":
+        raise SchemaError(f"{field}: unsupported cron expression")
+    if not minute.isdigit() or not 0 <= int(minute) <= 59:
+        raise SchemaError(f"{field}: unsupported cron expression")
+    if not hour.isdigit() or not 0 <= int(hour) <= 23:
+        raise SchemaError(f"{field}: unsupported cron expression")
+
+    dow_parts = day_of_week.split("-", maxsplit=1)
+    if not all(part.isdigit() for part in dow_parts):
+        raise SchemaError(f"{field}: unsupported cron expression")
+    dow_values = [int(part) for part in dow_parts]
+    if not all(0 <= day <= 6 for day in dow_values):
+        raise SchemaError(f"{field}: unsupported cron expression")
+    if len(dow_values) == 2 and dow_values[0] > dow_values[1]:
+        raise SchemaError(f"{field}: unsupported cron expression")
+
+
+def _validate_backup(backup: Any) -> None:
+    if backup is None:
+        return
+    if not isinstance(backup, dict):
+        raise SchemaError("backup: must be a mapping")
+    enabled = backup.get("enabled", False)
+    if not isinstance(enabled, bool):
+        raise SchemaError("backup.enabled: must be a boolean")
+    if not enabled:
+        return
+
+    tool = backup.get("tool", "pgbackrest")
+    if tool != "pgbackrest":
+        raise SchemaError("backup.tool: unsupported backup tool")
+
+    retention = backup.get("retention", {})
+    if retention:
+        if not isinstance(retention, dict):
+            raise SchemaError("backup.retention: must be a mapping")
+        full = retention.get("full")
+        if full is not None and (not isinstance(full, int) or isinstance(full, bool) or full < 1):
+            raise SchemaError("backup.retention.full: must be a positive integer")
+
+    schedule = backup.get("schedule", {})
+    if schedule:
+        if not isinstance(schedule, dict):
+            raise SchemaError("backup.schedule: must be a mapping")
+        for key in ("full", "differential"):
+            value = schedule.get(key)
+            if value is None:
+                continue
+            if not isinstance(value, str):
+                raise SchemaError(f"backup.schedule.{key}: must be a cron string")
+            _validate_backup_cron(value, f"backup.schedule.{key}")
+
+    secondary_store = backup.get("secondary_store", {})
+    if secondary_store:
+        if not isinstance(secondary_store, dict):
+            raise SchemaError("backup.secondary_store: must be a mapping")
+        enabled_secondary = secondary_store.get("enabled", False)
+        if not isinstance(enabled_secondary, bool):
+            raise SchemaError("backup.secondary_store.enabled: must be a boolean")
+        if enabled_secondary:
+            for field in ("type", "bucket", "endpoint"):
+                if not secondary_store.get(field):
+                    raise SchemaError(
+                        f"backup.secondary_store.{field}: required when secondary_store is enabled"
+                    )
+
+
 def validate(data: Any) -> None:
     """Validate a response-file dict in place. Raises SchemaError on failure."""
     if not isinstance(data, dict):
@@ -314,4 +387,5 @@ def validate(data: Any) -> None:
     _validate_tls(_require(data, "tls", ""))
     _validate_firewall(_require(data, "firewall", ""), ip_version)
     _validate_monitoring(_require(data, "monitoring", ""))
+    _validate_backup(data.get("backup"))
     _validate_connection_layer(data.get("connection_layer"), ip_version)

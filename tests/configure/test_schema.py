@@ -148,3 +148,51 @@ def test_ha_profile_requires_exactly_one_primary():
     data["nodes"]["pgnode02"]["role"] = "pg_primary"
     with pytest.raises(SchemaError, match="primary"):
         validate(data)
+
+
+def test_backup_enabled_must_be_bool():
+    data = _load("single.rsp.yml")
+    data["backup"] = {"enabled": "yes-please"}
+    with pytest.raises(SchemaError, match=r"backup\.enabled: must be a boolean"):
+        validate(data)
+
+
+def test_backup_retention_full_must_be_positive_int():
+    data = _load("single.rsp.yml")
+    data["backup"] = {"enabled": True, "tool": "pgbackrest", "retention": {"full": 0}}
+    with pytest.raises(SchemaError, match=r"backup\.retention\.full"):
+        validate(data)
+
+
+def test_backup_schedule_entries_must_be_strings():
+    data = _load("single.rsp.yml")
+    data["backup"] = {
+        "enabled": True,
+        "tool": "pgbackrest",
+        "schedule": {"full": 123, "differential": "0 1 * * 1-6"},
+    }
+    with pytest.raises(SchemaError, match=r"backup\.schedule\.full"):
+        validate(data)
+
+
+def test_backup_secondary_store_requires_bucket_when_enabled():
+    data = _load("single.rsp.yml")
+    data["backup"] = {
+        "enabled": True,
+        "tool": "pgbackrest",
+        "secondary_store": {"enabled": True, "type": "s3", "endpoint": "s3.example.com"},
+    }
+    with pytest.raises(SchemaError, match=r"backup\.secondary_store\.bucket"):
+        validate(data)
+
+
+def test_backup_disabled_skips_inner_validation():
+    data = _load("single.rsp.yml")
+    data["backup"] = {"enabled": False, "retention": {"full": 0}}
+    validate(data)
+
+
+def test_backup_section_is_optional():
+    data = _load("single.rsp.yml")
+    data.pop("backup", None)
+    validate(data)

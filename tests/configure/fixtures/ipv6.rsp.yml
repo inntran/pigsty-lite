@@ -22,7 +22,7 @@ postgres:
   users: []
   hba_rules:
     - {db: app, user: app, source: 2001:db8:40::/64, method: scram-sha-256}
-pgbackrest:
+backup:
   enabled: false
 tls:
   internal_ca: generate
