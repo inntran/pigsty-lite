@@ -1,0 +1,74 @@
+---
+- name: Verify the stanza and a full backup on the backup store host
+  hosts: backup_store
+  become: true
+  gather_facts: false
+  tasks:
+    - name: PgBackRest info reports the stanza
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: pgbackrest
+      register: pgbr_info
+      changed_when: false
+
+    - name: Assert the stanza exists and is named correctly
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info.stdout | from_json) | first).name == "pigsty-lite-test"
+        fail_msg: "pgbackrest info did not report the expected stanza"
+
+    - name: Run an on-demand full backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test --type=full backup
+      become: true
+      become_user: pgbackrest
+      register: pgbr_backup
+      changed_when: >-
+        'completed successfully' in pgbr_backup.stderr
+        or 'completed successfully' in pgbr_backup.stdout
+
+    - name: PgBackRest info now reports at least one backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: pgbackrest
+      register: pgbr_info_after_backup
+      changed_when: false
+
+    - name: Assert a backup is present
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info_after_backup.stdout | from_json) | first).backup | length > 0
+        fail_msg: "No backup recorded after running a full backup"
+
+- name: Force a WAL switch on the postgres node
+  hosts: postgres
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Force a WAL switch
+      community.postgresql.postgresql_query:
+        query: "SELECT pg_switch_wal()"
+        db: postgres
+        login_unix_socket: /var/run/postgresql
+      become: true
+      become_user: postgres
+
+- name: Confirm the WAL segment reached the backup store
+  hosts: backup_store
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for the WAL segment to be archived
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: pgbackrest
+      register: pgbr_info_after_wal
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: >-
+        ((pgbr_info_after_wal.stdout | from_json) | first).archive
+        | selectattr('max', 'defined') | list | length > 0
