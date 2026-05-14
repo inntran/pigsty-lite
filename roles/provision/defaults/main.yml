@@ -10,9 +10,11 @@ provision_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
 provision_patroni_rest_validate_certs: false
 provision_patroni_rest_timeout: 5
 
-# Become as the OS dbsu over the local Unix socket. Avoids password-on-the-wire.
-provision_dbsu: "{{ patroni_superuser | default('postgres') }}"
-provision_dbsu_socket_dir: /var/run/postgresql
+# Connect as the OS database superuser over the local Unix socket.
+# Avoids password-on-the-wire. `postgres_osdba` is defined in
+# group_vars/all.yml; the default below is a safety net only.
+provision_osdba: "{{ postgres_osdba | default('postgres') }}"
+provision_osdba_socket_dir: /var/run/postgresql
 
 # Where to install extensions when the response file doesn't say.
 # Most cluster-level extensions (pg_stat_statements) live in `postgres`;

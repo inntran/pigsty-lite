@@ -19,7 +19,7 @@
 
 - name: Local socket directory exists on the leader
   ansible.builtin.stat:
-    path: "{{ provision_dbsu_socket_dir }}"
+    path: "{{ provision_osdba_socket_dir }}"
   register: provision_socket_dir
   delegate_to: "{{ provision_leader_host }}"
   run_once: true
@@ -29,5 +29,5 @@
     that:
       - provision_socket_dir.stat.exists
       - provision_socket_dir.stat.isdir
-    fail_msg: "PostgreSQL Unix socket dir {{ provision_dbsu_socket_dir }} missing on {{ provision_leader_host }}."
+    fail_msg: "PostgreSQL Unix socket dir {{ provision_osdba_socket_dir }} missing on {{ provision_leader_host }}."
   run_once: true

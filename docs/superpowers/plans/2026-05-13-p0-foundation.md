@@ -3227,7 +3227,7 @@ git tag p0-foundation
 - §6.3 SELinux → preflight asserts enforcing; later roles add per-component fcontexts/ports.
 - §7 Variable layering → operator-facing `group_vars/response.yml` is generated; role variables are all prefixed.
 - §7.3 Response file → schema enforces structure; tests cover both profiles + invalid input.
-- §7.4 Secrets → CA private key on control node only, mode 0600. `artifacts/credentials.txt` is referenced but not produced yet — that's a P2 concern (when we generate replicator/dbsu/monitor passwords). P0 doesn't need it.
+- §7.4 Secrets → CA private key on control node only, mode 0600. `artifacts/credentials.txt` is referenced but not produced yet — that's a P2 concern (when we generate replicator/`postgres_osdba`/monitor passwords). P0 doesn't need it.
 - §7.7 CA & cert renewal → generation done in P0; renewal-window detection deferred (noted in certs README).
 - §13 Testing → lint (Layer 1) + Molecule podman matrix (Layer 2 GitHub-CI-safe) are in place; libvirt scenarios + integration tests come with the roles that need real systemd/SELinux.
 

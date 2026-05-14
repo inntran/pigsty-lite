@@ -494,7 +494,7 @@ firewall:
 
 | Category | Storage | Source |
 |---|---|---|
-| System-internal passwords (replicator, patroni REST, dbsu, monitor user) | `artifacts/credentials.txt` (0600, owner=invoker) | Auto-generated 32-char by `configure`, stable across runs |
+| System-internal passwords (replicator, patroni REST, `postgres_osdba`, monitor user) | `artifacts/credentials.txt` (0600, owner=invoker) | Auto-generated 32-char by `configure`, stable across runs |
 | Operator-supplied (business user passwords, S3 keys, webhook URLs) | Response file, Ansible-Vault-encrypted blocks | Operator-supplied; `configure` accepts plaintext and offers to encrypt |
 | TLS private keys | `pki/ca/ca.key`, `pki/certs/*` | Generated locally; never leave the control node |
 
@@ -512,7 +512,7 @@ No raw `postgres_parameters: {}` top-level dict. Operators discover params by re
 
 ### 7.6 pg_hba.conf
 
-Rendered in order: system rules (postgres dbsu peer, local socket, cluster replication with cert auth), monitor rule, operator rules. Fully managed — hand edits revert.
+Rendered in order: system rules (`postgres_osdba` peer, local socket, cluster replication with cert auth), monitor rule, operator rules. Fully managed — hand edits revert.
 
 ### 7.7 CA and cert renewal
 
@@ -628,7 +628,7 @@ make deploy
 | Add user | edit response (with vault-encrypted password), `make deploy` |
 | Change `max_connections` | edit `postgres.extra_parameters`, `make deploy` |
 | Add a replica | edit `nodes` in response, `./configure -s -f responses/site.rsp.yml`, `make deploy` |
-| Rotate dbsu password | delete entry from `artifacts/credentials.txt`, `./configure -s -f ...`, `make deploy` |
+| Rotate `postgres_osdba` password | delete entry from `artifacts/credentials.txt`, `./configure -s -f ...`, `make deploy` |
 | Switch to BYO CA | edit `tls.internal_ca: byo` and paths, `make deploy` |
 | Tune scrape interval | edit `monitoring.scrape_interval`, `make deploy` |
 | Add SLO alert | drop YAML in `files/alerts/`, `make deploy` |

@@ -17,7 +17,7 @@
 - `roles/pgbouncer/defaults/main.yml` — package, port, listen address, auth_type, pool_mode, max_client_conn, default_pool_size, admin/stats users, log dir, config + userlist paths, systemd unit name.
 - `roles/pgbouncer/meta/main.yml` — galaxy_info, no deps.
 - `roles/pgbouncer/tasks/main.yml` — orchestrate: assert → install → fcontext (log dir, custom port) → render `pgbouncer.ini` and `userlist.txt` → systemd enable+start → wait for port → optional firewalld.
-- `roles/pgbouncer/tasks/_assert.yml` — postgres role complete; patroni dbsu password available.
+- `roles/pgbouncer/tasks/_assert.yml` — postgres role complete; patroni `postgres_osdba` password available.
 - `roles/pgbouncer/tasks/_install.yml` — `dnf install pgbouncer`, support packages.
 - `roles/pgbouncer/tasks/_filesystem.yml` — log dir, run dir, SELinux for non-default paths.
 - `roles/pgbouncer/tasks/_configure.yml` — render config + userlist, handler triggers reload (not restart — pgbouncer supports `RELOAD` over the admin console for most settings).

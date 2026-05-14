@@ -2150,7 +2150,7 @@ sudo -u postgres patronictl -c /etc/patroni/patroni.yml list
 # Check cluster via REST
 curl -sk https://$(hostname -i):8008/cluster | jq
 
-# psql via the local trust rule (postgres dbsu over loopback)
+# psql via the local trust rule (postgres_osdba over loopback)
 sudo -u postgres /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -c '\l'
 ```
 
