@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-etcd-ha-1
-    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -14,7 +14,7 @@ platforms:
     groups: [etcd]
     network: pigsty-lite-etcd
   - name: pigsty-lite-etcd-ha-2
-    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -25,7 +25,7 @@ platforms:
     groups: [etcd]
     network: pigsty-lite-etcd
   - name: pigsty-lite-etcd-ha-3
-    image: docker.io/rockylinux/rockylinux:10-ubi-init
+    image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init

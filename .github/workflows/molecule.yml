@@ -6,7 +6,32 @@ on:
     branches: [main]
 
 jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compute cache key
+        id: key
+        run: echo "key=molecule-image-${{ hashFiles('tests/molecule/Containerfile') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached image
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/molecule-base.tar
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Build and export image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          podman build -t molecule-base:latest -f tests/molecule/Containerfile .
+          podman save -o /tmp/molecule-base.tar molecule-base:latest
+
   molecule:
+    needs: build-image
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -45,10 +70,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Restore cached image
+        uses: actions/cache@v4
+        with:
+          path: /tmp/molecule-base.tar
+          key: ${{ needs.build-image.outputs.cache-key }}
+
+      - name: Load image into podman
+        run: podman load -i /tmp/molecule-base.tar
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Install python tooling
         run: |

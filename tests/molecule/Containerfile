@@ -1,0 +1,26 @@
+FROM docker.io/rockylinux/rockylinux:10-ubi-init
+
+# Install PGDG repo
+RUN dnf install -y \
+    https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && dnf --enablerepo=pgdg-common clean all
+
+# Install all packages needed across molecule scenarios
+RUN dnf install -y \
+    iproute \
+    firewalld \
+    chrony \
+    policycoreutils \
+    policycoreutils-python-utils \
+    python3-libselinux \
+    python3-cryptography \
+    python3-psycopg3 \
+    etcd \
+    patroni \
+    patroni-etcd \
+    postgresql18-server \
+    postgresql18-contrib \
+    postgresql18 \
+    pgbouncer \
+    haproxy \
+    && dnf clean all
