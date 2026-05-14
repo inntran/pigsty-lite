@@ -44,18 +44,18 @@
         that:
           - q_pgss.rowcount == 1
 
-    - name: Extension pgvector installed in app db
+    - name: Extension pg_stat_statements installed in app db
       community.postgresql.postgresql_query:
-        query: "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
+        query: "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'"
         db: app
         login_unix_socket: /var/run/postgresql
-      register: q_pgv
+      register: q_pgss_app
       changed_when: false
 
-    - name: Assert pgvector present in app
+    - name: Assert pg_stat_statements present in app
       ansible.builtin.assert:
         that:
-          - q_pgv.rowcount == 1
+          - q_pgss_app.rowcount == 1
 
     - name: Pg_hba contains app rule
       ansible.builtin.command: >-

@@ -39,7 +39,7 @@ provisioner:
             owner: app
         postgres_extensions:
           - pg_stat_statements
-          - { name: pgvector, db: app }
+          - { name: pg_stat_statements, db: app }
         postgres_hba_rules:
           - { db: app, user: app, source: 127.0.0.1/32, method: scram-sha-256 }
       etcd:
