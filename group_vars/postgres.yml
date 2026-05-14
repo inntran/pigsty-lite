@@ -29,3 +29,12 @@ postgres_tune_profile: oltp
 
 # Operator overrides applied after tuning profile.
 postgres_extra_parameters: {}
+
+# Connection layer (P2b)
+haproxy_rto_profile: norm
+haproxy_backend_target: pgbouncer
+haproxy_stats_user: pigsty
+haproxy_stats_password: "{{ vault_haproxy_stats_password | default('haproxy-dev-stats-change-me') }}"
+pgbouncer_admin_users: ["postgres"]
+pgbouncer_stats_users: ["postgres"]
+vip_manager_enabled: false

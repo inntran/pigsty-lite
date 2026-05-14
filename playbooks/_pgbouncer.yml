@@ -1,0 +1,8 @@
+---
+- name: P2b pgbouncer - install and configure per-host pooler
+  hosts: postgres
+  become: true
+  gather_facts: true
+  roles:
+    - role: pgbouncer
+      tags: [pgbouncer]

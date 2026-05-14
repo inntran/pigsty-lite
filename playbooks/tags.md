@@ -10,6 +10,9 @@
 - `etcd`
 - `postgres`
 - `patroni`
+- `pgbouncer`
+- `haproxy`
+- `vip_manager`
 
 ## Action tags (used inside roles in later sub-plans)
 
@@ -30,3 +33,6 @@
 - `--tags postgres` - install PG, prepare fs, mask vendor unit.
 - `--tags patroni` - configure and start Patroni; safe re-run.
 - `--tags patroni,config` - render patroni.yml without restart; handlers still flush if files changed.
+- `--tags pgbouncer` - reconfigure pgBouncer (reload, not restart).
+- `--tags haproxy` - reconfigure HAProxy (reload). Use `haproxy,restart` to bounce the service.
+- `--tags vip_manager` - re-render vip-manager config and restart (only when enabled).

@@ -1,0 +1,8 @@
+---
+- name: P2b vip-manager - optional L2 VIP for the cluster leader
+  hosts: postgres
+  become: true
+  gather_facts: true
+  roles:
+    - role: vip_manager
+      tags: [vip_manager]

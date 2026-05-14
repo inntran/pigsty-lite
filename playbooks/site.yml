@@ -18,3 +18,12 @@
 - name: Import P2a patroni bootstrap playbook
   import_playbook: _postgres_bootstrap.yml
   tags: [patroni]
+- name: Import P2b pgbouncer playbook
+  import_playbook: _pgbouncer.yml
+  tags: [pgbouncer]
+- name: Import P2b haproxy playbook
+  import_playbook: _haproxy.yml
+  tags: [haproxy]
+- name: Import P2b vip-manager playbook
+  import_playbook: _vip_manager.yml
+  tags: [vip_manager]
