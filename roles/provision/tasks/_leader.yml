@@ -1,0 +1,30 @@
+---
+# Ask any reachable Patroni REST endpoint for the cluster view, then
+# pick the leader by name. This runs once for the play and broadcasts
+# `provision_leader_host` to all hosts in the play.
+- name: Query any Patroni REST endpoint for cluster view
+  ansible.builtin.uri:
+    url: "{{ provision_patroni_rest_scheme }}://{{ ansible_host }}:{{ provision_patroni_rest_port }}/cluster"
+    method: GET
+    validate_certs: "{{ provision_patroni_rest_validate_certs }}"
+    timeout: "{{ provision_patroni_rest_timeout }}"
+    return_content: true
+  register: provision_cluster_view
+  retries: 30
+  delay: 2
+  until: provision_cluster_view.status == 200
+  delegate_to: "{{ groups['postgres'][0] }}"
+  run_once: true
+
+- name: Extract leader hostname from cluster view
+  ansible.builtin.set_fact:
+    provision_leader_host: >-
+      {{ (provision_cluster_view.json.members
+          | selectattr('role', 'equalto', 'leader')
+          | list | first).name }}
+  run_once: true
+
+- name: Announce leader
+  ansible.builtin.debug:
+    msg: "Patroni leader: {{ provision_leader_host }}; provisioning will run there."
+  run_once: true
