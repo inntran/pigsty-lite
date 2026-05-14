@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Scheduled pgBackRest %i for stanza {{ backup_store_stanza }}
+
+[Timer]
+{% if 'expire' in (timer_instance | default('')) %}
+OnCalendar={{ backup_store_schedule_expire }}
+{% else %}
+OnCalendar={{ backup_store_schedule_check }}
+{% endif %}
+Persistent=true
+Unit=pgbackrest-maint@%i.service
+
+[Install]
+WantedBy=timers.target
