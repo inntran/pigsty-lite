@@ -1,0 +1,35 @@
+---
+# Run stanza-create on the backup store host. pgBackRest connects to each
+# postgres node over SSH (the pgN-host entries rendered by _configure.yml)
+# to read pg_control. stanza-create is safe to re-run: pgBackRest returns
+# 0 and prints "stanza already exists" when the stanza is present and
+# consistent. We run as the store user so the store files are owned
+# correctly.
+
+- name: Create the pgBackRest stanza on the backup store host
+  ansible.builtin.command:
+    cmd: >-
+      pgbackrest --stanza={{ backup_store_stanza }}
+      --config={{ backup_store_config_file }}
+      stanza-create
+  become: true
+  become_user: "{{ backup_store_user }}"
+  register: backup_store_stanza_create
+  changed_when: >-
+    'completed successfully' in backup_store_stanza_create.stderr
+    or 'completed successfully' in backup_store_stanza_create.stdout
+  failed_when: >-
+    backup_store_stanza_create.rc != 0
+    and 'already exists' not in backup_store_stanza_create.stderr
+
+- name: Verify the stanza is valid
+  ansible.builtin.command:
+    cmd: >-
+      pgbackrest --stanza={{ backup_store_stanza }}
+      --config={{ backup_store_config_file }}
+      check
+  become: true
+  become_user: "{{ backup_store_user }}"
+  register: backup_store_stanza_check
+  changed_when: false
+  failed_when: backup_store_stanza_check.rc != 0
