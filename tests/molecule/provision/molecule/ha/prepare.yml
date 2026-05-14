@@ -31,18 +31,22 @@
     node_sysctl_apply: false
   pre_tasks:
     - name: Read container IPv4 address
-      ansible.builtin.command: hostname -I
+      ansible.builtin.command: /usr/sbin/ip -4 -o addr show scope global
       register: provision_container_ips
       changed_when: false
 
     - name: Set molecule network addresses
       ansible.builtin.set_fact:
-        etcd_advertise_address: "{{ provision_container_ips.stdout.split()[0] }}"
-        patroni_advertise_address: "{{ provision_container_ips.stdout.split()[0] }}"
+        provision_container_ip: "{{ provision_container_ips.stdout | regex_search('inet ([0-9.]+)', '\\1') | first }}"
+
+    - name: Set molecule advertise addresses and SANs
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ provision_container_ip }}"
+        patroni_advertise_address: "{{ provision_container_ip }}"
         certs_subject_alternative_names:
           - "DNS:{{ inventory_hostname }}"
           - "DNS:{{ inventory_hostname }}.test.local"
-          - "IP:{{ provision_container_ips.stdout.split()[0] }}"
+          - "IP:{{ provision_container_ip }}"
   roles:
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node
