@@ -1,0 +1,25 @@
+---
+- name: Look up the Patroni leader
+  ansible.builtin.import_tasks: _leader.yml
+  tags: [provision, always]
+
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [provision, assert]
+
+- name: Manage pg_hba.conf
+  ansible.builtin.import_tasks: _hba.yml
+  when: provision_pg_hba_managed | bool
+  tags: [provision, hba, config]
+
+- name: Manage PostgreSQL roles
+  ansible.builtin.import_tasks: _users.yml
+  tags: [provision, users, config]
+
+- name: Manage databases
+  ansible.builtin.import_tasks: _databases.yml
+  tags: [provision, databases, config]
+
+- name: Manage extensions
+  ansible.builtin.import_tasks: _extensions.yml
+  tags: [provision, extensions, config]
