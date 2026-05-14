@@ -1,0 +1,20 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [backup, assert]
+
+- name: Install pgBackRest
+  ansible.builtin.import_tasks: _install.yml
+  tags: [backup, install]
+
+- name: Generate the dedicated SSH keypair
+  ansible.builtin.import_tasks: _ssh.yml
+  tags: [backup, ssh, config]
+
+- name: Render client-side pgBackRest configuration
+  ansible.builtin.import_tasks: _configure.yml
+  tags: [backup, config]
+
+- name: Configure PostgreSQL WAL archiving via Patroni
+  ansible.builtin.import_tasks: _archive.yml
+  tags: [backup, service]

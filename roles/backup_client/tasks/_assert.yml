@@ -1,0 +1,35 @@
+---
+- name: Fail if backup_store group is empty
+  ansible.builtin.assert:
+    that:
+      - groups['backup_store'] | length > 0
+    fail_msg: >-
+      Inventory group 'backup_store' is empty; backup_client needs a
+      repository host to push to.
+  run_once: true
+  delegate_to: localhost
+
+- name: Stat the PostgreSQL data directory
+  ansible.builtin.stat:
+    path: "{{ backup_client_pg_path }}"
+  register: backup_client_pgdata_stat
+
+- name: Fail if PostgreSQL data directory is missing
+  ansible.builtin.assert:
+    that:
+      - backup_client_pgdata_stat.stat.exists
+      - backup_client_pgdata_stat.stat.isdir
+    fail_msg: >-
+      Expected PostgreSQL data directory at {{ backup_client_pg_path }};
+      run the P2a postgres/patroni playbooks first.
+
+- name: Check the Patroni REST endpoint is reachable
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}:{{ patroni_rest_port | default(8008) }}/patroni"
+    method: GET
+    validate_certs: false
+    timeout: 5
+  register: backup_client_patroni_check
+  retries: 10
+  delay: 3
+  until: backup_client_patroni_check.status == 200
