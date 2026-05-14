@@ -1,0 +1,69 @@
+---
+# Render pg_hba.conf in three layers (system, monitor, operator) as a fully
+# managed file. `overwrite: true` removes pre-existing rules before writing
+# the canonical list, so hand-edits revert on the next deploy.
+- name: Initialise canonical HBA rule list
+  ansible.builtin.set_fact:
+    provision_pg_hba_rules: []
+  run_once: true
+
+- name: Add system HBA rules
+  ansible.builtin.set_fact:
+    provision_pg_hba_rules: >-
+      {{ provision_pg_hba_rules + [
+          {
+            'contype': item.contype,
+            'databases': item.databases,
+            'users': item.users,
+            'method': item.method,
+          }
+          | combine(
+              {'address': item.source_addr}
+              if item.source_addr is defined
+              else {}
+            )
+        ] }}
+  loop: "{{ provision_pg_hba_system_rules | default([]) }}"
+  run_once: true
+
+- name: Add monitor HBA rules
+  ansible.builtin.set_fact:
+    provision_pg_hba_rules: >-
+      {{ provision_pg_hba_rules + [
+          {
+            'contype': item.contype | default('hostssl'),
+            'databases': item.databases | default('all'),
+            'users': item.users,
+            'address': item.source_addr,
+            'method': item.method | default('scram-sha-256'),
+          }
+        ] }}
+  loop: "{{ provision_pg_hba_monitor_rules | default([]) }}"
+  run_once: true
+
+- name: Add operator HBA rules from response file
+  ansible.builtin.set_fact:
+    provision_pg_hba_rules: >-
+      {{ provision_pg_hba_rules + [
+          {
+            'contype': item.contype | default('hostssl'),
+            'databases': item.db,
+            'users': item.user,
+            'address': item.source,
+            'method': item.method | default('scram-sha-256'),
+          }
+        ] }}
+  loop: "{{ postgres_hba_rules | default([]) }}"
+  run_once: true
+
+- name: Render canonical pg_hba.conf
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ provision_pg_hba_path }}"
+    overwrite: true
+    rules_behavior: combine
+    sort_rules: false
+    create: true
+    rules: "{{ provision_pg_hba_rules }}"
+  delegate_to: "{{ provision_leader_host }}"
+  run_once: true
+  notify: Reload PostgreSQL
