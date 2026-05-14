@@ -18,6 +18,7 @@ postgres:
   port: 5432
   tune: oltp
   shared_buffer_ratio: 0.25
+  # P3 day-2 workflow: edit these declarative lists, then run make deploy.
   extensions: [pg_stat_statements, pgvector]
   databases: [{name: app, owner: app}]
   users: []
