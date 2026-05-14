@@ -24,7 +24,7 @@ firewalld_default_zone: "public"
 # Paths (vendor defaults; do not change without strong reason) ------
 postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
 etcd_data_dir: "/var/lib/etcd"
-pgbackrest_store_path: "/var/lib/pgbackrest"
+backup_store_path: "/var/lib/pgbackrest"
 pki_dir: "/etc/pki/pigsty-lite"
 
 # Ports -------------------------------------------------------------
@@ -57,6 +57,14 @@ repos_pigsty_packages: []
 # Cert renewal ------------------------------------------------------
 cert_validity_days: 730
 cert_renewal_window_days: 30
+
+# Backups -----------------------------------------------------------
+# Operator-facing names stay generic so future backup tools can reuse
+# the same response-file contract. P4 implements the pgBackRest backend.
+backup_tool: pgbackrest
+backup_stanza: "{{ cluster_name | default('pigsty-lite') }}"
+backup_store_user: pgbackrest
+backup_ssh_port: 22
 
 # Operator network defaults - override in response file -------------
 operator_cidrs: ["10.0.0.0/8"]
