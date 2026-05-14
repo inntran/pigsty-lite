@@ -9,7 +9,7 @@ through Patroni's dynamic config.
 ## Inputs (from response file, via group_vars)
 
 | Variable | Meaning | Default |
-|---|---|---|
+| --- | --- | --- |
 | `backup_stanza` | stanza name | `{{ cluster_name }}` |
 | `backup_store_user` | store user on the store host | `pgbackrest` |
 | `postgres_osdba` | OS account running PostgreSQL | `postgres` |

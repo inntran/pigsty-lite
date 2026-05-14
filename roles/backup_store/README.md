@@ -9,7 +9,7 @@ Patroni leader.
 ## Inputs (from response file, via group_vars)
 
 | Variable | Meaning | Default |
-|---|---|---|
+| --- | --- | --- |
 | `backup_store_path` | backup store directory | `/var/lib/pgbackrest` |
 | `backup_stanza` | stanza name (one per cluster) | `{{ cluster_name }}` |
 | `backup_store_user` | OS account owning the store | `pgbackrest` |
