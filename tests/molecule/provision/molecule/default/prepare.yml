@@ -1,4 +1,13 @@
 ---
+- name: Install bootstrap tooling
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ensure iproute is present
+      ansible.builtin.dnf:
+        name: iproute
+        state: present
+
 - name: Prepare - generate CA on control side
   hosts: localhost
   gather_facts: false
@@ -7,25 +16,9 @@
   roles:
     - role: ../../../../../roles/ca
 
-- name: Prepare - install sudo for become
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Install sudo and iproute
-      ansible.builtin.dnf:
-        name: [sudo, iproute]
-        state: present
-
-    - name: Disable PAM for sudo (broken in ubi-init containers)
-      ansible.builtin.copy:
-        dest: /etc/sudoers.d/nopam
-        content: "Defaults !pam_session\n"
-        mode: "0440"
-
 - name: Prepare - repos, node, certs, etcd, postgres, patroni
   hosts: all
   gather_facts: true
-  become: true
   vars:
     certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
     repos_pgdg_enabled: true

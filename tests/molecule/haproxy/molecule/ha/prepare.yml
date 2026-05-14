@@ -1,4 +1,13 @@
 ---
+- name: Install bootstrap tooling
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ensure iproute is present
+      ansible.builtin.dnf:
+        name: iproute
+        state: present
+
 - name: Pin ansible_host to each container's network IP
   hosts: all
   gather_facts: true
