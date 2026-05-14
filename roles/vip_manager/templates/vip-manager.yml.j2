@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# Rendered by roles/vip_manager. Do not edit by hand.
+
+interval: {{ (vip_manager_loop_wait_seconds | int) * 1000 }}
+retry-after: {{ (vip_manager_retry_after_seconds | int) * 1000 }}
+retry-num: 2
+
+hosting-type: {{ vip_manager_hosting_type }}
+ip: {{ vip_manager_vip_cidr.split('/')[0] }}
+netmask: {{ vip_manager_vip_cidr.split('/')[1] }}
+interface: {{ vip_manager_interface }}
+
+trigger-key: "{{ vip_manager_trigger_key }}"
+trigger-value: "{{ vip_manager_trigger_value }}"
+
+dcs-type: {{ vip_manager_dcs_type }}
+dcs-endpoints: {{ vip_manager_dcs_endpoints }}
+etcd:
+  cacert: {{ vip_manager_dcs_cacert }}
+  cert: {{ vip_manager_dcs_cert }}
+  key:  {{ vip_manager_dcs_key }}
