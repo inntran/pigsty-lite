@@ -1,16 +1,16 @@
 ---
 - name: Bring up full P0+P1+P2a stack
-  ansible.builtin.import_playbook: ../../../../playbooks/_preflight.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
 - name: Bring up CA
-  ansible.builtin.import_playbook: ../../../../playbooks/_ca.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_ca.yml
 - name: Bring up node + repos + certs
-  ansible.builtin.import_playbook: ../../../../playbooks/_node.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_node.yml
 - name: Bring up etcd
-  ansible.builtin.import_playbook: ../../../../playbooks/_etcd.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_etcd.yml
 - name: Install postgres
-  ansible.builtin.import_playbook: ../../../../playbooks/_postgres_install.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_install.yml
 - name: Bootstrap patroni
-  ansible.builtin.import_playbook: ../../../../playbooks/_postgres_bootstrap.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_bootstrap.yml
 
 - name: Pin ansible_host
   hosts: all

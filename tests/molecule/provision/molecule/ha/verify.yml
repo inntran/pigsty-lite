@@ -71,7 +71,7 @@
   become: true
   run_once: true
   tasks:
-    - name: psql as app over TLS to the leader
+    - name: Psql as app over TLS to the leader
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host={{ hostvars[leader_host].ansible_host }} dbname=app user=app

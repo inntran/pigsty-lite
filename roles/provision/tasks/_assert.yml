@@ -9,7 +9,7 @@
       Patroni REST is reachable and that the cluster has a leader.
   run_once: true
 
-- name: psycopg3 is installed on the leader
+- name: Psycopg3 is installed on the leader
   ansible.builtin.command: /usr/bin/python3 -c "import psycopg"
   register: provision_psycopg
   changed_when: false

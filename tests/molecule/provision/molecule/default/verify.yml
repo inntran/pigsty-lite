@@ -57,7 +57,7 @@
         that:
           - q_pgv.rowcount == 1
 
-    - name: pg_hba contains app rule
+    - name: Pg_hba contains app rule
       ansible.builtin.command: >-
         grep -E "^hostssl[[:space:]]+app[[:space:]]+app[[:space:]]+127\.0\.0\.1/32"
         /var/lib/pgsql/18/data/pg_hba.conf
@@ -65,7 +65,7 @@
       changed_when: false
       failed_when: hba_grep.rc != 0
 
-    - name: psql as 'app' over the wire works
+    - name: Psql as 'app' over the wire works
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.1 dbname=app user=app password=app-test-pw sslmode=require"
