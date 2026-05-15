@@ -1,0 +1,36 @@
+---
+# roles/monitoring_server/defaults/main.yml
+# All variables prefixed `monitoring_server_`. The VictoriaMetrics
+# collection roles (vmsingle, vlsingle, vmalert) are invoked from
+# tasks/ with the variables below mapped onto the collection's own
+# variable names.
+
+# VictoriaMetrics single-node (metrics TSDB)
+monitoring_server_vmsingle_listen: "{{ network_any_address | default('0.0.0.0') }}:{{ vmsingle_port | default(8428) }}"
+monitoring_server_vmsingle_data_dir: /var/lib/victoria-metrics
+monitoring_server_vmsingle_retention: "{{ vmsingle_retention | default('90d') }}"
+
+# VictoriaLogs single-node (log store)
+monitoring_server_vlsingle_listen: "{{ network_any_address | default('0.0.0.0') }}:{{ vlsingle_port | default(9428) }}"
+monitoring_server_vlsingle_data_dir: /var/lib/victoria-logs
+monitoring_server_vlsingle_retention: "{{ vlsingle_retention | default('30d') }}"
+
+# vmalert (rule evaluation)
+monitoring_server_vmalert_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmalert_port | default(8880) }}"
+monitoring_server_vmalert_rules_dir: /etc/vmalert/rules
+monitoring_server_vmalert_datasource_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ vmsingle_port | default(8428) }}"
+monitoring_server_vmalert_notifier_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ alertmanager_port | default(9093) }}"
+monitoring_server_vmalert_eval_interval: 30s
+
+# Alertmanager (own tasks - no first-party VM Galaxy role)
+monitoring_server_alertmanager_package: alertmanager
+monitoring_server_alertmanager_service: alertmanager
+monitoring_server_alertmanager_config_dir: /etc/alertmanager
+monitoring_server_alertmanager_config_file: /etc/alertmanager/alertmanager.yml
+monitoring_server_alertmanager_data_dir: /var/lib/alertmanager
+monitoring_server_alertmanager_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ alertmanager_port | default(9093) }}"
+monitoring_server_alertmanager_receivers: "{{ alertmanager_receivers | default([]) }}"
+
+# Firewalld
+monitoring_server_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+monitoring_server_systemd_dir: /etc/systemd/system
