@@ -1,0 +1,7 @@
+---
+# cluster_ops is a library role. It is never run whole. The lifecycle
+# playbooks include its task files individually via:
+#   ansible.builtin.include_role:
+#     name: cluster_ops
+#     tasks_from: find_leader.yml
+# See README.md for each task file's inputs and the facts it sets.

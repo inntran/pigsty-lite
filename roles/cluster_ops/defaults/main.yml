@@ -1,0 +1,25 @@
+---
+# roles/cluster_ops/defaults/main.yml
+# All variables prefixed `cluster_ops_`. This role is a library of
+# tasks_from: includes used by the P6 lifecycle playbooks; it is never
+# run as a whole role.
+
+# Patroni REST
+cluster_ops_rest_scheme: https
+cluster_ops_rest_port: "{{ patroni_rest_port | default(8008) }}"
+cluster_ops_rest_validate_certs: false
+cluster_ops_rest_timeout: 5
+
+# Health-convergence polling
+cluster_ops_wait_retries: 60
+cluster_ops_wait_delay: 5
+
+# Replication lag a replica must be under to count as converged.
+cluster_ops_replication_lag_max_bytes: 1048576
+
+# Backup-freshness gate (hours). Consumed by assert_recent_backup.yml.
+cluster_ops_backup_max_age_hours: "{{ postgres_minor_upgrade_require_recent_backup_hours | default(24) }}"
+
+# The OS account used for local pgbackrest / psql calls on a node.
+cluster_ops_dbsu: "{{ postgres_osdba | default('postgres') }}"
+cluster_ops_backup_stanza: "{{ backup_stanza | default(cluster_name | default('pigsty-lite')) }}"

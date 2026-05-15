@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: cluster_ops
+  author: pigsty-lite
+  description: Reusable task-file library for the P6 lifecycle playbooks (leader lookup, health asserts, convergence waits).
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
