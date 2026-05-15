@@ -1,0 +1,132 @@
+---
+# Operator entry: add a replica to an existing cluster.
+#   ansible-playbook playbooks/scale_add_replica.yml -e target_host=pgnode04 --limit pgnode04
+#
+# Prerequisite: the operator has already added the new host to the
+# inventory (with postgres_role: pg_replica) and re-run
+# `./configure -s -f ...` so group_vars/response.yml and the host's
+# identity vars exist. This playbook then runs the install/bootstrap
+# path against that one host. Patroni handles the actual replica clone
+# when it starts.
+
+- name: Add a replica — preconditions
+  hosts: "{{ target_host | default('undefined') }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Assert target_host was provided and is in the postgres group
+      ansible.builtin.assert:
+        that:
+          - target_host is defined
+          - target_host != "undefined"
+          - target_host in groups["postgres"]
+        fail_msg: >-
+          scale_add_replica.yml requires -e target_host=<host>, and that
+          host must already be in the inventory's postgres group. Add it
+          to the inventory and re-run `./configure -s -f ...` first.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Assert this host is not already a running cluster member
+      block:
+        - name: Probe whether Patroni is already up here
+          ansible.builtin.uri:
+            url: "https://{{ ansible_host | default(inventory_hostname) }}:{{ patroni_rest_port | default(8008) }}/patroni"
+            method: GET
+            validate_certs: false
+            timeout: 3
+            status_code: [200, 503]
+          register: scale_add_existing_probe
+      rescue:
+        - name: Patroni is not up here — good, this is a fresh add
+          ansible.builtin.set_fact:
+            scale_add_is_fresh: true
+      always:
+        - name: Note the probe result
+          ansible.builtin.debug:
+            msg: >-
+              {{ 'Patroni already responds here — this host looks like an
+              existing member; aborting to avoid clobbering it.'
+              if scale_add_existing_probe.status is defined
+              else 'No Patroni here yet — proceeding with the add.' }}
+
+    - name: Fail if Patroni already responds on the target host
+      ansible.builtin.assert:
+        that:
+          - scale_add_existing_probe.status is not defined
+        fail_msg: >-
+          Patroni already responds on {{ target_host }}. This playbook
+          adds NEW replicas; it will not re-bootstrap an existing
+          member. Use `make deploy` for steady-state reconciliation.
+      run_once: true
+
+- name: Locate the existing cluster leader from a current member
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Find the leader (queries existing members, not the new host)
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the existing cluster is healthy before extending it
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+# Imported playbooks are scoped to target_host via CLI --limit (Makefile task).
+- name: Provision the new replica host
+  ansible.builtin.import_playbook: _node.yml
+
+- name: Install PostgreSQL on the new replica
+  ansible.builtin.import_playbook: _postgres_install.yml
+
+- name: Bootstrap Patroni on the new replica (it joins as a streaming replica)
+  ansible.builtin.import_playbook: _postgres_bootstrap.yml
+
+- name: Install the connection layer on the new replica
+  ansible.builtin.import_playbook: _pgbouncer.yml
+
+- name: Install HAProxy on the new replica
+  ansible.builtin.import_playbook: _haproxy.yml
+
+- name: Install the backup client on the new replica
+  ansible.builtin.import_playbook: _backup_client.yml
+
+- name: Install monitoring agents on the new replica
+  ansible.builtin.import_playbook: _monitoring_agents.yml
+
+- name: Verify the new replica joined the cluster
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Wait for the new replica to converge
+      ansible.builtin.set_fact:
+        cluster_ops_target_member: "{{ target_host }}"
+      run_once: true
+
+    - name: Poll until the new replica is streaming
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: wait_member_converged.yml
+
+    - name: Re-locate the topology
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the extended cluster is healthy
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Report the result
+      ansible.builtin.debug:
+        msg: >-
+          Replica {{ target_host }} added. Cluster now has
+          {{ cluster_ops_member_count }} members. The backup_store
+          authorized_keys and monitoring scrape targets pick the new
+          node up on the next `make deploy`.
+      run_once: true
