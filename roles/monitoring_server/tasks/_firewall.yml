@@ -1,0 +1,59 @@
+---
+- name: Build monitoring-server firewall sources (postgres + monitor)
+  ansible.builtin.set_fact:
+    monitoring_server_firewall_sources: >-
+      {{ (monitoring_server_firewall_sources | default([]))
+         + [{'address': monitoring_server_source_address,
+             'family': ('ipv6' if ':' in (monitoring_server_source_address | string) else 'ipv4')}] }}
+  loop: "{{ (groups.get('postgres', []) + groups.get('monitor', [])) | unique }}"
+  vars:
+    monitoring_server_source_hostvars: "{{ hostvars[item] }}"
+    monitoring_server_source_address: >-
+      {{ monitoring_server_source_hostvars.get(
+           'ansible_host',
+           monitoring_server_source_hostvars.get('ansible_facts', {}).get('default_ipv6', {}).get(
+             'address',
+             monitoring_server_source_hostvars.get('ansible_facts', {}).get('default_ipv4', {}).get('address')
+           )
+         ) }}
+
+- name: Install monitoring-server firewalld service definitions
+  ansible.builtin.copy:
+    src: "firewalld/services/{{ item }}.xml"
+    dest: "/etc/firewalld/services/{{ item }}.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - victoriametrics
+    - victorialogs
+  notify: Reload firewalld
+
+- name: Flush handlers so firewalld reloads before service rules apply
+  ansible.builtin.meta: flush_handlers
+
+- name: Open victoriametrics to postgres + monitor hosts
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ item.family }}"
+      source address="{{ item.address }}"
+      service name="victoriametrics"
+      accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ monitoring_server_firewalld_zone }}"
+  loop: "{{ monitoring_server_firewall_sources | unique }}"
+
+- name: Open victorialogs to postgres + monitor hosts
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ item.family }}"
+      source address="{{ item.address }}"
+      service name="victorialogs"
+      accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ monitoring_server_firewalld_zone }}"
+  loop: "{{ monitoring_server_firewall_sources | unique }}"

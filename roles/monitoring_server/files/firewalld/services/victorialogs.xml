@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>VictoriaLogs</short>
+  <description>VictoriaLogs single-node ingest/query endpoint (9428/tcp)</description>
+  <port protocol="tcp" port="9428"/>
+</service>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>VictoriaMetrics</short>
+  <description>VictoriaMetrics single-node ingest/query endpoint (8428/tcp)</description>
+  <port protocol="tcp" port="8428"/>
+</service>
