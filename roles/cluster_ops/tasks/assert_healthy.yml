@@ -1,0 +1,63 @@
+---
+# Assert the cluster is healthy enough to operate on. Requires
+# find_leader.yml to have set cluster_ops_view. Checks: exactly one
+# leader, every member running, every replica's lag under threshold.
+
+- name: Re-query the cluster view for a fresh health snapshot
+  ansible.builtin.uri:
+    url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/cluster"
+    method: GET
+    validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+    timeout: "{{ cluster_ops_rest_timeout }}"
+    return_content: true
+    status_code: 200
+  register: cluster_ops_health_view
+  run_once: true
+
+- name: Assert exactly one leader
+  ansible.builtin.assert:
+    that:
+      - (cluster_ops_health_view.json.members
+         | selectattr('role', 'equalto', 'leader')
+         | list | length) == 1
+    fail_msg: >-
+      Expected exactly one Patroni leader; the cluster view shows
+      {{ cluster_ops_health_view.json.members
+         | selectattr('role', 'equalto', 'leader') | list | length }}.
+  run_once: true
+
+- name: Assert every member reports state=running
+  ansible.builtin.assert:
+    that:
+      - (cluster_ops_health_view.json.members
+         | rejectattr('state', 'equalto', 'running')
+         | list | length) == 0
+    fail_msg: >-
+      Not all members are running:
+      {{ cluster_ops_health_view.json.members
+         | rejectattr('state', 'equalto', 'running')
+         | map(attribute='name') | list }}.
+  run_once: true
+
+- name: Assert every replica's replication lag is under the threshold
+  ansible.builtin.assert:
+    that:
+      - (cluster_ops_health_view.json.members
+         | selectattr('role', 'equalto', 'replica')
+         | selectattr('lag', 'defined')
+         | selectattr('lag', 'gt', cluster_ops_replication_lag_max_bytes | int)
+         | list | length) == 0
+    fail_msg: >-
+      One or more replicas exceed the
+      {{ cluster_ops_replication_lag_max_bytes }}-byte lag threshold:
+      {{ cluster_ops_health_view.json.members
+         | selectattr('role', 'equalto', 'replica')
+         | selectattr('lag', 'defined')
+         | selectattr('lag', 'gt', cluster_ops_replication_lag_max_bytes | int)
+         | items2dict(key_name='name', value_name='lag') }}.
+  run_once: true
+
+- name: Announce health OK
+  ansible.builtin.debug:
+    msg: "Cluster healthy: 1 leader, all members running, replication lag within threshold."
+  run_once: true
