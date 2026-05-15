@@ -53,7 +53,9 @@
 
     - name: Request the switchover via Patroni REST
       ansible.builtin.uri:
-        url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover"
+        url: >-
+          {{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host
+          | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover
         method: POST
         validate_certs: "{{ cluster_ops_rest_validate_certs }}"
         body_format: json

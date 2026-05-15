@@ -16,15 +16,23 @@
   vars:
     auto_confirm: false
   tasks:
-    - name: Read the installed PostgreSQL server package version per node
-      ansible.builtin.command:
-        cmd: "rpm -q --qf '%{VERSION}' postgresql{{ postgres_version }}-server"
-      register: minor_upgrade_installed
-      changed_when: false
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
 
     - name: Record the installed version fact
       ansible.builtin.set_fact:
-        minor_upgrade_installed_version: "{{ minor_upgrade_installed.stdout | trim }}"
+        minor_upgrade_installed_version: >-
+          {{ (ansible_facts.packages["postgresql" ~ postgres_version ~ "-server"]
+          | default([]) | first).version | default("") }}
+
+    - name: Assert PostgreSQL server package is installed
+      ansible.builtin.assert:
+        that:
+          - minor_upgrade_installed_version | length > 0
+        fail_msg: >-
+          postgresql{{ postgres_version }}-server is not installed on
+          {{ inventory_hostname }}.
 
     - name: Determine the target version
       ansible.builtin.set_fact:
@@ -154,7 +162,9 @@
 
     - name: Switch the leader to an already-upgraded replica
       ansible.builtin.uri:
-        url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover"
+        url: >-
+          {{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host
+          | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover
         method: POST
         validate_certs: "{{ cluster_ops_rest_validate_certs }}"
         body_format: json

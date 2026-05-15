@@ -14,7 +14,9 @@
 
 - name: Wait for the target member to converge
   ansible.builtin.uri:
-    url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_target_member].ansible_host | default(cluster_ops_target_member) }}:{{ cluster_ops_rest_port }}/patroni"
+    url: >-
+      {{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_target_member].ansible_host
+      | default(cluster_ops_target_member) }}:{{ cluster_ops_rest_port }}/patroni
     method: GET
     validate_certs: "{{ cluster_ops_rest_validate_certs }}"
     timeout: "{{ cluster_ops_rest_timeout }}"

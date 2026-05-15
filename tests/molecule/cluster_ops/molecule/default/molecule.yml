@@ -4,6 +4,7 @@ driver:
 platforms:
   - name: pigsty-lite-clusterops-default-1
     image: docker.io/oraclelinux:10
+    user: root
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -27,8 +28,14 @@ provisioner:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         ansible_become: false
-        ansible_remote_tmp: /tmp/.ansible/tmp
+        ansible_remote_tmp: /tmp
         node_sysctl_apply: false
+        etcd_peer_firewall_sources:
+          - address: 127.0.0.1
+            family: ipv4
+        etcd_client_firewall_sources:
+          - address: 127.0.0.1
+            family: ipv4
         pki_dir: /etc/pki/pigsty-lite
         postgres_version: 18
         postgres_port: 5432
@@ -44,6 +51,9 @@ provisioner:
         postgres_tune_profile: tiny
     host_vars:
       pigsty-lite-clusterops-default-1:
+        etcd_advertise_address: 127.0.0.1
+        ansible_default_ipv4:
+          address: 127.0.0.1
         postgres_role: primary
         etcd_seq: 1
 verifier:

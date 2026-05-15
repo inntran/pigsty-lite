@@ -5,7 +5,9 @@
 
 - name: Re-query the cluster view for a fresh health snapshot
   ansible.builtin.uri:
-    url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/cluster"
+    url: >-
+      {{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host
+      | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/cluster
     method: GET
     validate_certs: "{{ cluster_ops_rest_validate_certs }}"
     timeout: "{{ cluster_ops_rest_timeout }}"
