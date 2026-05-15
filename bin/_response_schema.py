@@ -324,9 +324,7 @@ def _validate_monitoring(monitoring: dict) -> None:
                 raise SchemaError(f"{path}.type: missing required key 'type'")
             rtype = _require_str(receiver, "type", path)
             if rtype not in known_types:
-                raise SchemaError(
-                    f"{path}.type: '{rtype}' not in {sorted(known_types)}"
-                )
+                raise SchemaError(f"{path}.type: '{rtype}' not in {sorted(known_types)}")
 
     scrape_interval = monitoring.get("scrape_interval")
     if scrape_interval is not None and (
