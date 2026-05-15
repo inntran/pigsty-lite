@@ -12,8 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-provision
+    network: pigsty-lite-provision
   - name: pigsty-lite-provision-ha-2
     image: localhost/molecule-base:latest
     pre_build_image: true
@@ -24,8 +23,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-provision
+    network: pigsty-lite-provision
   - name: pigsty-lite-provision-ha-3
     image: localhost/molecule-base:latest
     pre_build_image: true
@@ -36,8 +34,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-provision
+    network: pigsty-lite-provision
 provisioner:
   name: ansible
   config_options:

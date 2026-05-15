@@ -12,8 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-haproxy
+    network: pigsty-lite-haproxy
   - name: pigsty-lite-haproxy-ha-2
     image: localhost/molecule-base:latest
     pre_build_image: true
@@ -24,8 +23,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-haproxy
+    network: pigsty-lite-haproxy
   - name: pigsty-lite-haproxy-ha-3
     image: localhost/molecule-base:latest
     pre_build_image: true
@@ -36,8 +34,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     systemd: always
     groups: [etcd, postgres]
-    networks:
-      - name: pigsty-lite-haproxy
+    network: pigsty-lite-haproxy
 provisioner:
   name: ansible
   config_options:
@@ -65,12 +62,15 @@ provisioner:
       pigsty-lite-haproxy-ha-1:
         postgres_role: primary
         etcd_seq: 1
+        haproxy_default_port: 5455
       pigsty-lite-haproxy-ha-2:
         postgres_role: replica
         etcd_seq: 2
+        haproxy_default_port: 5455
       pigsty-lite-haproxy-ha-3:
         postgres_role: replica
         etcd_seq: 3
+        haproxy_default_port: 5455
 verifier:
   name: ansible
 scenario:
