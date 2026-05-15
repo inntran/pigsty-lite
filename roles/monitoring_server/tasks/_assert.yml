@@ -1,0 +1,34 @@
+---
+- name: Fail if monitor group is empty
+  ansible.builtin.assert:
+    that:
+      - groups['monitor'] | length > 0
+    fail_msg: "Inventory group 'monitor' is empty; P5 requires exactly one monitor host."
+  run_once: true
+  delegate_to: localhost
+
+- name: Fail unless monitor group size is exactly 1
+  ansible.builtin.assert:
+    that:
+      - groups['monitor'] | length == 1
+    fail_msg: >-
+      monitor group must contain exactly one host;
+      got {{ groups['monitor'] | length }}. Replicated monitoring is
+      out of scope.
+  run_once: true
+  delegate_to: localhost
+
+- name: Stat the monitor host certificate (from P0 certs role)
+  ansible.builtin.stat:
+    path: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
+  register: monitoring_server_cert_stat
+
+- name: Warn if the monitor host certificate is missing
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: monitor host certificate not found at
+      {{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt.
+      vmsingle/vlsingle still start over plain HTTP on loopback-adjacent
+      binds, but nginx_proxy's TLS termination needs this cert. Run the
+      P0 _node.yml playbook (certs role) first.
+  when: not monitoring_server_cert_stat.stat.exists

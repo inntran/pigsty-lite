@@ -1,0 +1,24 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [monitoring, assert]
+
+- name: Install and configure VictoriaMetrics single-node
+  ansible.builtin.import_tasks: _vmsingle.yml
+  tags: [monitoring, config]
+
+- name: Install and configure VictoriaLogs single-node
+  ansible.builtin.import_tasks: _vlsingle.yml
+  tags: [monitoring, config]
+
+- name: Install and configure vmalert
+  ansible.builtin.import_tasks: _vmalert.yml
+  tags: [monitoring, config]
+
+- name: Install and configure Alertmanager
+  ansible.builtin.import_tasks: _alertmanager.yml
+  tags: [monitoring, config]
+
+- name: Open firewalld for cross-host monitoring services
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [monitoring, firewall]
