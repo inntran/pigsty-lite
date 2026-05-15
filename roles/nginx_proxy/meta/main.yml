@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: nginx_proxy
+  author: pigsty-lite
+  description: nginx reverse proxy terminating TLS and routing to Grafana, Alertmanager, and vmalert.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []

@@ -1,0 +1,22 @@
+---
+# Resolve which cert/key nginx should use, based on the TLS mode. The
+# resolved paths are set as facts consumed by the config template.
+
+- name: Use the P0-issued certificate (ca_signed mode)
+  ansible.builtin.set_fact:
+    nginx_proxy_cert_path: "{{ nginx_proxy_ca_signed_cert }}"
+    nginx_proxy_key_path: "{{ nginx_proxy_ca_signed_key }}"
+    nginx_proxy_tls_enabled: true
+  when: nginx_proxy_tls_mode == 'ca_signed'
+
+- name: Use the operator-supplied certificate (byo mode)
+  ansible.builtin.set_fact:
+    nginx_proxy_cert_path: "{{ nginx_proxy_byo_cert }}"
+    nginx_proxy_key_path: "{{ nginx_proxy_byo_key }}"
+    nginx_proxy_tls_enabled: true
+  when: nginx_proxy_tls_mode == 'byo'
+
+- name: Serve plain HTTP only (http mode)
+  ansible.builtin.set_fact:
+    nginx_proxy_tls_enabled: false
+  when: nginx_proxy_tls_mode == 'http'

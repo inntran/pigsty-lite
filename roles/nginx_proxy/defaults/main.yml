@@ -1,0 +1,30 @@
+---
+# All variables prefixed `nginx_proxy_`. nginx is the only inbound for
+# user-facing UIs; it terminates TLS and proxies to the loopback-bound
+# Grafana / Alertmanager / vmalert.
+
+nginx_proxy_package: nginx
+nginx_proxy_service: nginx
+nginx_proxy_config_file: /etc/nginx/conf.d/pigsty-lite.conf
+
+# TLS mode: ca_signed (P0-issued cert) | byo (operator cert) | http
+nginx_proxy_tls_mode: ca_signed
+nginx_proxy_ca_signed_cert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
+nginx_proxy_ca_signed_key: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.key"
+# Operator overrides these two when nginx_proxy_tls_mode == 'byo'
+nginx_proxy_byo_cert: ""
+nginx_proxy_byo_key: ""
+
+# Listen addresses
+nginx_proxy_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+nginx_proxy_http_port: 80
+nginx_proxy_https_port: 443
+nginx_proxy_server_name: "{{ cluster_domain }}"
+
+# Upstreams (loopback)
+nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
+nginx_proxy_alertmanager_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ alertmanager_port | default(9093) }}"
+nginx_proxy_vmalert_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmalert_port | default(8880) }}"
+
+# Firewalld
+nginx_proxy_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"

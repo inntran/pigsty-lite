@@ -1,0 +1,20 @@
+---
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: "{{ nginx_proxy_service }}"
+    enabled: true
+    state: started
+
+- name: Wait for nginx to listen on https
+  ansible.builtin.wait_for:
+    host: "{{ nginx_proxy_listen_address }}"
+    port: "{{ nginx_proxy_https_port }}"
+    timeout: 30
+  when: nginx_proxy_tls_enabled
+
+- name: Wait for nginx to listen on http
+  ansible.builtin.wait_for:
+    host: "{{ nginx_proxy_listen_address }}"
+    port: "{{ nginx_proxy_http_port }}"
+    timeout: 30
+  when: not nginx_proxy_tls_enabled

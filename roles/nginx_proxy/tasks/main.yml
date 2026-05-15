@@ -1,0 +1,24 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [nginx_proxy, assert]
+
+- name: Install nginx
+  ansible.builtin.import_tasks: _install.yml
+  tags: [nginx_proxy, install]
+
+- name: Resolve TLS material
+  ansible.builtin.import_tasks: _tls.yml
+  tags: [nginx_proxy, config]
+
+- name: Render the reverse-proxy config
+  ansible.builtin.import_tasks: _config.yml
+  tags: [nginx_proxy, config]
+
+- name: Open firewalld for http and https
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [nginx_proxy, firewall]
+
+- name: Enable and start nginx
+  ansible.builtin.import_tasks: _service.yml
+  tags: [nginx_proxy, service]

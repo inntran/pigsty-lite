@@ -1,0 +1,59 @@
+---
+- name: Fail if monitor group is empty
+  ansible.builtin.assert:
+    that:
+      - groups['monitor'] | length > 0
+    fail_msg: "Inventory group 'monitor' is empty; the nginx_proxy role requires a monitor host."
+  run_once: true
+  delegate_to: localhost
+
+- name: Fail unless monitor group size is exactly 1
+  ansible.builtin.assert:
+    that:
+      - groups['monitor'] | length == 1
+    fail_msg: >-
+      monitor group must contain exactly one host;
+      got {{ groups['monitor'] | length }}. Replicated monitoring is
+      out of scope.
+  run_once: true
+  delegate_to: localhost
+
+- name: Validate the TLS mode
+  ansible.builtin.assert:
+    that:
+      - nginx_proxy_tls_mode in ['ca_signed', 'byo', 'http']
+    fail_msg: "nginx_proxy_tls_mode must be one of: ca_signed, byo, http."
+
+- name: Stat the CA-signed certificate when in ca_signed mode
+  ansible.builtin.stat:
+    path: "{{ nginx_proxy_ca_signed_cert }}"
+  register: nginx_proxy_ca_cert_stat
+  when: nginx_proxy_tls_mode == 'ca_signed'
+
+- name: Stat the CA-signed key when in ca_signed mode
+  ansible.builtin.stat:
+    path: "{{ nginx_proxy_ca_signed_key }}"
+  register: nginx_proxy_ca_key_stat
+  when: nginx_proxy_tls_mode == 'ca_signed'
+
+- name: Fail if the CA-signed certificate or key is missing
+  ansible.builtin.assert:
+    that:
+      - nginx_proxy_ca_cert_stat.stat.exists
+      - nginx_proxy_ca_key_stat.stat.exists
+    fail_msg: >-
+      nginx_proxy_tls_mode is 'ca_signed' but the cert/key pair is not
+      present at {{ nginx_proxy_ca_signed_cert }} and
+      {{ nginx_proxy_ca_signed_key }}. Run the P0 _node.yml playbook
+      (certs role) first.
+  when: nginx_proxy_tls_mode == 'ca_signed'
+
+- name: Fail if a byo certificate path is not supplied
+  ansible.builtin.assert:
+    that:
+      - nginx_proxy_byo_cert | length > 0
+      - nginx_proxy_byo_key | length > 0
+    fail_msg: >-
+      nginx_proxy_tls_mode is 'byo' but nginx_proxy_byo_cert /
+      nginx_proxy_byo_key are not set. Supply operator certificate paths.
+  when: nginx_proxy_tls_mode == 'byo'
