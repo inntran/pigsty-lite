@@ -1,0 +1,3 @@
+---
+- name: Apply the nginx_proxy role
+  ansible.builtin.import_playbook: ../../../../../playbooks/_nginx_proxy.yml

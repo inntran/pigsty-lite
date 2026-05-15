@@ -1,0 +1,104 @@
+---
+- name: Verify the nginx reverse proxy
+  hosts: monitor
+  become: true
+  gather_facts: false
+  tasks:
+    - name: nginx listens on 443
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :443"
+      register: https_listen
+      changed_when: false
+      failed_when: https_listen.stdout | length == 0
+
+    - name: nginx listens on 80
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :80"
+      register: http_listen
+      changed_when: false
+      failed_when: http_listen.stdout | length == 0
+
+    - name: Capture the expected certificate fingerprint
+      ansible.builtin.command:
+        cmd: "openssl x509 -in {{ pki_dir }}/{{ inventory_hostname }}.crt -noout -fingerprint -sha256"
+      register: expected_cert_fp
+      changed_when: false
+
+    - name: Capture the served certificate fingerprint
+      ansible.builtin.shell: >-
+        openssl s_client -connect 127.0.0.1:443 -servername {{ cluster_domain }}
+        -showcerts </dev/null 2>/dev/null
+        | sed -ne '/BEGIN CERTIFICATE/,/END CERTIFICATE/p'
+        | openssl x509 -noout -fingerprint -sha256
+      register: served_cert_fp
+      changed_when: false
+
+    - name: The served certificate matches the monitor cert
+      ansible.builtin.assert:
+        that:
+          - served_cert_fp.stdout | trim == expected_cert_fp.stdout | trim
+
+    - name: HTTPS root redirects to /grafana/
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/"
+        method: GET
+        validate_certs: false
+        follow_redirects: none
+        status_code: [302]
+      register: root_redirect
+
+    - name: The redirect points at /grafana/
+      ansible.builtin.assert:
+        that:
+          - "'/grafana/' in root_redirect.location"
+
+    - name: /grafana/ proxies through to a healthy Grafana
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/grafana/api/health"
+        method: GET
+        validate_certs: false
+        return_content: true
+        status_code: [200]
+      register: grafana_health
+      retries: 10
+      delay: 3
+      until: grafana_health.status == 200
+
+    - name: Grafana reports healthy through the proxy
+      ansible.builtin.assert:
+        that:
+          - (grafana_health.json.database | default('')) == 'ok'
+
+    - name: /alertmanager/ proxies through to Alertmanager
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/alertmanager/api/v2/status"
+        method: GET
+        validate_certs: false
+        status_code: [200]
+      register: alertmanager_status
+      retries: 10
+      delay: 3
+      until: alertmanager_status.status == 200
+
+    - name: /vmalert/ proxies through to vmalert
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/vmalert/"
+        method: GET
+        validate_certs: false
+        status_code: [200, 301, 302]
+      register: vmalert_root
+      retries: 10
+      delay: 3
+      until: vmalert_root.status in [200, 301, 302]
+
+    - name: No SELinux AVC denials since boot
+      ansible.builtin.command:
+        cmd: ausearch -m AVC -ts boot
+      register: avc
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if AVC denials were reported
+      ansible.builtin.assert:
+        that:
+          - avc.rc != 0 or 'type=AVC' not in avc.stdout

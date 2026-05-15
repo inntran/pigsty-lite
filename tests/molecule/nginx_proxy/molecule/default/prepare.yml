@@ -1,0 +1,39 @@
+---
+- name: Prepare the monitor host stack for nginx proxy testing
+  hosts: monitor
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../../../../../roles/monitoring_server/defaults/main.yml
+  tasks:
+    - name: Bring up preflight
+      ansible.builtin.import_role:
+        name: preflight
+
+    - name: Bring up repos
+      ansible.builtin.import_role:
+        name: repos
+
+    - name: Bring up node
+      ansible.builtin.import_role:
+        name: node
+
+    - name: Bring up certs
+      ansible.builtin.import_role:
+        name: certs
+
+    - name: Bring up VictoriaMetrics single-node
+      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vmsingle.yml
+
+    - name: Bring up VictoriaLogs single-node
+      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vlsingle.yml
+
+    - name: Bring up vmalert
+      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vmalert.yml
+
+    - name: Bring up Alertmanager
+      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_alertmanager.yml
+
+    - name: Bring up Grafana
+      ansible.builtin.import_role:
+        name: grafana

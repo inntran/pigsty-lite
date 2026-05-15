@@ -1,0 +1,81 @@
+---
+- name: Verify exporters on the postgres node
+  hosts: postgres
+  become: true
+  gather_facts: false
+  tasks:
+    - name: node_exporter answers on 9100
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9100/metrics"
+        method: GET
+        status_code: [200]
+      register: node_metrics
+      retries: 10
+      delay: 3
+      until: node_metrics.status == 200
+
+    - name: postgres_exporter answers on 9187
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9187/metrics"
+        method: GET
+        status_code: [200]
+      register: pg_metrics
+      retries: 10
+      delay: 3
+      until: pg_metrics.status == 200
+
+    - name: postgres_exporter exposes pg_up
+      ansible.builtin.assert:
+        that:
+          - "'pg_up' in pg_metrics.content"
+        fail_msg: "postgres_exporter did not expose pg_up"
+
+    - name: pgbouncer_exporter answers on 9127
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9127/metrics"
+        method: GET
+        status_code: [200]
+      register: pgb_metrics
+      retries: 10
+      delay: 3
+      until: pgb_metrics.status == 200
+
+    - name: pgbackrest_exporter answers on 9854
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9854/metrics"
+        method: GET
+        status_code: [200]
+      register: pgbr_metrics
+      retries: 10
+      delay: 3
+      until: pgbr_metrics.status == 200
+
+    - name: vmagent listens on loopback 8429
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :8429"
+      register: vmagent_listen
+      changed_when: false
+      failed_when: vmagent_listen.stdout | length == 0
+
+- name: Verify metrics arrived at the monitor host
+  hosts: monitor
+  become: true
+  gather_facts: false
+  tasks:
+    - name: vmsingle reports the postgres job as up
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8428/api/v1/query?query=up%7Bjob%3D%22postgres%22%7D"
+        method: GET
+        return_content: true
+      register: vm_query
+      retries: 20
+      delay: 6
+      until: >-
+        vm_query.status == 200
+        and (vm_query.json.data.result | default([])) | length > 0
+
+    - name: node_exporter on the monitor host answers too
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9100/metrics"
+        method: GET
+        status_code: [200]

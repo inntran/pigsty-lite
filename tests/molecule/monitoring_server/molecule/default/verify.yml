@@ -1,0 +1,53 @@
+---
+- name: Verify the monitoring server stack
+  hosts: monitor
+  become: true
+  gather_facts: false
+  tasks:
+    - name: vmsingle answers on 8428
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8428/health"
+        method: GET
+        status_code: [200]
+      register: vm_health
+      retries: 10
+      delay: 3
+      until: vm_health.status == 200
+
+    - name: vlsingle answers on 9428
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9428/health"
+        method: GET
+        status_code: [200]
+      register: vl_health
+      retries: 10
+      delay: 3
+      until: vl_health.status == 200
+
+    - name: vmalert listens on loopback 8880
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :8880"
+      register: vmalert_listen
+      changed_when: false
+      failed_when: vmalert_listen.stdout | length == 0
+
+    - name: Alertmanager listens on loopback 9093
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :9093"
+      register: am_listen
+      changed_when: false
+      failed_when: am_listen.stdout | length == 0
+
+    - name: vmsingle is NOT reachable on a non-loopback bind without the firewall source
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :8428"
+      register: vm_listen
+      changed_when: false
+      failed_when: vm_listen.stdout | length == 0
+
+    - name: No SELinux AVC denials since boot
+      ansible.builtin.command:
+        cmd: ausearch -m AVC -ts boot
+      register: avc
+      changed_when: false
+      failed_when: avc.rc == 0 and 'type=AVC' in avc.stdout

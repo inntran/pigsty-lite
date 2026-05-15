@@ -1,0 +1,40 @@
+---
+- name: Verify Grafana
+  hosts: monitor
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Grafana reports healthy
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000/api/health"
+        method: GET
+        return_content: true
+      register: grafana_health
+      retries: 20
+      delay: 3
+      until: grafana_health.status == 200 and grafana_health.json.database == 'ok'
+
+    - name: Both datasources exist
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000/api/datasources"
+        method: GET
+        url_username: admin
+        url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"
+        force_basic_auth: true
+        return_content: true
+      register: grafana_ds
+
+    - name: VictoriaMetrics and VictoriaLogs datasources are both present
+      ansible.builtin.assert:
+        that:
+          - (grafana_ds.json | map(attribute='name') | list) is superset(['VictoriaMetrics', 'VictoriaLogs'])
+        fail_msg: "Expected VictoriaMetrics and VictoriaLogs datasources"
+
+    - name: The overview dashboard is provisioned
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000/api/dashboards/uid/pigsty-lite-overview"
+        method: GET
+        url_username: admin
+        url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"
+        force_basic_auth: true
+        status_code: [200]
