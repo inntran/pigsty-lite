@@ -1,0 +1,31 @@
+---
+# Exercise the cluster_ops assertion library against the live
+# single-node cluster. converge runs the includes; verify checks the
+# facts they set.
+- name: Exercise the cluster_ops library
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Find the leader
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the cluster is healthy
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Persist the discovered facts for the verifier
+      ansible.builtin.copy:
+        dest: /tmp/cluster_ops_facts.json
+        mode: "0644"
+        content: |
+          {
+            "leader_host": "{{ cluster_ops_leader_host }}",
+            "replica_hosts": {{ cluster_ops_replica_hosts | to_json }},
+            "member_count": {{ cluster_ops_member_count }}
+          }
+      run_once: true
+      delegate_to: "{{ cluster_ops_leader_host }}"

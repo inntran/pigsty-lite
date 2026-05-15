@@ -1,0 +1,39 @@
+---
+- name: Verify the cluster_ops library produced correct facts
+  hosts: postgres
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Read the persisted facts
+      ansible.builtin.slurp:
+        src: /tmp/cluster_ops_facts.json
+      register: cluster_ops_facts_raw
+
+    - name: Parse the facts
+      ansible.builtin.set_fact:
+        cluster_ops_facts: "{{ cluster_ops_facts_raw.content | b64decode | from_json }}"
+
+    - name: The leader is the single node
+      ansible.builtin.assert:
+        that:
+          - cluster_ops_facts.leader_host == "pigsty-lite-clusterops-default-1"
+        fail_msg: "find_leader.yml did not identify the expected leader"
+
+    - name: There are no replicas in a single-node cluster
+      ansible.builtin.assert:
+        that:
+          - cluster_ops_facts.replica_hosts | length == 0
+        fail_msg: "find_leader.yml reported unexpected replicas"
+
+    - name: The member count is 1
+      ansible.builtin.assert:
+        that:
+          - cluster_ops_facts.member_count | int == 1
+        fail_msg: "find_leader.yml reported the wrong member count"
+
+    - name: No SELinux AVC denials since boot
+      ansible.builtin.command:
+        cmd: ausearch -m AVC -ts boot
+      register: avc
+      changed_when: false
+      failed_when: avc.rc == 0 and "type=AVC" in avc.stdout
