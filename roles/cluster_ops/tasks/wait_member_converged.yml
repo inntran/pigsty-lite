@@ -1,0 +1,43 @@
+---
+# Poll Patroni REST until cluster_ops_target_member is running and (if a
+# replica) caught up. Used after starting/restarting a member during a
+# rolling upgrade or scale-add. The caller must set
+# cluster_ops_target_member to an inventory hostname.
+
+- name: Assert the caller set a target member
+  ansible.builtin.assert:
+    that:
+      - cluster_ops_target_member is defined
+      - cluster_ops_target_member | length > 0
+    fail_msg: "wait_member_converged.yml requires cluster_ops_target_member to be set."
+  run_once: true
+
+- name: Wait for the target member to converge
+  ansible.builtin.uri:
+    url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_target_member].ansible_host | default(cluster_ops_target_member) }}:{{ cluster_ops_rest_port }}/patroni"
+    method: GET
+    validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+    timeout: "{{ cluster_ops_rest_timeout }}"
+    return_content: true
+    status_code: [200, 503]
+  register: cluster_ops_member_probe
+  delegate_to: "{{ cluster_ops_target_member }}"
+  run_once: true
+  retries: "{{ cluster_ops_wait_retries }}"
+  delay: "{{ cluster_ops_wait_delay }}"
+  until: >-
+    cluster_ops_member_probe.status == 200
+    and (cluster_ops_member_probe.json.state | default('')) == 'running'
+    and (
+      (cluster_ops_member_probe.json.role | default('')) == 'master'
+      or (cluster_ops_member_probe.json.role | default('')) == 'leader'
+      or (cluster_ops_member_probe.json.replication_state | default('')) == 'streaming'
+    )
+
+- name: Announce convergence
+  ansible.builtin.debug:
+    msg: >-
+      Member {{ cluster_ops_target_member }} converged:
+      state={{ cluster_ops_member_probe.json.state }},
+      role={{ cluster_ops_member_probe.json.role | default('n/a') }}.
+  run_once: true
