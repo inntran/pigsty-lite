@@ -263,3 +263,14 @@ The monitoring UIs are all behind nginx on the monitor host:
 
 To add an alert rule, a receiver, or a dashboard day-2, see
 [docs/operations/day2-monitoring.md](day2-monitoring.md).
+
+## Lifecycle operations
+
+Once the cluster is deployed, day-2 cluster operations are run on
+demand via `make` targets — switchover, failover, rolling minor
+upgrades, and scaling replicas in/out. None of these are part of
+`make deploy`.
+
+See [docs/operations/lifecycle.md](lifecycle.md) for the full runbook.
+For major version upgrades (no playbook), see
+[docs/operations/major-upgrade.md](major-upgrade.md).

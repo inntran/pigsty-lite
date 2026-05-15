@@ -25,6 +25,12 @@ postgres:
   databases: []
   users: []
   hba_rules: []
+  # Minor-upgrade safety: make minor-upgrade refuses unless a backup
+  # exists within this window. Optional; defaults to 24 hours.
+  # minor_upgrade:
+  #   require_recent_backup_hours: 24
+  # Pin a specific minor version (otherwise dnf takes the latest):
+  # pin_version: "18.4"
 # P4 day-2 workflow: edit this block, then run make deploy. See
 # docs/operations/day2-backups.md.
 backup:

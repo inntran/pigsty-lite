@@ -49,3 +49,15 @@
 - `--tags backup` - install/reconfigure pgBackRest (client + store).
 - `--tags backup,config` - re-render pgBackRest configs only.
 - `--tags backup,service` - re-apply archive_command, stanza, and timers.
+
+## Operator-entry playbooks (not part of site.yml)
+
+These are run directly or via `make`, not as part of `make deploy`:
+
+- `switchover.yml` - `make switchover`
+- `failover.yml` - `make failover CANDIDATE=<host>`
+- `minor_upgrade.yml` - `make minor-upgrade`
+- `scale_add_replica.yml` - `make scale-add-replica HOST=<host>`
+- `scale_remove_replica.yml` - `make scale-remove-replica HOST=<host>`
+
+See docs/operations/lifecycle.md.
