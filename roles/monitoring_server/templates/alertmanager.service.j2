@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Alertmanager for pigsty-lite
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=alertmanager
+Group=alertmanager
+ExecStart=/usr/bin/alertmanager \
+  --config.file={{ monitoring_server_alertmanager_config_file }} \
+  --storage.path={{ monitoring_server_alertmanager_data_dir }} \
+  --web.listen-address={{ monitoring_server_alertmanager_listen }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

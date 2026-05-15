@@ -1,0 +1,33 @@
+# {{ ansible_managed }}
+{% set monitoring_server_alertmanager_receiver_list = monitoring_server_alertmanager_receivers | default([]) %}
+route:
+  receiver: {{ monitoring_server_alertmanager_receiver_list[0].name if monitoring_server_alertmanager_receiver_list | length > 0 else 'default' }}
+  group_by: ['alertname', 'cluster']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+{% if monitoring_server_alertmanager_receiver_list | length == 0 %}
+  - name: default
+{% else %}
+{% for receiver in monitoring_server_alertmanager_receiver_list %}
+  - name: {{ receiver.name }}
+{% if receiver.type == 'slack' %}
+    slack_configs:
+      - api_url: {{ receiver.webhook }}
+        channel: "{{ receiver.channel | default('#alerts') }}"
+        send_resolved: true
+{% elif receiver.type == 'email' %}
+    email_configs:
+      - to: {{ receiver.to }}
+        from: {{ receiver.from | default('alertmanager@' ~ cluster_domain) }}
+        smarthost: {{ receiver.smarthost }}
+        send_resolved: true
+{% elif receiver.type == 'webhook' %}
+    webhook_configs:
+      - url: {{ receiver.url }}
+        send_resolved: true
+{% endif %}
+{% endfor %}
+{% endif %}

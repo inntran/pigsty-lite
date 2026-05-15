@@ -1,0 +1,14 @@
+---
+- name: Reload systemd for monitoring_server
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart alertmanager
+  ansible.builtin.systemd:
+    name: "{{ monitoring_server_alertmanager_service }}"
+    state: restarted
+
+- name: Reload firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded

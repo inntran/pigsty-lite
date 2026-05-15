@@ -1,0 +1,56 @@
+---
+- name: Install Alertmanager
+  ansible.builtin.dnf:
+    name: "{{ monitoring_server_alertmanager_package }}"
+    state: present
+
+- name: Ensure Alertmanager config directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_server_alertmanager_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Alertmanager data directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_server_alertmanager_data_dir }}"
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: "0750"
+
+- name: Render Alertmanager config
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ monitoring_server_alertmanager_config_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart alertmanager
+
+- name: Render Alertmanager systemd unit
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: "{{ monitoring_server_systemd_dir }}/alertmanager.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd for monitoring_server
+    - Restart alertmanager
+
+- name: Flush handlers so the unit is registered before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start Alertmanager
+  ansible.builtin.systemd:
+    name: "{{ monitoring_server_alertmanager_service }}"
+    enabled: true
+    state: started
+
+- name: Wait for Alertmanager to listen
+  ansible.builtin.wait_for:
+    host: "{{ monitoring_server_alertmanager_listen.rsplit(':', 1)[0] }}"
+    port: "{{ monitoring_server_alertmanager_listen.rsplit(':', 1)[1] }}"
+    timeout: 30
