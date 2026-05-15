@@ -74,3 +74,191 @@
           unavailable. Press ENTER to proceed, Ctrl-C then A to abort.
       when: not (auto_confirm | bool)
       run_once: true
+
+- name: Upgrade replicas one at a time
+  hosts: postgres
+  serial: 1
+  gather_facts: true
+  become: true
+  order: sorted
+  tasks:
+    - name: Re-resolve the leader for this batch
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Skip this host when it is the leader
+      ansible.builtin.meta: end_host
+      when: inventory_hostname == cluster_ops_leader_host
+
+    - name: Pause Patroni management of this node
+      ansible.builtin.command:
+        cmd: "patronictl -c {{ patroni_config_file | default('/etc/patroni/patroni.yml') }} pause --wait {{ cluster_name }}"
+      changed_when: true
+      run_once: true
+      delegate_to: "{{ cluster_ops_leader_host }}"
+
+    - name: Stop Patroni on this replica
+      ansible.builtin.systemd:
+        name: "{{ patroni_service_name | default('patroni') }}"
+        state: stopped
+
+    - name: Update PostgreSQL packages on this replica
+      ansible.builtin.dnf:
+        name:
+          - "postgresql{{ postgres_version }}-server"
+          - "postgresql{{ postgres_version }}-contrib"
+          - "postgresql{{ postgres_version }}"
+        state: "{{ 'latest' if (postgres_pin_version | default('')) | length == 0 else 'present' }}"
+
+    - name: Install pinned PostgreSQL version when pin_version is set
+      ansible.builtin.dnf:
+        name:
+          - "postgresql{{ postgres_version }}-server-{{ postgres_pin_version }}"
+          - "postgresql{{ postgres_version }}-contrib-{{ postgres_pin_version }}"
+          - "postgresql{{ postgres_version }}-{{ postgres_pin_version }}"
+        state: present
+        allow_downgrade: true
+      when: (postgres_pin_version | default('')) | length > 0
+
+    - name: Start Patroni on this replica
+      ansible.builtin.systemd:
+        name: "{{ patroni_service_name | default('patroni') }}"
+        state: started
+
+    - name: Resume Patroni management of the cluster
+      ansible.builtin.command:
+        cmd: "patronictl -c {{ patroni_config_file | default('/etc/patroni/patroni.yml') }} resume --wait {{ cluster_name }}"
+      changed_when: true
+      run_once: true
+      delegate_to: "{{ cluster_ops_leader_host }}"
+
+    - name: Wait for this replica to rejoin and catch up
+      ansible.builtin.set_fact:
+        cluster_ops_target_member: "{{ inventory_hostname }}"
+
+    - name: Poll until this replica is converged
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: wait_member_converged.yml
+
+- name: Switch over off the original primary
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Re-locate the leader
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Switch the leader to an already-upgraded replica
+      ansible.builtin.uri:
+        url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover"
+        method: POST
+        validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+        body_format: json
+        body:
+          leader: "{{ cluster_ops_leader_host }}"
+          candidate: "{{ cluster_ops_replica_hosts | first }}"
+        status_code: [200, 202]
+      delegate_to: "{{ cluster_ops_leader_host }}"
+      run_once: true
+
+    - name: Wait for the new leader to converge
+      ansible.builtin.set_fact:
+        cluster_ops_target_member: "{{ cluster_ops_replica_hosts | first }}"
+      run_once: true
+
+    - name: Poll until the new leader is converged
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: wait_member_converged.yml
+
+- name: Upgrade the demoted old primary
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Re-locate the leader
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Skip nodes that are not the original primary
+      ansible.builtin.meta: end_host
+      when: inventory_hostname != (hostvars[groups['postgres'][0]].minor_upgrade_original_primary | default(''))
+
+    - name: Pause Patroni management
+      ansible.builtin.command:
+        cmd: "patronictl -c {{ patroni_config_file | default('/etc/patroni/patroni.yml') }} pause --wait {{ cluster_name }}"
+      changed_when: true
+      run_once: true
+      delegate_to: "{{ cluster_ops_leader_host }}"
+
+    - name: Stop Patroni on the old primary
+      ansible.builtin.systemd:
+        name: "{{ patroni_service_name | default('patroni') }}"
+        state: stopped
+
+    - name: Update PostgreSQL packages on the old primary
+      ansible.builtin.dnf:
+        name:
+          - "postgresql{{ postgres_version }}-server"
+          - "postgresql{{ postgres_version }}-contrib"
+          - "postgresql{{ postgres_version }}"
+        state: "{{ 'latest' if (postgres_pin_version | default('')) | length == 0 else 'present' }}"
+
+    - name: Install pinned PostgreSQL version on the old primary when requested
+      ansible.builtin.dnf:
+        name:
+          - "postgresql{{ postgres_version }}-server-{{ postgres_pin_version }}"
+          - "postgresql{{ postgres_version }}-contrib-{{ postgres_pin_version }}"
+          - "postgresql{{ postgres_version }}-{{ postgres_pin_version }}"
+        state: present
+        allow_downgrade: true
+      when: (postgres_pin_version | default('')) | length > 0
+
+    - name: Start Patroni on the old primary
+      ansible.builtin.systemd:
+        name: "{{ patroni_service_name | default('patroni') }}"
+        state: started
+
+    - name: Resume Patroni management
+      ansible.builtin.command:
+        cmd: "patronictl -c {{ patroni_config_file | default('/etc/patroni/patroni.yml') }} resume --wait {{ cluster_name }}"
+      changed_when: true
+      run_once: true
+      delegate_to: "{{ cluster_ops_leader_host }}"
+
+    - name: Wait for the old primary to rejoin as a replica
+      ansible.builtin.set_fact:
+        cluster_ops_target_member: "{{ inventory_hostname }}"
+
+    - name: Poll until the old primary is converged
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: wait_member_converged.yml
+
+- name: Verify the upgraded cluster
+  hosts: postgres
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Re-locate the leader
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the upgraded cluster is healthy
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Report the result
+      ansible.builtin.debug:
+        msg: >-
+          Minor upgrade complete. Leader: {{ cluster_ops_leader_host }}.
+          Verify versions with: ansible postgres -m command -a
+          'rpm -q postgresql{{ postgres_version }}-server'.
+      run_once: true
