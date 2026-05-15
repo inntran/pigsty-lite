@@ -14,7 +14,9 @@
 - name: Authorize each postgres node's pgBackRest public key
   ansible.posix.authorized_key:
     user: "{{ backup_store_user }}"
-    key: "{{ hostvars[item].backup_client_ssh_pubkey }}"
+    key: >-
+      command="/usr/bin/pgbackrest server",restrict,from="{{ backup_store_source_address }}"
+      {{ hostvars[item].backup_client_ssh_pubkey }}
     state: present
     manage_dir: false
     path: "{{ backup_store_user_home }}/.ssh/authorized_keys"
@@ -22,6 +24,11 @@
   loop_control:
     label: "{{ item }}"
   when: hostvars[item].backup_client_ssh_pubkey is defined
+  vars:
+    backup_store_source_address: >-
+      {{ hostvars[item].patroni_advertise_address
+         | default(hostvars[item].ansible_host
+         | default(hostvars[item].ansible_facts.default_ipv4.address)) }}
 
 - name: Fail if any postgres node did not export a public key
   ansible.builtin.assert:

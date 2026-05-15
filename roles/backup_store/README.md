@@ -18,7 +18,8 @@ Patroni leader.
 
 ## What this role owns
 
-- The `pgbackrest` store user and its `~/.ssh/authorized_keys`.
+- The `pgbackrest` store user and its `~/.ssh/authorized_keys` (restricted
+  to a forced pgBackRest-only SSH command per postgres node).
 - `/var/lib/pgbackrest` (directory, ownership, SELinux label).
 - `/etc/pgbackrest/pgbackrest.conf` (server-side).
 - The stanza (`pgbackrest stanza-create`, run on the backup store host; the

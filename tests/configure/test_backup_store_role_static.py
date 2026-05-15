@@ -35,3 +35,18 @@ def test_backup_store_does_not_restrict_monitor_host_ssh():
         "inventory_hostname not in (groups['monitor'] | default([]))" in task["when"]
         for task in firewall_tasks
     )
+
+
+def test_backup_store_forces_pgbackrest_only_ssh_access():
+    tasks = _load_yaml("roles/backup_store/tasks/_ssh.yml")
+    auth_tasks = [
+        task
+        for task in _iter_tasks(tasks)
+        if task.get("ansible.posix.authorized_key") is not None
+    ]
+
+    assert len(auth_tasks) == 1
+    key = auth_tasks[0]["ansible.posix.authorized_key"]["key"]
+    assert 'command="/usr/bin/pgbackrest server"' in key
+    assert "restrict" in key
+    assert 'from="' in key
