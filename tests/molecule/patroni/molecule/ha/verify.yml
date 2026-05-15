@@ -61,12 +61,20 @@
              | list | length) == 2
         fail_msg: "Expected 2 streaming replicas. Got: {{ cluster_state.json.members }}"
 
-    - name: Write a probe row on this node
+    - name: Find leader hostname
+      ansible.builtin.set_fact:
+        patroni_leader_host: >-
+          {{ (cluster_state.json.members
+              | selectattr('role', 'equalto', 'leader')
+              | list | first).name }}
+
+    - name: Write a probe row on the leader
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres
         -c "create table if not exists probe_p2a (id int); insert into probe_p2a values (42);"
       register: probe_write
       changed_when: "'CREATE TABLE' in probe_write.stdout or 'INSERT 0 1' in probe_write.stdout"
+      delegate_to: "{{ patroni_leader_host }}"
 
 - name: Verify replication on every member
   hosts: postgres

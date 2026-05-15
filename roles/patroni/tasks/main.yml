@@ -56,6 +56,16 @@
     zone: "{{ patroni_firewalld_zone }}"
   tags: [patroni, firewall]
 
+- name: Open PostgreSQL port to other cluster members (replication + pg_basebackup)
+  ansible.posix.firewalld:
+    rich_rule: "rule family='ipv4' source address='{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}' service name='postgresql' accept"
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ patroni_firewalld_zone }}"
+  loop: "{{ groups['postgres'] | difference([inventory_hostname]) }}"
+  tags: [patroni, firewall]
+
 - name: Start Patroni and wait for healthy cluster
   ansible.builtin.import_tasks: _service.yml
   tags: [patroni, service]

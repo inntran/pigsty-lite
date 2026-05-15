@@ -50,9 +50,6 @@ bootstrap:
         work_mem: {{ work_mem_mb }}MB
         maintenance_work_mem: {{ maint_mem_mb }}MB
         ssl: "on"
-        ssl_cert_file: {{ patroni_cert_file | to_json }}
-        ssl_key_file: {{ patroni_key_file | to_json }}
-        ssl_ca_file: {{ patroni_trusted_ca_file | to_json }}
         ssl_min_protocol_version: "TLSv1.2"
 
   initdb:
@@ -64,7 +61,7 @@ bootstrap:
     - local all all peer
     - host all postgres 127.0.0.1/32 trust
     - host replication {{ patroni_replication_user }} 127.0.0.1/32 trust
-    - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 cert
+    - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 scram-sha-256
     # Steady-state HBA is rendered by roles/provision (P3). The bootstrap
     # block above contains only what initdb needs to elect the first
     # leader and join replicas. Operators add wildcard auth via the
@@ -98,6 +95,9 @@ postgresql:
       password: {{ patroni_rewind_password | to_json }}
 
   parameters:
+    ssl_cert_file: {{ patroni_cert_file | to_json }}
+    ssl_key_file: {{ patroni_key_file | to_json }}
+    ssl_ca_file: {{ patroni_trusted_ca_file | to_json }}
 {% set tune_path = role_path ~ '/files/tuning/' ~ patroni_tune_profile ~ '.conf' %}
 {% for line in (lookup('file', tune_path)).splitlines() %}
 {%   set stripped = line.strip() %}
