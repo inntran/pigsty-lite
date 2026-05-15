@@ -1,0 +1,119 @@
+---
+# Operator entry: remove a replica from an existing cluster.
+#   ansible-playbook playbooks/scale_remove_replica.yml -e target_host=pgnode04
+#   ansible-playbook playbooks/scale_remove_replica.yml -e target_host=pgnode04 -e auto_confirm=true
+#
+# This decommissions a replica: stop Patroni on it, remove the member
+# from the Patroni DCS, and stop its services. It REFUSES to remove the
+# current leader — switch over first. After this runs, the operator
+# removes the host from the inventory and re-runs `./configure`.
+
+- name: Remove a replica
+  hosts: postgres
+  gather_facts: true
+  become: true
+  vars:
+    auto_confirm: false
+  tasks:
+    - name: Assert target_host was provided and is in the postgres group
+      ansible.builtin.assert:
+        that:
+          - target_host is defined
+          - target_host in groups["postgres"]
+        fail_msg: >-
+          scale_remove_replica.yml requires -e target_host=<host> that
+          is a member of the postgres group.
+      run_once: true
+
+    - name: Locate the current leader and topology
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Refuse to remove the current leader
+      ansible.builtin.assert:
+        that:
+          - target_host != cluster_ops_leader_host
+        fail_msg: >-
+          {{ target_host }} is the current leader. Switch over first
+          (`make switchover`), then remove it as a replica.
+      run_once: true
+
+    - name: Assert the target is actually a known replica
+      ansible.builtin.assert:
+        that:
+          - target_host in cluster_ops_replica_hosts
+        fail_msg: >-
+          {{ target_host }} is not a replica Patroni knows about.
+          Replicas: {{ cluster_ops_replica_hosts }}.
+      run_once: true
+
+    - name: Assert removing this replica leaves a viable cluster
+      ansible.builtin.assert:
+        that:
+          - (cluster_ops_member_count | int) - 1 >= 1
+        fail_msg: >-
+          Removing {{ target_host }} would leave the cluster with no
+          members. Refusing.
+      run_once: true
+
+    - name: Confirm the removal
+      ansible.builtin.pause:
+        prompt: >-
+          About to decommission replica {{ target_host }}: stop Patroni,
+          remove it from the DCS, stop its services. Its data directory
+          is left on disk for safety. Press ENTER to proceed, Ctrl-C
+          then A to abort.
+      when: not (auto_confirm | bool)
+      run_once: true
+
+    - name: Stop Patroni on the target replica
+      ansible.builtin.systemd:
+        name: "{{ patroni_service_name | default('patroni') }}"
+        state: stopped
+      delegate_to: "{{ target_host }}"
+      run_once: true
+
+    - name: Remove the member from the Patroni DCS
+      ansible.builtin.command:
+        cmd: >-
+          patronictl -c {{ patroni_config_file | default('/etc/patroni/patroni.yml') }}
+          remove {{ cluster_name }}
+      args:
+        stdin: "{{ cluster_name }}\nYes I am aware\n{{ target_host }}\n"
+      changed_when: true
+      delegate_to: "{{ cluster_ops_leader_host }}"
+      run_once: true
+
+    - name: Stop the connection-layer and agent services on the removed host
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - haproxy
+        - pgbouncer
+        - node-exporter
+      failed_when: false
+      delegate_to: "{{ target_host }}"
+      run_once: true
+
+    - name: Re-locate the topology after removal
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the remaining cluster is healthy
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Report the result
+      ansible.builtin.debug:
+        msg: >-
+          Replica {{ target_host }} removed. Cluster now has
+          {{ cluster_ops_member_count }} members. Next: remove
+          {{ target_host }} from the inventory and re-run
+          `./configure -s -f ...` so the backup_store and monitoring
+          configs stop referencing it. The data directory on
+          {{ target_host }} was intentionally left in place.
+      run_once: true
