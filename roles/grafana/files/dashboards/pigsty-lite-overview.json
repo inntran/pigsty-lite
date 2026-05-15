@@ -1,0 +1,78 @@
+{
+  "title": "pigsty-lite — cluster overview",
+  "uid": "pigsty-lite-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+        "query": "label_values(pg_up, cluster)",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "PostgreSQL instances up",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(pg_up{cluster=\"$cluster\"})", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Replication lag (bytes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "pg_replication_lag_bytes{cluster=\"$cluster\"}",
+          "refId": "A",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Active connections",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum by (instance) (pg_stat_activity_count{cluster=\"$cluster\"})",
+          "refId": "A",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Node CPU / memory / disk",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",cluster=\"$cluster\"}[5m]))",
+          "refId": "A",
+          "legendFormat": "cpu {{instance}}"
+        },
+        {
+          "expr": "1 - (node_memory_MemAvailable_bytes{cluster=\"$cluster\"} / node_memory_MemTotal_bytes{cluster=\"$cluster\"})",
+          "refId": "B",
+          "legendFormat": "mem {{instance}}"
+        }
+      ]
+    }
+  ]
+}

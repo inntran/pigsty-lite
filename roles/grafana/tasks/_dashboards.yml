@@ -1,0 +1,39 @@
+---
+- name: Ensure the Grafana dashboards directory exists
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+
+- name: Copy dashboard JSON files
+  ansible.builtin.copy:
+    src: dashboards/
+    dest: "{{ grafana_dashboards_dir }}/"
+    owner: grafana
+    group: grafana
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Render the dashboard file-provisioning config
+  ansible.builtin.template:
+    src: dashboard-provider.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/dashboards/pigsty-lite.yml"
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Flush handlers so Grafana picks up the dashboards
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Grafana to report healthy
+  ansible.builtin.uri:
+    url: "{{ grafana_api_url }}/api/health"
+    method: GET
+    return_content: true
+  register: grafana_health
+  retries: 20
+  delay: 3
+  until: grafana_health.status == 200 and (grafana_health.json.database | default('')) == 'ok'

@@ -1,0 +1,16 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [monitoring, assert]
+
+- name: Install and base-configure Grafana
+  ansible.builtin.import_tasks: _install.yml
+  tags: [monitoring, config]
+
+- name: Configure datasources
+  ansible.builtin.import_tasks: _datasources.yml
+  tags: [monitoring, config]
+
+- name: Provision dashboards
+  ansible.builtin.import_tasks: _dashboards.yml
+  tags: [monitoring, config]

@@ -1,0 +1,25 @@
+---
+# roles/grafana/defaults/main.yml
+# All variables prefixed `grafana_`. Grafana binds loopback-only and is
+# fronted by nginx_proxy at the /grafana/ sub-path.
+
+grafana_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
+grafana_port: "{{ grafana_port | default(3000) }}"
+grafana_admin_user: admin
+grafana_admin_password: "{{ vault_grafana_admin_password | default('grafana-dev-admin-change-me') }}"
+
+# Served behind nginx at https://<domain>/grafana/
+grafana_root_url: "https://{{ cluster_domain }}/grafana/"
+grafana_serve_from_sub_path: true
+
+# Datasources point at the local vmsingle (Prometheus-compatible) and
+# vlsingle, both on loopback.
+grafana_vmsingle_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ vmsingle_port | default(8428) }}"
+grafana_vlsingle_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ vlsingle_port | default(9428) }}"
+
+# Dashboard provisioning
+grafana_provisioning_dir: /etc/grafana/provisioning
+grafana_dashboards_dir: /var/lib/grafana/dashboards
+
+# Grafana API endpoint for the community.grafana modules (loopback).
+grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
