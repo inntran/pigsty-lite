@@ -194,6 +194,19 @@ def _validate_extensions(postgres: dict) -> None:
         raise SchemaError(f"{path}: must be a string or a mapping with at least 'name'")
 
 
+def _validate_minor_upgrade(postgres: dict) -> None:
+    minor_upgrade = postgres.get("minor_upgrade")
+    if minor_upgrade is None:
+        return
+    if not isinstance(minor_upgrade, dict):
+        raise SchemaError("postgres.minor_upgrade: must be a mapping")
+    hours = minor_upgrade.get("require_recent_backup_hours")
+    if hours is not None and (not isinstance(hours, int) or isinstance(hours, bool) or hours < 1):
+        raise SchemaError(
+            "postgres.minor_upgrade.require_recent_backup_hours: must be a positive integer"
+        )
+
+
 def _validate_postgres(postgres: dict, ip_version: str) -> None:
     if not isinstance(postgres, dict):
         raise SchemaError("postgres: must be a mapping")
@@ -213,6 +226,7 @@ def _validate_postgres(postgres: dict, ip_version: str) -> None:
     _validate_users(postgres)
     _validate_databases(postgres)
     _validate_extensions(postgres)
+    _validate_minor_upgrade(postgres)
 
 
 def _validate_tls(tls: dict) -> None:
@@ -315,11 +329,10 @@ def _validate_monitoring(monitoring: dict) -> None:
                 )
 
     scrape_interval = monitoring.get("scrape_interval")
-    if scrape_interval is not None:
-        if not isinstance(scrape_interval, str) or not re.fullmatch(r"\d+[smhd]", scrape_interval):
-            raise SchemaError(
-                "monitoring.scrape_interval: must match Ns|Nm|Nh|Nd form (e.g. 15s)"
-            )
+    if scrape_interval is not None and (
+        not isinstance(scrape_interval, str) or not re.fullmatch(r"\d+[smhd]", scrape_interval)
+    ):
+        raise SchemaError("monitoring.scrape_interval: must match Ns|Nm|Nh|Nd form (e.g. 15s)")
 
 
 def _validate_backup_cron(value: str, field: str) -> None:

@@ -79,6 +79,15 @@ backup_ssh_port: 22
 monitoring_host: "{{ groups['monitor'][0] }}"
 monitoring_scrape_interval: 15s
 
+# Lifecycle operations (P6) -----------------------------------------
+# Replication lag a replica must be under before a lifecycle operation
+# treats it as converged (bytes). 1 MiB per the design spec.
+cluster_ops_replication_lag_max_bytes: 1048576
+# Minor-upgrade safety gate: refuse to upgrade unless a successful
+# backup exists within this many hours. Operator can override via the
+# response file's postgres.minor_upgrade block.
+postgres_minor_upgrade_require_recent_backup_hours: 24
+
 # Operator network defaults - override in response file -------------
 operator_cidrs: ["10.0.0.0/8"]
 postgres_client_cidrs: ["10.0.0.0/8"]

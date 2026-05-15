@@ -100,6 +100,26 @@ def test_postgres_extensions_dict_requires_name():
         validate(data)
 
 
+def test_minor_upgrade_block_must_be_mapping():
+    response = _minimal_single_response()
+    response["postgres"]["minor_upgrade"] = "soon"
+    with pytest.raises(SchemaError, match=r"postgres\.minor_upgrade: must be a mapping"):
+        validate(response)
+
+
+def test_minor_upgrade_require_recent_backup_hours_must_be_positive_int():
+    response = _minimal_single_response()
+    response["postgres"]["minor_upgrade"] = {"require_recent_backup_hours": 0}
+    with pytest.raises(SchemaError, match=r"postgres\.minor_upgrade\.require_recent_backup_hours"):
+        validate(response)
+
+
+def test_minor_upgrade_block_is_optional():
+    response = _minimal_single_response()
+    response["postgres"].pop("minor_upgrade", None)
+    validate(response)
+
+
 def test_unknown_network_ip_version_rejected():
     data = _load("single.rsp.yml")
     data["network"] = {"ip_version": "ipv5"}

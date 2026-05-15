@@ -86,6 +86,9 @@ def generate(response: dict[str, Any]) -> str:
         "postgres_hba_rules": postgres.get("hba_rules", []),
         "postgres_extra_parameters": postgres.get("extra_parameters", {}),
         "postgres_pin_version": postgres.get("pin_version", ""),
+        "postgres_minor_upgrade_require_recent_backup_hours": (
+            postgres.get("minor_upgrade", {}).get("require_recent_backup_hours", 24)
+        ),
         "ca_mode": tls["internal_ca"],
         "nginx_proxy_tls_mode": tls["user_facing"]["mode"],
         "vmsingle_retention": monitoring["vmsingle_retention"],
