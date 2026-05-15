@@ -291,6 +291,36 @@ def _validate_monitoring(monitoring: dict) -> None:
         if not DURATION_RE.match(value):
             raise SchemaError(f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)")
 
+    alertmanager = monitoring.get("alertmanager")
+    if alertmanager is not None:
+        if not isinstance(alertmanager, dict):
+            raise SchemaError("monitoring.alertmanager: must be a mapping")
+        receivers = alertmanager.get("receivers", [])
+        if not isinstance(receivers, list):
+            raise SchemaError("monitoring.alertmanager.receivers: must be a list")
+        known_types = {"slack", "email", "webhook", "pagerduty"}
+        for index, receiver in enumerate(receivers):
+            path = f"monitoring.alertmanager.receivers[{index}]"
+            if not isinstance(receiver, dict):
+                raise SchemaError(f"{path}: must be a mapping")
+            if "name" not in receiver:
+                raise SchemaError(f"{path}.name: missing required key 'name'")
+            _require_str(receiver, "name", path)
+            if "type" not in receiver:
+                raise SchemaError(f"{path}.type: missing required key 'type'")
+            rtype = _require_str(receiver, "type", path)
+            if rtype not in known_types:
+                raise SchemaError(
+                    f"{path}.type: '{rtype}' not in {sorted(known_types)}"
+                )
+
+    scrape_interval = monitoring.get("scrape_interval")
+    if scrape_interval is not None:
+        if not isinstance(scrape_interval, str) or not re.fullmatch(r"\d+[smhd]", scrape_interval):
+            raise SchemaError(
+                "monitoring.scrape_interval: must match Ns|Nm|Nh|Nd form (e.g. 15s)"
+            )
+
 
 def _validate_backup_cron(value: str, field: str) -> None:
     parts = value.split()

@@ -91,6 +91,7 @@ def generate(response: dict[str, Any]) -> str:
         "vmsingle_retention": monitoring["vmsingle_retention"],
         "vlsingle_retention": monitoring["vlsingle_retention"],
         "alertmanager_receivers": monitoring.get("alertmanager", {}).get("receivers", []),
+        "monitoring_scrape_interval": monitoring.get("scrape_interval", "15s"),
         "operator_cidrs": firewall["operator_cidrs"],
         "postgres_client_cidrs": firewall["postgres_client_cidrs"],
         "repos_pigsty_enabled": bool(repos.get("pigsty", {}).get("enabled", False)),

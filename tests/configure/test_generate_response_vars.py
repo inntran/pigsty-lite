@@ -73,6 +73,18 @@ def test_monitoring_retention_namespaced():
     assert out["vlsingle_retention"] == "30d"
 
 
+def test_monitoring_scrape_interval_defaults_to_15s():
+    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+    assert out["monitoring_scrape_interval"] == "15s"
+
+
+def test_monitoring_scrape_interval_is_promoted():
+    data = _load("ha.rsp.yml")
+    data["monitoring"]["scrape_interval"] = "30s"
+    out = yaml.safe_load(generate(data))
+    assert out["monitoring_scrape_interval"] == "30s"
+
+
 def test_backup_disabled_when_response_says_so():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
     assert out["backup_enabled"] is False

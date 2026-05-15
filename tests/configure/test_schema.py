@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,10 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def _load(name: str) -> dict:
     with (FIXTURES / name).open() as fh:
         return yaml.safe_load(fh)
+
+
+def _minimal_single_response() -> dict:
+    return deepcopy(_load("single.rsp.yml"))
 
 
 def test_single_profile_fixture_validates():
@@ -196,3 +201,39 @@ def test_backup_section_is_optional():
     data = _load("single.rsp.yml")
     data.pop("backup", None)
     validate(data)
+
+
+def test_monitoring_receiver_must_be_mapping():
+    response = _minimal_single_response()
+    response["monitoring"]["alertmanager"] = {"receivers": ["not-a-dict"]}
+    with pytest.raises(SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]: must be a mapping"):
+        validate(response)
+
+
+def test_monitoring_receiver_requires_name_and_type():
+    response = _minimal_single_response()
+    response["monitoring"]["alertmanager"] = {"receivers": [{"type": "slack"}]}
+    with pytest.raises(SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]\.name"):
+        validate(response)
+
+
+def test_monitoring_receiver_type_must_be_known():
+    response = _minimal_single_response()
+    response["monitoring"]["alertmanager"] = {
+        "receivers": [{"name": "x", "type": "carrier-pigeon"}]
+    }
+    with pytest.raises(SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]\.type"):
+        validate(response)
+
+
+def test_monitoring_scrape_interval_must_be_duration():
+    response = _minimal_single_response()
+    response["monitoring"]["scrape_interval"] = "fifteen"
+    with pytest.raises(SchemaError, match=r"monitoring\.scrape_interval"):
+        validate(response)
+
+
+def test_monitoring_scrape_interval_is_optional():
+    response = _minimal_single_response()
+    response["monitoring"].pop("scrape_interval", None)
+    validate(response)

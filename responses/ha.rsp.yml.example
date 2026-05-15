@@ -34,6 +34,8 @@ backup:
 tls:
   internal_ca: generate
   user_facing: {mode: ca_signed}
+# P5 day-2 workflow: edit this block, then run make deploy. See
+# docs/operations/day2-monitoring.md.
 monitoring:
   vmsingle_retention: 90d
   vlsingle_retention: 30d
