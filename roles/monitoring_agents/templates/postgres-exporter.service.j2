@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=PostgreSQL Exporter (pigsty-lite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ postgres_osdba | default('postgres') }}
+Environment=DATA_SOURCE_NAME={{ monitoring_agents_postgres_exporter_dsn }}
+ExecStart=/usr/bin/postgres_exporter \
+  --web.listen-address={{ monitoring_agents_exporter_listen }}:{{ monitoring_agents_postgres_exporter_port }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

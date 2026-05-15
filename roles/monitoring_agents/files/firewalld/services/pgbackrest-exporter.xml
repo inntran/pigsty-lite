@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>pgbackrest-exporter</short>
+  <description>Prometheus pgBackRest exporter scrape endpoint (pigsty-lite).</description>
+  <port protocol="tcp" port="9854"/>
+</service>

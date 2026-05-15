@@ -1,0 +1,24 @@
+---
+- name: Fail if monitor group is empty
+  ansible.builtin.assert:
+    that:
+      - groups['monitor'] | length > 0
+    fail_msg: >-
+      Inventory group 'monitor' is empty; monitoring_agents needs a
+      monitor host to remote_write metrics and ship logs to.
+  run_once: true
+  delegate_to: localhost
+
+- name: Stat the CA certificate (from P0 certs role)
+  ansible.builtin.stat:
+    path: "{{ monitoring_agents_ca_file }}"
+  register: monitoring_agents_ca_stat
+
+- name: Fail if the CA certificate is missing
+  ansible.builtin.assert:
+    that:
+      - monitoring_agents_ca_stat.stat.exists
+    fail_msg: >-
+      Expected the pigsty-lite CA at {{ monitoring_agents_ca_file }};
+      agents need it to verify the monitor host's TLS. Run the P0
+      _node.yml playbook (certs role) first.

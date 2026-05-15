@@ -1,0 +1,27 @@
+---
+- name: Ensure the vmagent buffer directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_agents_vmagent_buffer_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Render the vmagent scrape config
+  ansible.builtin.template:
+    src: vmagent-scrape.yml.j2
+    dest: /etc/vmagent/scrape.yml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install and configure vmagent
+  ansible.builtin.include_role:
+    name: victoriametrics.cluster.vmagent
+  vars:
+    vmagent_service_args:
+      httpListenAddr: "{{ monitoring_agents_vmagent_listen }}"
+      "promscrape.config": /etc/vmagent/scrape.yml
+      "remoteWrite.url": "{{ monitoring_agents_vmagent_remote_write_url }}"
+      "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
+      "remoteWrite.tmpDataPath": "{{ monitoring_agents_vmagent_buffer_dir }}"

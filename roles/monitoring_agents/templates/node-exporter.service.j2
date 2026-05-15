@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Prometheus Node Exporter (pigsty-lite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=node_exporter
+ExecStart=/usr/bin/node_exporter \
+  --web.listen-address={{ monitoring_agents_exporter_listen }}:{{ monitoring_agents_node_exporter_port }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

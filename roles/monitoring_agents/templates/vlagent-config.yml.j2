@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+# vlagent tails journald and the PostgreSQL / Patroni logs and ships
+# them to VictoriaLogs on the monitor host.
+journald:
+  - field_selectors: []
+    stream_fields: ["cluster", "instance"]
+    extra_fields:
+      cluster: "{{ cluster_name }}"
+      instance: "{{ inventory_hostname }}"
+{% if inventory_hostname in groups['postgres'] %}
+file:
+  - paths:
+      - "/var/lib/pgsql/{{ postgres_version }}/data/log/*.log"
+      - "/var/log/patroni/*.log"
+    stream_fields: ["cluster", "instance"]
+    extra_fields:
+      cluster: "{{ cluster_name }}"
+      instance: "{{ inventory_hostname }}"
+{% endif %}

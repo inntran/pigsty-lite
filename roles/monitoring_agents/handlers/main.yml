@@ -1,0 +1,29 @@
+---
+- name: Reload systemd for monitoring_agents
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart node-exporter
+  ansible.builtin.systemd:
+    name: node-exporter
+    state: restarted
+
+- name: Restart postgres-exporter
+  ansible.builtin.systemd:
+    name: postgres-exporter
+    state: restarted
+
+- name: Restart pgbouncer-exporter
+  ansible.builtin.systemd:
+    name: pgbouncer-exporter
+    state: restarted
+
+- name: Restart pgbackrest-exporter
+  ansible.builtin.systemd:
+    name: pgbackrest-exporter
+    state: restarted
+
+- name: Reload firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded

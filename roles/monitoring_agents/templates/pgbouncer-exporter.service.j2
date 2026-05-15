@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=pgBouncer Exporter (pigsty-lite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ postgres_osdba | default('postgres') }}
+ExecStart=/usr/bin/pgbouncer_exporter \
+  --web.listen-address={{ monitoring_agents_exporter_listen }}:{{ monitoring_agents_pgbouncer_exporter_port }} \
+  --pgBouncer.connectionString="{{ monitoring_agents_pgbouncer_exporter_dsn }}"
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

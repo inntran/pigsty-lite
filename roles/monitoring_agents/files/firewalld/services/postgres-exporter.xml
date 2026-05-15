@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>postgres-exporter</short>
+  <description>Prometheus PostgreSQL exporter scrape endpoint (pigsty-lite).</description>
+  <port protocol="tcp" port="9187"/>
+</service>

@@ -1,0 +1,45 @@
+# {{ ansible_managed }}
+global:
+  scrape_interval: {{ monitoring_agents_scrape_interval }}
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_node_exporter_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+{% if inventory_hostname in groups['postgres'] %}
+  - job_name: postgres
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_postgres_exporter_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+  - job_name: pgbouncer
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_pgbouncer_exporter_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+  - job_name: pgbackrest
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_pgbackrest_exporter_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+  - job_name: patroni
+    scheme: https
+    tls_config:
+      ca_file: "{{ monitoring_agents_ca_file }}"
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_patroni_rest_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+  - job_name: haproxy
+    static_configs:
+      - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_haproxy_stats_port }}"]
+        labels:
+          cluster: "{{ cluster_name }}"
+          instance: "{{ inventory_hostname }}"
+{% endif %}

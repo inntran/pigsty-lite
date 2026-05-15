@@ -1,0 +1,61 @@
+---
+# node_exporter (9100) uses the built-in `prometheus-node-exporter`
+# firewalld service and runs on every host. The three PG-side exporters
+# use custom services and run only on postgres hosts. All four are
+# opened to the monitor host only - it is the sole scrape source.
+
+- name: Resolve the monitor host firewall source
+  ansible.builtin.set_fact:
+    monitoring_agents_monitor_source:
+      address: >-
+        {{ hostvars[monitoring_host].ansible_host
+           | default(hostvars[monitoring_host].ansible_facts.default_ipv4.address) }}
+
+- name: Set the monitor source address family
+  ansible.builtin.set_fact:
+    monitoring_agents_monitor_family: >-
+      {{ 'ipv6' if ':' in (monitoring_agents_monitor_source.address | string) else 'ipv4' }}
+
+- name: Open the built-in prometheus-node-exporter service to the monitor host
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ monitoring_agents_monitor_family }}"
+      source address="{{ monitoring_agents_monitor_source.address }}"
+      service name="prometheus-node-exporter" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ monitoring_agents_firewalld_zone }}"
+
+- name: Install the PG-side exporter firewalld service definitions
+  ansible.builtin.copy:
+    src: "firewalld/services/{{ item }}.xml"
+    dest: "/etc/firewalld/services/{{ item }}.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - postgres-exporter
+    - pgbouncer-exporter
+    - pgbackrest-exporter
+  when: inventory_hostname in groups['postgres']
+  notify: Reload firewalld
+
+- name: Flush handlers so firewalld reloads before service rules apply
+  ansible.builtin.meta: flush_handlers
+
+- name: Open the PG-side exporter services to the monitor host
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ monitoring_agents_monitor_family }}"
+      source address="{{ monitoring_agents_monitor_source.address }}"
+      service name="{{ item }}" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ monitoring_agents_firewalld_zone }}"
+  loop:
+    - postgres-exporter
+    - pgbouncer-exporter
+    - pgbackrest-exporter
+  when: inventory_hostname in groups['postgres']

@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+[Unit]
+Description=pgBackRest Exporter (pigsty-lite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ postgres_osdba | default('postgres') }}
+ExecStart=/usr/bin/pgbackrest_exporter \
+  --web.listen-address={{ monitoring_agents_exporter_listen }}:{{ monitoring_agents_pgbackrest_exporter_port }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

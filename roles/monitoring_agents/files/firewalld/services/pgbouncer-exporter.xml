@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>pgbouncer-exporter</short>
+  <description>Prometheus pgBouncer exporter scrape endpoint (pigsty-lite).</description>
+  <port protocol="tcp" port="9127"/>
+</service>

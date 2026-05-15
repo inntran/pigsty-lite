@@ -1,0 +1,74 @@
+---
+# node_exporter runs on every host. The three PG-side exporters run
+# only on postgres hosts. Each exporter gets its own systemd unit and
+# binds network_any_address (firewalled to the monitor host in
+# _firewall.yml).
+
+- name: Install node_exporter
+  ansible.builtin.dnf:
+    name: "{{ monitoring_agents_node_exporter_package }}"
+    state: present
+
+- name: Ensure the node_exporter system user exists
+  ansible.builtin.user:
+    name: node_exporter
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    state: present
+
+- name: Render the node_exporter systemd unit
+  ansible.builtin.template:
+    src: node-exporter.service.j2
+    dest: "{{ monitoring_agents_systemd_dir }}/node-exporter.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd for monitoring_agents
+    - Restart node-exporter
+
+- name: Install the PostgreSQL-side exporters
+  ansible.builtin.dnf:
+    name:
+      - "{{ monitoring_agents_postgres_exporter_package }}"
+      - "{{ monitoring_agents_pgbouncer_exporter_package }}"
+      - "{{ monitoring_agents_pgbackrest_exporter_package }}"
+    state: present
+  when: inventory_hostname in groups['postgres']
+
+- name: Render the PostgreSQL-side exporter systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.service.j2"
+    dest: "{{ monitoring_agents_systemd_dir }}/{{ item }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - postgres-exporter
+    - pgbouncer-exporter
+    - pgbackrest-exporter
+  when: inventory_hostname in groups['postgres']
+  notify:
+    - Reload systemd for monitoring_agents
+    - "Restart {{ item }}"
+
+- name: Flush handlers so the units are registered before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start node_exporter
+  ansible.builtin.systemd:
+    name: node-exporter
+    enabled: true
+    state: started
+
+- name: Enable and start the PostgreSQL-side exporters
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - postgres-exporter
+    - pgbouncer-exporter
+    - pgbackrest-exporter
+  when: inventory_hostname in groups['postgres']

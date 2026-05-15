@@ -1,0 +1,20 @@
+---
+- name: Validate preconditions
+  ansible.builtin.import_tasks: _assert.yml
+  tags: [monitoring, assert]
+
+- name: Install and configure exporters
+  ansible.builtin.import_tasks: _exporters.yml
+  tags: [monitoring, install]
+
+- name: Install and configure vmagent
+  ansible.builtin.import_tasks: _vmagent.yml
+  tags: [monitoring, config]
+
+- name: Install and configure vlagent
+  ansible.builtin.import_tasks: _vlagent.yml
+  tags: [monitoring, config]
+
+- name: Open firewalld for exporters
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [monitoring, firewall]
