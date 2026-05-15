@@ -19,7 +19,7 @@ jobs:
 
       - name: Restore cached image
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/molecule-base.tar
           key: ${{ steps.key.outputs.key }}
@@ -75,7 +75,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Restore cached image
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/molecule-base.tar
           key: ${{ needs.build-image.outputs.cache-key }}
