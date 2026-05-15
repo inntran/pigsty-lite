@@ -4,14 +4,14 @@
   become: true
   gather_facts: false
   tasks:
-    - name: nginx listens on 443
+    - name: Check nginx listens on 443
       ansible.builtin.command:
         cmd: "ss -H -ltn sport = :443"
       register: https_listen
       changed_when: false
       failed_when: https_listen.stdout | length == 0
 
-    - name: nginx listens on 80
+    - name: Check nginx listens on 80
       ansible.builtin.command:
         cmd: "ss -H -ltn sport = :80"
       register: http_listen
@@ -26,6 +26,7 @@
 
     - name: Capture the served certificate fingerprint
       ansible.builtin.shell: >-
+        set -o pipefail &&
         openssl s_client -connect 127.0.0.1:443 -servername {{ cluster_domain }}
         -showcerts </dev/null 2>/dev/null
         | sed -ne '/BEGIN CERTIFICATE/,/END CERTIFICATE/p'

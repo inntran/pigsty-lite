@@ -18,8 +18,16 @@ monitoring_agents_pgbouncer_exporter_port: "{{ pgbouncer_exporter_port | default
 monitoring_agents_pgbackrest_exporter_port: "{{ pgbackrest_exporter_port | default(9854) }}"
 
 # postgres_exporter / pgbouncer_exporter connect locally
-monitoring_agents_postgres_exporter_dsn: "host=/var/run/postgresql port={{ postgres_port | default(5432) }} user={{ postgres_osdba | default('postgres') }} dbname=postgres sslmode=disable"
-monitoring_agents_pgbouncer_exporter_dsn: "host=/var/run/postgresql port={{ pgbouncer_port | default(6432) }} user={{ postgres_osdba | default('postgres') }} dbname=pgbouncer sslmode=disable"
+monitoring_agents_postgres_exporter_dsn: >-
+  host=/var/run/postgresql
+  port={{ postgres_port | default(5432) }}
+  user={{ postgres_osdba | default('postgres') }}
+  dbname=postgres sslmode=disable
+monitoring_agents_pgbouncer_exporter_dsn: >-
+  host=/var/run/postgresql
+  port={{ pgbouncer_port | default(6432) }}
+  user={{ postgres_osdba | default('postgres') }}
+  dbname=pgbouncer sslmode=disable
 monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }}"
 
 # vmagent (metrics scrape + remote_write)

@@ -4,7 +4,7 @@
   become: true
   gather_facts: false
   tasks:
-    - name: node_exporter answers on 9100
+    - name: Check node_exporter answers on 9100
       ansible.builtin.uri:
         url: "http://127.0.0.1:9100/metrics"
         method: GET
@@ -14,7 +14,7 @@
       delay: 3
       until: node_metrics.status == 200
 
-    - name: postgres_exporter answers on 9187
+    - name: Check postgres_exporter answers on 9187
       ansible.builtin.uri:
         url: "http://127.0.0.1:9187/metrics"
         method: GET
@@ -24,13 +24,13 @@
       delay: 3
       until: pg_metrics.status == 200
 
-    - name: postgres_exporter exposes pg_up
+    - name: Assert postgres_exporter exposes pg_up
       ansible.builtin.assert:
         that:
           - "'pg_up' in pg_metrics.content"
         fail_msg: "postgres_exporter did not expose pg_up"
 
-    - name: pgbouncer_exporter answers on 9127
+    - name: Check pgbouncer_exporter answers on 9127
       ansible.builtin.uri:
         url: "http://127.0.0.1:9127/metrics"
         method: GET
@@ -40,7 +40,7 @@
       delay: 3
       until: pgb_metrics.status == 200
 
-    - name: pgbackrest_exporter answers on 9854
+    - name: Check pgbackrest_exporter answers on 9854
       ansible.builtin.uri:
         url: "http://127.0.0.1:9854/metrics"
         method: GET
@@ -50,7 +50,7 @@
       delay: 3
       until: pgbr_metrics.status == 200
 
-    - name: vmagent listens on loopback 8429
+    - name: Check vmagent listens on loopback 8429
       ansible.builtin.command:
         cmd: "ss -H -ltn sport = :8429"
       register: vmagent_listen
@@ -62,7 +62,7 @@
   become: true
   gather_facts: false
   tasks:
-    - name: vmsingle reports the postgres job as up
+    - name: Verify vmsingle reports the postgres job as up
       ansible.builtin.uri:
         url: "http://127.0.0.1:8428/api/v1/query?query=up%7Bjob%3D%22postgres%22%7D"
         method: GET
@@ -74,7 +74,7 @@
         vm_query.status == 200
         and (vm_query.json.data.result | default([])) | length > 0
 
-    - name: node_exporter on the monitor host answers too
+    - name: Check node_exporter on the monitor host answers too
       ansible.builtin.uri:
         url: "http://127.0.0.1:9100/metrics"
         method: GET

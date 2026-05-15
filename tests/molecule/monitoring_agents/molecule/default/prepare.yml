@@ -3,27 +3,27 @@
 # pgBouncer + pgBackRest for the exporters to scrape, and the monitor
 # host has the monitoring server for the agents to ship to.
 - name: Bring up preflight
-  ansible.builtin.import_playbook: ../../../../playbooks/_preflight.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
 - name: Bring up CA
-  ansible.builtin.import_playbook: ../../../../playbooks/_ca.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_ca.yml
 - name: Bring up node + repos + certs
-  ansible.builtin.import_playbook: ../../../../playbooks/_node.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_node.yml
 - name: Bring up etcd
-  ansible.builtin.import_playbook: ../../../../playbooks/_etcd.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_etcd.yml
 - name: Install postgres
-  ansible.builtin.import_playbook: ../../../../playbooks/_postgres_install.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_install.yml
 - name: Bootstrap patroni
-  ansible.builtin.import_playbook: ../../../../playbooks/_postgres_bootstrap.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_bootstrap.yml
 - name: Install pgbouncer
-  ansible.builtin.import_playbook: ../../../../playbooks/_pgbouncer.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_pgbouncer.yml
 - name: Install haproxy
-  ansible.builtin.import_playbook: ../../../../playbooks/_haproxy.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_haproxy.yml
 - name: Install the backup client + store
-  ansible.builtin.import_playbook: ../../../../playbooks/_backup_client.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_client.yml
 - name: Install the backup store
-  ansible.builtin.import_playbook: ../../../../playbooks/_backup_store.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_store.yml
 - name: Bring up the monitoring server
-  ansible.builtin.import_playbook: ../../../../playbooks/_monitoring_server.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_monitoring_server.yml
 
 - name: Pin ansible_host
   hosts: all

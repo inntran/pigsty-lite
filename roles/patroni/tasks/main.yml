@@ -58,7 +58,11 @@
 
 - name: Open PostgreSQL port to other cluster members (replication + pg_basebackup)
   ansible.posix.firewalld:
-    rich_rule: "rule family='ipv4' source address='{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}' service name='postgresql' accept"
+    rich_rule: >-
+      rule family='ipv4'
+      source address='{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}'
+      service name='postgresql'
+      accept
     permanent: true
     state: enabled
     immediate: true

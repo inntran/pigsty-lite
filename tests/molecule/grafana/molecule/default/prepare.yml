@@ -2,10 +2,10 @@
 # Grafana needs vmsingle/vlsingle present for the datasources to
 # validate, so bring up the base + monitoring server first.
 - name: Bring up preflight
-  ansible.builtin.import_playbook: ../../../../playbooks/_preflight.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
 - name: Bring up CA
-  ansible.builtin.import_playbook: ../../../../playbooks/_ca.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_ca.yml
 - name: Bring up node + repos + certs
-  ansible.builtin.import_playbook: ../../../../playbooks/_node.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_node.yml
 - name: Bring up the monitoring server
-  ansible.builtin.import_playbook: ../../../../playbooks/_monitoring_server.yml
+  ansible.builtin.import_playbook: ../../../../../playbooks/_monitoring_server.yml
