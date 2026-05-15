@@ -14,9 +14,21 @@ def _load_yaml(path: str):
         return yaml.safe_load(fh)
 
 
+def _iter_tasks(tasks):
+    for task in tasks:
+        yield task
+        for key in ("block", "rescue", "always"):
+            if key in task:
+                yield from _iter_tasks(task[key])
+
+
 def test_backup_store_does_not_restrict_monitor_host_ssh():
-    tasks = _load_yaml("roles/backup_store/tasks/_firewall.yml")
-    firewall_tasks = [task for task in tasks if "ansible.posix.firewalld" in task]
+    tasks = _load_yaml("roles/backup_store/tasks/main.yml")
+    firewall_tasks = [
+        task
+        for task in _iter_tasks(tasks)
+        if task.get("ansible.posix.firewalld") is not None
+    ]
 
     assert firewall_tasks
     assert all(

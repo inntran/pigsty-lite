@@ -4,21 +4,112 @@
   tags: [nginx_proxy, assert]
 
 - name: Install nginx
-  ansible.builtin.import_tasks: _install.yml
   tags: [nginx_proxy, install]
+  block:
+    - name: Install nginx
+      ansible.builtin.dnf:
+        name: "{{ nginx_proxy_package }}"
+        state: present
+
+    - name: Allow nginx to connect to loopback upstreams
+      ansible.posix.seboolean:
+        name: httpd_can_network_connect
+        state: true
+        persistent: true
+      when: ansible_facts.selinux.status == "enabled"
 
 - name: Resolve TLS material
-  ansible.builtin.import_tasks: _tls.yml
   tags: [nginx_proxy, config]
+  block:
+    # Resolve which cert/key nginx should use, based on the TLS mode. The
+    # resolved paths are set as facts consumed by the config template.
+
+    - name: Use the P0-issued certificate (ca_signed mode)
+      ansible.builtin.set_fact:
+        nginx_proxy_cert_path: "{{ nginx_proxy_ca_signed_cert }}"
+        nginx_proxy_key_path: "{{ nginx_proxy_ca_signed_key }}"
+        nginx_proxy_tls_enabled: true
+      when: nginx_proxy_tls_mode == 'ca_signed'
+
+    - name: Use the operator-supplied certificate (byo mode)
+      ansible.builtin.set_fact:
+        nginx_proxy_cert_path: "{{ nginx_proxy_byo_cert }}"
+        nginx_proxy_key_path: "{{ nginx_proxy_byo_key }}"
+        nginx_proxy_tls_enabled: true
+      when: nginx_proxy_tls_mode == 'byo'
+
+    - name: Serve plain HTTP only (http mode)
+      ansible.builtin.set_fact:
+        nginx_proxy_tls_enabled: false
+      when: nginx_proxy_tls_mode == 'http'
 
 - name: Render the reverse-proxy config
-  ansible.builtin.import_tasks: _config.yml
   tags: [nginx_proxy, config]
+  block:
+    - name: Render the pigsty-lite reverse-proxy config
+      ansible.builtin.template:
+        src: pigsty-lite.conf.j2
+        dest: "{{ nginx_proxy_config_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
 
 - name: Open firewalld for http and https
-  ansible.builtin.import_tasks: _firewall.yml
   tags: [nginx_proxy, firewall]
+  block:
+    # nginx is the only public inbound for the monitoring UIs. Open the
+    # built-in http and https services to operator_cidrs only.
+
+    - name: Open the built-in http service to operator CIDRs
+      ansible.posix.firewalld:
+        rich_rule: >-
+          rule family="{{ 'ipv6' if ':' in (item | string) else 'ipv4' }}"
+          source address="{{ item }}" service name="http" accept
+        permanent: true
+        state: enabled
+        immediate: true
+        zone: "{{ nginx_proxy_firewalld_zone }}"
+      loop: "{{ operator_cidrs }}"
+      notify: Reload firewalld
+
+    - name: Open the built-in https service to operator CIDRs
+      ansible.posix.firewalld:
+        rich_rule: >-
+          rule family="{{ 'ipv6' if ':' in (item | string) else 'ipv4' }}"
+          source address="{{ item }}" service name="https" accept
+        permanent: true
+        state: enabled
+        immediate: true
+        zone: "{{ nginx_proxy_firewalld_zone }}"
+      loop: "{{ operator_cidrs }}"
+      when: nginx_proxy_tls_enabled
+      notify: Reload firewalld
 
 - name: Enable and start nginx
-  ansible.builtin.import_tasks: _service.yml
   tags: [nginx_proxy, service]
+  block:
+    - name: Enable and start nginx
+      ansible.builtin.systemd:
+        name: "{{ nginx_proxy_service }}"
+        enabled: true
+        state: started
+
+    - name: Wait for nginx to listen on https
+      ansible.builtin.wait_for:
+        host: "{{ nginx_proxy_listen_address }}"
+        port: "{{ nginx_proxy_https_port }}"
+        timeout: 30
+      when: nginx_proxy_tls_enabled
+
+    - name: Wait for nginx to listen on http
+      ansible.builtin.wait_for:
+        host: "{{ nginx_proxy_listen_address }}"
+        port: "{{ nginx_proxy_http_port }}"
+        timeout: 30
+      when: not nginx_proxy_tls_enabled

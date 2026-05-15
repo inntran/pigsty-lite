@@ -47,8 +47,8 @@ monitoring:
 Alert rules live in `roles/monitoring_server/` and are shipped to
 `/etc/vmalert/rules/` on the monitor host. To add a rule group, drop a
 new `*.yml` file into the rules directory via a small custom play, or
-extend `roles/monitoring_server/tasks/_vmalert.yml`'s starter rule
-file. vmalert picks up rule files matching `*.yml` and reloads on the
+extend the starter rule block in `roles/monitoring_server/tasks/main.yml`.
+vmalert picks up rule files matching `*.yml` and reloads on the
 evaluation interval.
 
 ## Add a Grafana dashboard

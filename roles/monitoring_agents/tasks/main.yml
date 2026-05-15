@@ -1,19 +1,86 @@
 ---
 - name: Validate preconditions
-  ansible.builtin.import_tasks: _assert.yml
   tags: [monitoring, assert]
+  block:
+    - name: Fail if monitor group is empty
+      ansible.builtin.assert:
+        that:
+          - groups['monitor'] | length > 0
+        fail_msg: >-
+          Inventory group 'monitor' is empty; monitoring_agents needs a
+          monitor host to remote_write metrics and ship logs to.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Stat the CA certificate (from P0 certs role)
+      ansible.builtin.stat:
+        path: "{{ monitoring_agents_ca_file }}"
+      register: monitoring_agents_ca_stat
+
+    - name: Fail if the CA certificate is missing
+      ansible.builtin.assert:
+        that:
+          - monitoring_agents_ca_stat.stat.exists
+        fail_msg: >-
+          Expected the pigsty-lite CA at {{ monitoring_agents_ca_file }};
+          agents need it to verify the monitor host's TLS. Run the P0
+          _node.yml playbook (certs role) first.
 
 - name: Install and configure exporters
   ansible.builtin.import_tasks: _exporters.yml
   tags: [monitoring, install]
 
 - name: Install and configure vmagent
-  ansible.builtin.import_tasks: _vmagent.yml
   tags: [monitoring, config]
+  block:
+    - name: Ensure the vmagent buffer directory exists
+      ansible.builtin.file:
+        path: "{{ monitoring_agents_vmagent_buffer_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Render the vmagent scrape config
+      ansible.builtin.template:
+        src: vmagent-scrape.yml.j2
+        dest: /etc/vmagent/scrape.yml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install and configure vmagent
+      ansible.builtin.include_role:
+        name: victoriametrics.cluster.vmagent
+      vars:
+        vmagent_service_args:
+          httpListenAddr: "{{ monitoring_agents_vmagent_listen }}"
+          "promscrape.config": /etc/vmagent/scrape.yml
+          "remoteWrite.url": "{{ monitoring_agents_vmagent_remote_write_url }}"
+          "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
+          "remoteWrite.tmpDataPath": "{{ monitoring_agents_vmagent_buffer_dir }}"
 
 - name: Install and configure vlagent
-  ansible.builtin.import_tasks: _vlagent.yml
   tags: [monitoring, config]
+  block:
+    - name: Render the vlagent config
+      ansible.builtin.template:
+        src: vlagent-config.yml.j2
+        dest: /etc/vlagent/config.yml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install and configure vlagent
+      ansible.builtin.include_role:
+        name: victoriametrics.cluster.vlagent
+      vars:
+        vlagent_service_args:
+          httpListenAddr: "{{ monitoring_agents_vlagent_listen }}"
+          "remoteWrite.url": "{{ monitoring_agents_vlagent_remote_write_url }}"
+          "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
+          "syslog.listenAddr.tcp": ""
+          "configPath": /etc/vlagent/config.yml
 
 - name: Open firewalld for exporters
   ansible.builtin.import_tasks: _firewall.yml

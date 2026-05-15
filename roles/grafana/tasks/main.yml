@@ -1,11 +1,44 @@
 ---
 - name: Validate preconditions
-  ansible.builtin.import_tasks: _assert.yml
   tags: [monitoring, assert]
+  block:
+    - name: Fail if monitor group is empty
+      ansible.builtin.assert:
+        that:
+          - groups['monitor'] | length > 0
+        fail_msg: "Inventory group 'monitor' is empty; the grafana role requires a monitor host."
+      run_once: true
+      delegate_to: localhost
+
+    - name: Fail unless monitor group size is exactly 1
+      ansible.builtin.assert:
+        that:
+          - groups['monitor'] | length == 1
+        fail_msg: >-
+          monitor group must contain exactly one host;
+          got {{ groups['monitor'] | length }}. Replicated Grafana is out
+          of scope.
+      run_once: true
+      delegate_to: localhost
 
 - name: Install and base-configure Grafana
-  ansible.builtin.import_tasks: _install.yml
   tags: [monitoring, config]
+  block:
+    - name: Install and base-configure Grafana
+      ansible.builtin.include_role:
+        name: grafana.grafana.grafana
+      vars:
+        grafana_ini:
+          server:
+            http_addr: "{{ grafana_listen_address }}"
+            http_port: "{{ grafana_port }}"
+            root_url: "{{ grafana_root_url }}"
+            serve_from_sub_path: "{{ grafana_serve_from_sub_path }}"
+          database:
+            type: sqlite3
+          security:
+            admin_user: "{{ grafana_admin_user }}"
+            admin_password: "{{ grafana_admin_password }}"
 
 - name: Configure datasources
   ansible.builtin.import_tasks: _datasources.yml

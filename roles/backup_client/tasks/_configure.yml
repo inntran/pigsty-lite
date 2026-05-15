@@ -1,8 +1,0 @@
----
-- name: Render the client-side pgBackRest config
-  ansible.builtin.template:
-    src: pgbackrest.conf.j2
-    dest: "{{ backup_client_config_file }}"
-    owner: root
-    group: "{{ backup_client_pg_user }}"
-    mode: "0640"

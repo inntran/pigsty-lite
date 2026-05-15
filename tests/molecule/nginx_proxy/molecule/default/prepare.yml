@@ -22,17 +22,9 @@
       ansible.builtin.import_role:
         name: certs
 
-    - name: Bring up VictoriaMetrics single-node
-      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vmsingle.yml
-
-    - name: Bring up VictoriaLogs single-node
-      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vlsingle.yml
-
-    - name: Bring up vmalert
-      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_vmalert.yml
-
-    - name: Bring up Alertmanager
-      ansible.builtin.import_tasks: ../../../../../roles/monitoring_server/tasks/_alertmanager.yml
+    - name: Bring up monitoring server
+      ansible.builtin.import_role:
+        name: monitoring_server
 
     - name: Bring up Grafana
       ansible.builtin.import_role:
