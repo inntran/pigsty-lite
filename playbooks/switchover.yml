@@ -1,0 +1,90 @@
+---
+# Operator entry: controlled primary switchover.
+#   ansible-playbook playbooks/switchover.yml
+#   ansible-playbook playbooks/switchover.yml -e candidate=pgnode02
+#   ansible-playbook playbooks/switchover.yml -e auto_confirm=true   # skip prompt
+#
+# A switchover is the safe, planned version of a failover: the current
+# leader is healthy, and we hand the leader role to a replica through
+# Patroni's /switchover endpoint. Patroni handles the demote/promote.
+
+- name: Controlled Patroni switchover
+  hosts: postgres
+  gather_facts: true
+  become: true
+  vars:
+    auto_confirm: false
+  tasks:
+    - name: Locate the current leader and topology
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the cluster is healthy before switching
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Choose the switchover candidate
+      ansible.builtin.set_fact:
+        switchover_candidate: "{{ candidate | default(cluster_ops_replica_hosts | first) }}"
+      run_once: true
+
+    - name: Assert a candidate replica exists
+      ansible.builtin.assert:
+        that:
+          - switchover_candidate is defined
+          - switchover_candidate | length > 0
+          - switchover_candidate in cluster_ops_replica_hosts
+        fail_msg: >-
+          No valid switchover candidate. Replicas seen:
+          {{ cluster_ops_replica_hosts }}. Pass -e candidate=<host> to
+          pick one explicitly.
+      run_once: true
+
+    - name: Confirm the switchover
+      ansible.builtin.pause:
+        prompt: >-
+          About to switch the leader from {{ cluster_ops_leader_host }}
+          to {{ switchover_candidate }}. Existing sessions will be
+          briefly interrupted. Press ENTER to proceed, Ctrl-C then A to abort.
+      when: not (auto_confirm | bool)
+      run_once: true
+
+    - name: Request the switchover via Patroni REST
+      ansible.builtin.uri:
+        url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[cluster_ops_leader_host].ansible_host | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/switchover"
+        method: POST
+        validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+        body_format: json
+        body:
+          leader: "{{ cluster_ops_leader_host }}"
+          candidate: "{{ switchover_candidate }}"
+        status_code: [200, 202]
+      delegate_to: "{{ cluster_ops_leader_host }}"
+      run_once: true
+
+    - name: Wait for the candidate to become the new leader
+      ansible.builtin.set_fact:
+        cluster_ops_target_member: "{{ switchover_candidate }}"
+      run_once: true
+
+    - name: Poll until the new leader is converged
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: wait_member_converged.yml
+
+    - name: Re-locate the leader after the switchover
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Assert the cluster is healthy after the switchover
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Report the result
+      ansible.builtin.debug:
+        msg: "Switchover complete. New leader: {{ cluster_ops_leader_host }}."
+      run_once: true
