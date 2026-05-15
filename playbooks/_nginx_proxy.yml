@@ -1,0 +1,8 @@
+---
+- name: P5 nginx reverse proxy - TLS termination on the monitor host
+  hosts: monitor
+  become: true
+  gather_facts: true
+  roles:
+    - role: nginx_proxy
+      tags: [nginx_proxy]

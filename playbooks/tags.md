@@ -13,6 +13,8 @@
 - `pgbouncer`
 - `haproxy`
 - `vip_manager`
+- `monitoring`
+- `nginx_proxy`
 - `provision`
 - `backup`
 
@@ -41,6 +43,9 @@
 - `--tags provision` - re-apply HBA / users / dbs / extensions on the leader.
 - `--tags provision,hba` - re-render pg_hba.conf only.
 - `--tags provision,users` - reconcile roles only.
+- `--tags monitoring` - install/reconfigure the full metrics+logs+dashboards stack.
+- `--tags monitoring,config` - re-render monitoring configs only (no service installs).
+- `--tags nginx_proxy` - reconfigure the reverse proxy (reload nginx).
 - `--tags backup` - install/reconfigure pgBackRest (client + store).
 - `--tags backup,config` - re-render pgBackRest configs only.
 - `--tags backup,service` - re-apply archive_command, stanza, and timers.

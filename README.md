@@ -4,8 +4,8 @@ A turn-key Ansible deployment for production-grade PostgreSQL with HA, monitorin
 
 **Status:** P0 (Foundation), P1 (etcd), P2a (PostgreSQL + Patroni),
 P2b (connection layer), P3 (provisioning), and P4 (backups) are complete.
-Subsequent sub-plans (P2c integration tests, P5 monitoring, P6
-lifecycle/portability) are pending. The architecture and scope are defined in
+P5 (monitoring) is complete. Subsequent sub-plans (P2c integration tests,
+P6 lifecycle/portability) are pending. The architecture and scope are defined in
 [`docs/superpowers/specs/2026-05-12-pigsty-lite-design.md`](docs/superpowers/specs/2026-05-12-pigsty-lite-design.md).
 
 ## What you get
@@ -76,7 +76,7 @@ See the full design document for details: [docs/superpowers/specs/2026-05-12-pig
 | P2c | Integration tests + RTO measurement | pending |
 | P3 | Provisioning (users, databases, extensions, HBA) | done |
 | P4 | Backups (pgBackRest, backup store, S3 offsite, PITR) | done |
-| P5 | Monitoring stack (VictoriaMetrics, VictoriaLogs, Grafana, nginx_proxy) | pending |
+| P5 | Monitoring stack (VictoriaMetrics, VictoriaLogs, Grafana, nginx_proxy) | done |
 | P6 | Lifecycle ops + portability bundle | pending |
 | P7 | Integration tests (libvirt, chaos) | pending |
 

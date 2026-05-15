@@ -1,0 +1,8 @@
+---
+- name: P5 Grafana - dashboards on the monitor host
+  hosts: monitor
+  become: true
+  gather_facts: true
+  roles:
+    - role: grafana
+      tags: [monitoring]

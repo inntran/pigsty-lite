@@ -36,3 +36,15 @@
 - name: Import P4 backup store playbook
   import_playbook: _backup_store.yml
   tags: [backup]
+- name: Import P5 monitoring server playbook
+  import_playbook: _monitoring_server.yml
+  tags: [monitoring]
+- name: Import P5 monitoring agents playbook
+  import_playbook: _monitoring_agents.yml
+  tags: [monitoring]
+- name: Import P5 Grafana playbook
+  import_playbook: _grafana.yml
+  tags: [monitoring]
+- name: Import P5 nginx reverse proxy playbook
+  import_playbook: _nginx_proxy.yml
+  tags: [nginx_proxy]

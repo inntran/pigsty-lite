@@ -236,3 +236,30 @@ ssh pgnode01 sudo patronictl restart <cluster_name> --pending
 
 To trigger a manual backup, change retention, or enable an S3 second
 store, see [docs/operations/day2-backups.md](day2-backups.md).
+
+## After P5 (monitoring)
+
+`make deploy` stands up VictoriaMetrics + VictoriaLogs on the monitor
+host, ships metrics and logs from every node, evaluates alerts through
+vmalert + Alertmanager, and serves Grafana behind an nginx TLS proxy.
+
+Verify:
+
+```bash
+# Grafana, via the reverse proxy (from inside operator_cidrs):
+curl -k https://<monitor-host>/grafana/api/health
+
+# Every postgres host should report up in VictoriaMetrics:
+curl -s 'http://<monitor-host>:8428/api/v1/query?query=pg_up' | jq '.data.result'
+
+# Logs are flowing into VictoriaLogs:
+curl -s 'http://<monitor-host>:9428/select/logsql/query' \
+  --data-urlencode 'query=*' --data-urlencode 'limit=1'
+```
+
+The monitoring UIs are all behind nginx on the monitor host:
+`/grafana/`, `/alertmanager/`, `/vmalert/`. Nothing else is exposed —
+`nmap` from outside `operator_cidrs` sees only `22, 80, 443`.
+
+To add an alert rule, a receiver, or a dashboard day-2, see
+[docs/operations/day2-monitoring.md](day2-monitoring.md).
