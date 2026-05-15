@@ -1,0 +1,68 @@
+---
+# Query any reachable Patroni REST endpoint for the cluster view, then
+# classify members. Runs once per play and broadcasts the facts to all
+# hosts.
+
+- name: Query a Patroni REST endpoint for the cluster view
+  ansible.builtin.uri:
+    url: "{{ cluster_ops_rest_scheme }}://{{ hostvars[item].ansible_host | default(item) }}:{{ cluster_ops_rest_port }}/cluster"
+    method: GET
+    validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+    timeout: "{{ cluster_ops_rest_timeout }}"
+    return_content: true
+    status_code: 200
+  register: cluster_ops_cluster_view
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+  run_once: true
+  ignore_errors: true
+
+- name: Collect successful Patroni responses
+  ansible.builtin.set_fact:
+    cluster_ops_successful_views: >-
+      {{ cluster_ops_cluster_view.results
+         | selectattr('status', 'defined')
+         | selectattr('status', 'equalto', 200)
+         | list }}
+  run_once: true
+
+- name: Fail if no Patroni REST endpoint answered
+  ansible.builtin.assert:
+    that:
+      - cluster_ops_successful_views | length > 0
+      - cluster_ops_successful_views[0].json.members is defined
+    fail_msg: >-
+      No Patroni REST endpoint in the postgres group answered on
+      :{{ cluster_ops_rest_port }}/cluster. The cluster may be down, or
+      the inventory may be wrong.
+  run_once: true
+
+- name: Select the first successful cluster view
+  ansible.builtin.set_fact:
+    cluster_ops_view: "{{ cluster_ops_successful_views[0].json }}"
+  run_once: true
+
+- name: Set the leader host fact
+  ansible.builtin.set_fact:
+    cluster_ops_leader_host: >-
+      {{ (cluster_ops_view.members
+          | selectattr('role', 'equalto', 'leader')
+          | map(attribute='name')
+          | list
+          | first) }}
+    cluster_ops_replica_hosts: >-
+      {{ cluster_ops_view.members
+         | rejectattr('role', 'equalto', 'leader')
+         | map(attribute='name')
+         | list }}
+    cluster_ops_member_count: "{{ cluster_ops_view.members | length }}"
+  run_once: true
+
+- name: Announce the discovered topology
+  ansible.builtin.debug:
+    msg: >-
+      Leader: {{ cluster_ops_leader_host }};
+      replicas: {{ cluster_ops_replica_hosts | join(', ') if (cluster_ops_replica_hosts | length > 0) else 'none' }};
+      members: {{ cluster_ops_member_count }}.
+  run_once: true
