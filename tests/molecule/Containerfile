@@ -33,4 +33,8 @@ RUN dnf install -y \
     haproxy \
     && dnf clean all
 
+# Allow passwordless sudo so Ansible's become:true works without PAM password checks
+RUN echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel-nopasswd \
+    && echo 'ALL ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/all-nopasswd
+
 CMD ["/sbin/init"]
