@@ -1,0 +1,10 @@
+---
+- name: Install and configure VictoriaLogs single-node
+  ansible.builtin.include_role:
+    name: victoriametrics.cluster.vlsingle
+  vars:
+    victorialogs_data_dir: "{{ monitoring_server_vlsingle_data_dir }}"
+    victorialogs_retention_period_months: "{{ monitoring_server_vlsingle_retention }}"
+    victorialogs_service_args: >-
+      {{ victorialogs_service_args
+         | combine({'httpListenAddr': monitoring_server_vlsingle_listen}) }}
