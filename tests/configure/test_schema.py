@@ -226,7 +226,9 @@ def test_backup_section_is_optional():
 def test_monitoring_receiver_must_be_mapping():
     response = _minimal_single_response()
     response["monitoring"]["alertmanager"] = {"receivers": ["not-a-dict"]}
-    with pytest.raises(SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]: must be a mapping"):
+    with pytest.raises(
+        SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]: must be a mapping"
+    ):
         validate(response)
 
 
