@@ -1,2 +1,6 @@
 ---
-# monitor group defaults. Populated in P5.
+# monitor group defaults.
+# Role defaults in roles/monitoring_server/, roles/grafana/, and
+# roles/nginx_proxy/ cover everything; this file exists as the
+# documented override point for operators who split the monitor host's
+# responsibilities or change its firewalld zone.

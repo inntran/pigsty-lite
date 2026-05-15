@@ -43,6 +43,12 @@ vlsingle_port: 9428
 vmalert_port: 8880
 alertmanager_port: 9093
 grafana_port: 3000
+node_exporter_port: 9100
+postgres_exporter_port: 9187
+pgbouncer_exporter_port: 9127
+pgbackrest_exporter_port: 9854
+vmagent_port: 8429
+vlagent_port: 9429
 
 # Versions ----------------------------------------------------------
 postgres_version: 18
@@ -65,6 +71,13 @@ backup_tool: pgbackrest
 backup_stanza: "{{ cluster_name | default('pigsty-lite') }}"
 backup_store_user: pgbackrest
 backup_ssh_port: 22
+
+# Monitoring --------------------------------------------------------
+# The monitor host is the single member of the `monitor` group. Agents
+# remote_write metrics and ship logs to it. Scrape interval is the
+# operator-tunable cadence for vmagent.
+monitoring_host: "{{ groups['monitor'][0] }}"
+monitoring_scrape_interval: 15s
 
 # Operator network defaults - override in response file -------------
 operator_cidrs: ["10.0.0.0/8"]
