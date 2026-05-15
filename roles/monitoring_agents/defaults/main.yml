@@ -24,15 +24,13 @@ monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }
 
 # vmagent (metrics scrape + remote_write)
 monitoring_agents_vmagent_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmagent_port | default(8429) }}"
-monitoring_agents_vmagent_remote_write_url: "https://{{ hostvars[monitoring_host].ansible_host }}:{{ vmsingle_port | default(8428) }}/api/v1/write"
+monitoring_agents_vmagent_remote_write_url: "http://{{ hostvars[monitoring_host].ansible_host }}:{{ vmsingle_port | default(8428) }}/api/v1/write"
 monitoring_agents_vmagent_buffer_dir: /var/lib/vmagent
 monitoring_agents_scrape_interval: "{{ monitoring_scrape_interval | default('15s') }}"
 
 # vlagent (log shipping)
 monitoring_agents_vlagent_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vlagent_port | default(9429) }}"
-monitoring_agents_vlagent_remote_write_url: "https://{{ hostvars[monitoring_host].ansible_host }}:{{ vlsingle_port | default(9428) }}/insert/jsonline"
-
-# TLS: agents talk to the monitor over the P0-issued CA
+monitoring_agents_vlagent_remote_write_url: "http://{{ hostvars[monitoring_host].ansible_host }}:{{ vlsingle_port | default(9428) }}/insert/jsonline"
 monitoring_agents_ca_file: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/ca.crt"
 
 # Patroni REST + HAProxy stats scrape targets (postgres hosts only)
