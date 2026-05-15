@@ -8,7 +8,7 @@ node `remote_write` metrics and ship logs here.
 ## Inputs (from response file, via group_vars)
 
 | Variable | Meaning | Default |
-|---|---|---|
+| --- | --- | --- |
 | `vmsingle_retention` | metrics retention | `90d` |
 | `vlsingle_retention` | logs retention | `30d` |
 | `alertmanager_receivers` | Alertmanager receiver list | `[]` |

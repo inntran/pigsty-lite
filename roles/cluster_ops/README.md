@@ -11,6 +11,7 @@ include specific task files via `include_role` + `tasks_from:`.
 Queries any reachable Patroni REST `/cluster` endpoint.
 
 **Sets facts:**
+
 - `cluster_ops_leader_host` — inventory hostname of the current leader.
 - `cluster_ops_replica_hosts` — list of replica inventory hostnames.
 - `cluster_ops_member_count` — total members reported by Patroni.
@@ -18,6 +19,7 @@ Queries any reachable Patroni REST `/cluster` endpoint.
 ### `assert_healthy.yml`
 
 Asserts that:
+
 - there is exactly one leader,
 - every member reports `state: running`,
 - each replica is under `cluster_ops_replication_lag_max_bytes`.

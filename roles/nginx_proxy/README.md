@@ -6,9 +6,8 @@ group (one host). Terminates TLS and reverse-proxies `/grafana/`,
 
 ## Inputs (from response file, via group_vars)
 
-| Variable | Meaning | Default |
-|---|---|---|
-| `nginx_proxy_tls_mode` | `ca_signed` \| `byo` \| `http` | `ca_signed` |
+- `nginx_proxy_tls_mode` — one of `ca_signed` \| `byo` \| `http`
+  (default: `ca_signed`).
 
 ## What this role owns
 
