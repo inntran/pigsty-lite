@@ -1,0 +1,58 @@
+---
+# Refuse a destructive lifecycle operation unless a recent successful
+# backup exists. pgbackrest info --output=json reports each backup with
+# a `timestamp.stop` epoch; we compare the newest against now. Runs on
+# the leader, as the dbsu, because that is where pgbackrest can read
+# the stanza. Requires find_leader.yml first.
+
+- name: Read pgbackrest backup info on the leader
+  ansible.builtin.command:
+    cmd: >-
+      pgbackrest --stanza={{ cluster_ops_backup_stanza }}
+      info --output=json
+  become: true
+  become_user: "{{ cluster_ops_dbsu }}"
+  delegate_to: "{{ cluster_ops_leader_host }}"
+  run_once: true
+  register: cluster_ops_backup_info
+  changed_when: false
+
+- name: Extract the newest backup stop timestamp
+  ansible.builtin.set_fact:
+    cluster_ops_newest_backup_epoch: >-
+      {{ (cluster_ops_backup_info.stdout | from_json | first).backup
+         | map(attribute='timestamp')
+         | map(attribute='stop')
+         | map('int')
+         | list | max | default(0) }}
+  run_once: true
+
+- name: Assert a successful backup exists
+  ansible.builtin.assert:
+    that:
+      - (cluster_ops_newest_backup_epoch | int) > 0
+    fail_msg: >-
+      pgbackrest info reports no completed backup for stanza
+      {{ cluster_ops_backup_stanza }}. Run a backup before this
+      operation, or pass -e auto_confirm=true only if you understand
+      the risk.
+  run_once: true
+
+- name: Assert the newest backup is within the freshness window
+  ansible.builtin.assert:
+    that:
+      - >-
+        ((ansible_date_time.epoch | int) - (cluster_ops_newest_backup_epoch | int))
+        <= (cluster_ops_backup_max_age_hours | int) * 3600
+    fail_msg: >-
+      Newest backup is older than {{ cluster_ops_backup_max_age_hours }}
+      hours. Refusing the operation. Run a fresh backup first.
+  run_once: true
+
+- name: Announce backup freshness OK
+  ansible.builtin.debug:
+    msg: >-
+      Backup freshness OK: newest backup is
+      {{ (((ansible_date_time.epoch | int) - (cluster_ops_newest_backup_epoch | int)) / 3600) | round(1) }}
+      hours old (limit {{ cluster_ops_backup_max_age_hours }}h).
+  run_once: true
