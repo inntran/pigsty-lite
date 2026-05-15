@@ -71,6 +71,8 @@ jobs:
             scenario: default
           - role: backup
             scenario: ha
+          - role: cluster_ops
+            scenario: default
     steps:
       - uses: actions/checkout@v6
 
