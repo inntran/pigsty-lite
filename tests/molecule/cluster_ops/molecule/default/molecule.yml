@@ -14,14 +14,21 @@ platforms:
     groups: [etcd, postgres]
 provisioner:
   name: ansible
+  env:
+    ANSIBLE_COLLECTIONS_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
   config_options:
     defaults:
-      collections_path: "../../../collections"
+      collections_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
+      roles_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
   inventory:
     group_vars:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
+        ansible_become: false
+        ansible_remote_tmp: /tmp/.ansible/tmp
+        node_sysctl_apply: false
         pki_dir: /etc/pki/pigsty-lite
         postgres_version: 18
         postgres_port: 5432
