@@ -1,0 +1,76 @@
+---
+# Operator entry: rolling minor PostgreSQL upgrade.
+#   ansible-playbook playbooks/minor_upgrade.yml
+#   ansible-playbook playbooks/minor_upgrade.yml -e auto_confirm=true
+#
+# Implements spec section 10.1. Minor upgrades are same-major
+# (e.g. 18.3 -> 18.4): the on-disk format does not change, so the
+# upgrade is just `dnf update` + restart, done one node at a time to
+# keep the cluster available. We refuse to run if the target major
+# differs from the current major, or if there is no recent backup.
+
+- name: Rolling minor PostgreSQL upgrade — pre-flight gates
+  hosts: postgres
+  gather_facts: true
+  become: true
+  vars:
+    auto_confirm: false
+  tasks:
+    - name: Read the installed PostgreSQL server package version per node
+      ansible.builtin.command:
+        cmd: "rpm -q --qf '%{VERSION}' postgresql{{ postgres_version }}-server"
+      register: minor_upgrade_installed
+      changed_when: false
+
+    - name: Record the installed version fact
+      ansible.builtin.set_fact:
+        minor_upgrade_installed_version: "{{ minor_upgrade_installed.stdout | trim }}"
+
+    - name: Determine the target version
+      ansible.builtin.set_fact:
+        minor_upgrade_target_version: "{{ postgres_pin_version | default('') }}"
+      run_once: true
+
+    - name: Assert the target major matches the installed major
+      ansible.builtin.assert:
+        that:
+          - >-
+            minor_upgrade_target_version | length == 0
+            or (minor_upgrade_target_version.split('.')[0] | int) == (postgres_version | int)
+        fail_msg: >-
+          postgres.pin_version ({{ minor_upgrade_target_version }})
+          targets a different major than the installed
+          PostgreSQL {{ postgres_version }}. This playbook does minor
+          upgrades only. For a major upgrade see
+          docs/operations/major-upgrade.md.
+
+    - name: Locate the current leader and topology
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: find_leader.yml
+
+    - name: Record original primary
+      ansible.builtin.set_fact:
+        minor_upgrade_original_primary: "{{ cluster_ops_leader_host }}"
+      run_once: true
+
+    - name: Assert the cluster is healthy before upgrading
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_healthy.yml
+
+    - name: Assert a recent backup exists
+      ansible.builtin.include_role:
+        name: cluster_ops
+        tasks_from: assert_recent_backup.yml
+
+    - name: Confirm the rolling upgrade
+      ansible.builtin.pause:
+        prompt: >-
+          About to roll a minor PostgreSQL upgrade across
+          {{ groups['postgres'] | length }} node(s), one at a time,
+          ending with a switchover off the current leader
+          ({{ cluster_ops_leader_host }}). Each node is briefly
+          unavailable. Press ENTER to proceed, Ctrl-C then A to abort.
+      when: not (auto_confirm | bool)
+      run_once: true
