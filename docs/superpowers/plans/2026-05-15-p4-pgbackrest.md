@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create `roles/pgbackrest` — a single Ansible role replacing `roles/bad_backup_client` and `roles/bad_backup_store`, supporting three modes: `standalone`, `server`, and `client`.
+**Goal:** Create `roles/pgbackrest` — a single Ansible role replacing `roles/bad_backup_client` and `roles/bad_backup_store`, supporting two modes: `server` (the `backup_server` host) and `client` (postgres nodes).
 
-**Architecture:** One role, `pgbackrest_mode` variable selects which task files run. All three modes install the package and render config. `server` and `client` also run the `pgbackrest server` TLS daemon. `standalone` and `server` create the stanza, set `archive_command`, and install backup timers. Certs are referenced directly from `pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
+**Architecture:** One role, `pgbackrest_mode` variable selects which task files run. Both modes install the package, render config, and run the `pgbackrest server` TLS daemon. `server` mode additionally creates the stanza, sets `archive_command` on each postgres node (delegated), and installs backup timers. Certs are referenced directly from `pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
+
+**No single-host mode.** Per the pigsty-lite design principles (§1.1 in `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md`), the backup repo is never colocated with PostgreSQL — a backup on the same disk as the data it backs up is not a backup. Even the `single` profile uses a dedicated monitor/infra host that doubles as `backup_server`. Operators who want off-host durability on `single` enable the optional S3 secondary repo on `backup_server`.
 
 **Why TLS, not SSH:** pgBackRest 2.55+ ships a native TLS server that eliminates the SSH keypair exchange that older pgBackRest deployments require. No SSH keypairs need to be generated, exchanged, distributed via Ansible facts, or rotated. Both the store and each client run `pgbackrest server` as a long-lived daemon; mutual TLS authentication uses the cluster PKI already deployed by `roles/certs`. The `tls-server-auth=<CN>=<stanza>` option maps the client cert's CN to the stanza it may access, giving per-host authorization without a second credential system. Net effect: one less secret type to manage, one less role boundary to cross (`certs` already owns PKI distribution), and a configuration surface that's purely declarative in `pgbackrest.conf`.
 
@@ -26,9 +28,9 @@
 | `roles/pgbackrest/tasks/_config.yml` | Render `pgbackrest.conf` |
 | `roles/pgbackrest/tasks/_service.yml` | Deploy + start `pgbackrest.service` (server + client) |
 | `roles/pgbackrest/tasks/_firewall.yml` | Open TLS port from postgres nodes (server only) |
-| `roles/pgbackrest/tasks/_stanza.yml` | `stanza-create` + `check` (standalone + server) |
-| `roles/pgbackrest/tasks/_archive.yml` | Set `archive_mode`/`archive_command` via `postgres_extra_parameters`, reload Patroni (standalone + server) |
-| `roles/pgbackrest/tasks/_timers.yml` | Deploy full/diff systemd timers (standalone + server) |
+| `roles/pgbackrest/tasks/_stanza.yml` | `stanza-create` + `check` (server only) |
+| `roles/pgbackrest/tasks/_archive.yml` | Set `archive_mode`/`archive_command` via `postgres_extra_parameters` on each postgres node, reload Patroni (server only, delegated) |
+| `roles/pgbackrest/tasks/_timers.yml` | Deploy full/diff systemd timers (server only) |
 | `roles/pgbackrest/templates/pgbackrest.conf.j2` | Config template — mode-conditional |
 | `roles/pgbackrest/templates/pgbackrest.service.j2` | TLS server daemon unit |
 | `roles/pgbackrest/templates/pgbackrest-backup@.service.j2` | Oneshot backup service (instantiated with `full`/`diff`) |
@@ -40,6 +42,7 @@
 ### Task 1: Scaffold role skeleton
 
 **Files:**
+
 - Create: `roles/pgbackrest/defaults/main.yml`
 - Create: `roles/pgbackrest/meta/main.yml`
 - Create: `roles/pgbackrest/handlers/main.yml`
@@ -52,7 +55,7 @@
 ---
 # roles/pgbackrest/defaults/main.yml
 
-pgbackrest_mode: standalone          # standalone | server | client
+pgbackrest_mode: ~                   # required: server | client (set per group_vars)
 
 pgbackrest_package: pgbackrest
 pgbackrest_support_packages:
@@ -76,7 +79,7 @@ pgbackrest_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
 pgbackrest_user: "{{ postgres_user | default('postgres') }}"
 pgbackrest_group: "{{ postgres_group | default('postgres') }}"
 
-# PostgreSQL paths — used by standalone + server mode stanza config
+# PostgreSQL paths — used by server mode to render per-node pg<N>-path/port
 pgbackrest_pg_path: "{{ postgres_data_dir | default('/var/lib/pgsql/' ~ (postgres_version | default(18)) ~ '/data') }}"
 pgbackrest_pg_port: "{{ postgres_port | default(5432) }}"
 
@@ -104,7 +107,7 @@ pgbackrest_s3_retention_full: "{{ pgbackrest_retention_full }}"
 galaxy_info:
   role_name: pgbackrest
   author: pigsty-lite
-  description: pgBackRest backup — standalone, server, and client modes.
+  description: pgBackRest backup — server and client modes.
   license: Apache-2.0
   min_ansible_version: "2.16"
   platforms:
@@ -151,17 +154,17 @@ dependencies: []
 
 - name: Create pgBackRest stanza
   ansible.builtin.import_tasks: _stanza.yml
-  when: pgbackrest_mode in ['standalone', 'server']
+  when: pgbackrest_mode == 'server'
   tags: [pgbackrest, stanza]
 
 - name: Activate WAL archiving
   ansible.builtin.import_tasks: _archive.yml
-  when: pgbackrest_mode in ['standalone', 'server']
+  when: pgbackrest_mode == 'server'
   tags: [pgbackrest, archive]
 
 - name: Install backup timers
   ansible.builtin.import_tasks: _timers.yml
-  when: pgbackrest_mode in ['standalone', 'server']
+  when: pgbackrest_mode == 'server'
   tags: [pgbackrest, timers]
 ```
 
@@ -170,23 +173,24 @@ dependencies: []
 ```markdown
 # pgbackrest
 
-Installs and configures pgBackRest. Supports three modes via `pgbackrest_mode`:
+Installs and configures pgBackRest. Two modes selected via `pgbackrest_mode`:
 
-- `standalone` — repo and PostgreSQL on the same host. Local repo, stanza created, timers installed.
-- `server` — dedicated repository host. Runs `pgbackrest server` daemon, owns repo, runs timers, connects to postgres nodes over TLS.
-- `client` — postgres node in multi-host setup. Runs `pgbackrest server` daemon, points to server host.
+- `server` — the `backup_server` host. Runs `pgbackrest server` daemon, owns repo, creates stanza, installs backup timers, sets `archive_command` on each postgres node, connects to postgres nodes over TLS to pull WAL and run backups.
+- `client` — postgres node. Runs `pgbackrest server` daemon so the server can reach back to read PG data; points `repo1-host` at the server.
+
+There is no single-host mode. See §1.1 of the main design doc.
 
 ## Requirements
 
 - `roles/certs` must run first (deploys PKI certs to `pki_dir`).
 - `roles/patroni` must run first on postgres nodes (provides `postgres_extra_parameters` injection point).
-- Inventory group `backup_server` must exist with exactly one host when using `server`/`client` modes.
+- Inventory group `backup_server` must exist with exactly one host.
 
 ## Key Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `pgbackrest_mode` | `standalone` | `standalone`, `server`, or `client` |
+| `pgbackrest_mode` | _(required)_ | `server` or `client` |
 | `pgbackrest_stanza` | `pigsty` | Stanza name |
 | `pgbackrest_repo_path` | `/var/lib/pgbackrest` | Repository path |
 | `pgbackrest_retention_full` | `4` | Number of full backups to retain |
@@ -216,6 +220,7 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
 ### Task 2: Install task
 
 **Files:**
+
 - Create: `roles/pgbackrest/tasks/_install.yml`
 
 - [ ] **Step 1: Create `tasks/_install.yml`**
@@ -250,7 +255,7 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
     owner: "{{ pgbackrest_user }}"
     group: "{{ pgbackrest_group }}"
     mode: "0750"
-  when: pgbackrest_mode in ['standalone', 'server']
+  when: pgbackrest_mode == 'server'
 
 - name: Register SELinux fcontext for repo directory
   community.general.sefcontext:
@@ -259,14 +264,14 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
     state: present
   register: _pgbackrest_repo_fcontext
   when:
-    - pgbackrest_mode in ['standalone', 'server']
+    - pgbackrest_mode == 'server'
     - ansible_facts.selinux.status == "enabled"
 
 - name: Relabel repo directory if fcontext changed
   ansible.builtin.command:
     cmd: "restorecon -RF {{ pgbackrest_repo_path }}"
   when:
-    - pgbackrest_mode in ['standalone', 'server']
+    - pgbackrest_mode == 'server'
     - ansible_facts.selinux.status == "enabled"
     - _pgbackrest_repo_fcontext.changed
   changed_when: true
@@ -300,10 +305,12 @@ git commit -m "feat(pgbackrest): add _install task — package, dirs, SELinux la
 ### Task 3: Config template
 
 **Files:**
+
 - Create: `roles/pgbackrest/templates/pgbackrest.conf.j2`
 - Create: `roles/pgbackrest/tasks/_config.yml`
 
 The template uses `pgbackrest_mode` to render the correct sections. Key facts:
+
 - Cert files are at `{{ pgbackrest_pki_dir }}/ca.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key`
 - `tls-server-auth` uses the client's cert CN = `inventory_hostname`
 - On server mode, each postgres node gets a `pgN-host` entry in the stanza section
@@ -318,7 +325,7 @@ log-level-console=info
 log-level-file=detail
 log-path={{ pgbackrest_log_path }}
 start-fast=y
-{% if pgbackrest_mode in ['standalone', 'server'] %}
+{% if pgbackrest_mode == 'server' %}
 repo1-path={{ pgbackrest_repo_path }}
 repo1-retention-full={{ pgbackrest_retention_full }}
 {% if pgbackrest_s3_enabled %}
@@ -342,13 +349,11 @@ repo1-host-port={{ pgbackrest_tls_port }}
 archive-async=y
 spool-path=/var/spool/pgbackrest
 {% endif %}
-{% if pgbackrest_mode in ['server', 'client'] %}
 tls-server-address=*
 tls-server-port={{ pgbackrest_tls_port }}
 tls-server-ca-file={{ pgbackrest_pki_dir }}/ca.crt
 tls-server-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
 tls-server-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
-{% endif %}
 {% if pgbackrest_mode == 'server' %}
 {% for host in groups['postgres'] %}
 tls-server-auth={{ host }}={{ pgbackrest_stanza }}
@@ -359,10 +364,6 @@ tls-server-auth={{ pgbackrest_server_host }}={{ pgbackrest_stanza }}
 {% endif %}
 
 [{{ pgbackrest_stanza }}]
-{% if pgbackrest_mode == 'standalone' %}
-pg1-path={{ pgbackrest_pg_path }}
-pg1-port={{ pgbackrest_pg_port }}
-{% endif %}
 {% if pgbackrest_mode == 'server' %}
 {% for host in groups['postgres'] %}
 pg{{ loop.index }}-host={{ host }}
@@ -408,10 +409,12 @@ git commit -m "feat(pgbackrest): add config template and _config task"
 ### Task 4: TLS server service
 
 **Files:**
+
 - Create: `roles/pgbackrest/templates/pgbackrest.service.j2`
 - Create: `roles/pgbackrest/tasks/_service.yml`
 
 The official RHEL guide uses:
+
 - `User=pgbackrest` on the repo host
 - `User=postgres` on pg hosts
 
@@ -475,6 +478,7 @@ git commit -m "feat(pgbackrest): add TLS server systemd service template and _se
 ### Task 5: Firewall task (server mode)
 
 **Files:**
+
 - Create: `roles/pgbackrest/tasks/_firewall.yml`
 
 Opens `pgbackrest_tls_port` (8432/tcp) on the server host, accepting connections from each postgres node's address.
@@ -511,9 +515,10 @@ git commit -m "feat(pgbackrest): add _firewall task — open TLS port from postg
 ### Task 6: Stanza creation
 
 **Files:**
+
 - Create: `roles/pgbackrest/tasks/_stanza.yml`
 
-Runs on standalone and server hosts. Idempotent — ignores "already exists" errors.
+Runs on the server host only. Idempotent — ignores "already exists" errors.
 
 - [ ] **Step 1: Create `tasks/_stanza.yml`**
 
@@ -553,13 +558,14 @@ git commit -m "feat(pgbackrest): add _stanza task — stanza-create and check"
 ### Task 7: WAL archive activation
 
 **Files:**
+
 - Create: `roles/pgbackrest/tasks/_archive.yml`
 
 Sets `archive_mode` and `archive_command` by merging into `postgres_extra_parameters` on each postgres node, then re-renders `patroni.yml` and reloads Patroni.
 
 The patroni template at `roles/patroni/templates/patroni.yml.j2:113` already iterates `postgres_extra_parameters` into the `parameters:` block. So injecting there is the right hook.
 
-On `server` mode, this task delegates to each postgres node. On `standalone`, it runs locally.
+Runs from the server host and delegates to each postgres node.
 
 - [ ] **Step 1: Create `tasks/_archive.yml`**
 
@@ -576,7 +582,7 @@ On `server` mode, this task delegates to each postgres node. On `standalone`, it
       }}
   delegate_to: "{{ item }}"
   delegate_facts: true
-  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop: "{{ groups['postgres'] }}"
   loop_control:
     label: "{{ item }}"
 
@@ -588,7 +594,7 @@ On `server` mode, this task delegates to each postgres node. On `standalone`, it
     group: "{{ hostvars[item].postgres_group | default('postgres') }}"
     mode: "0640"
   delegate_to: "{{ item }}"
-  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop: "{{ groups['postgres'] }}"
   loop_control:
     label: "{{ item }}"
   register: _pgbackrest_patroni_config
@@ -598,7 +604,7 @@ On `server` mode, this task delegates to each postgres node. On `standalone`, it
     name: patroni
     state: reloaded
   delegate_to: "{{ item }}"
-  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop: "{{ groups['postgres'] }}"
   loop_control:
     label: "{{ item }}"
   when: _pgbackrest_patroni_config.results | selectattr('item', 'equalto', item) | map(attribute='changed') | first | default(false)
@@ -609,7 +615,7 @@ On `server` mode, this task delegates to each postgres node. On `standalone`, it
   become: true
   become_user: "{{ hostvars[item].pgbackrest_user | default('postgres') }}"
   delegate_to: "{{ item }}"
-  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop: "{{ groups['postgres'] }}"
   loop_control:
     label: "{{ item }}"
   register: _pgbackrest_archive_cmd
@@ -631,6 +637,7 @@ git commit -m "feat(pgbackrest): add _archive task — inject archive_command vi
 ### Task 8: Backup timers
 
 **Files:**
+
 - Create: `roles/pgbackrest/templates/pgbackrest-backup@.service.j2`
 - Create: `roles/pgbackrest/templates/pgbackrest-backup@.timer.j2`
 - Create: `roles/pgbackrest/tasks/_timers.yml`
@@ -721,6 +728,7 @@ git commit -m "feat(pgbackrest): add backup timer templates and _timers task"
 ### Task 9: Delete bad roles
 
 **Files:**
+
 - Delete: `roles/bad_backup_client/` (entire directory)
 - Delete: `roles/bad_backup_store/` (entire directory)
 - Modify: `docs/superpowers/plans/2026-05-14-p4-backups.md` — mark superseded
@@ -751,19 +759,21 @@ git commit -m "chore: remove bad_backup_client and bad_backup_store roles, super
 ## Self-Review
 
 **Spec coverage:**
-- ✓ Single role with three modes (`standalone`, `server`, `client`)
+
+- ✓ Single role with two modes (`server`, `client`); no single-host mode per §1.1
 - ✓ No `pgbackrest` OS user — all tasks use `User=postgres`
 - ✓ Certs referenced directly from `pki_dir` — no copy/symlink
 - ✓ `archive_command` via `postgres_extra_parameters` injection
 - ✓ S3 secondary repo with Ansible Vault credentials
 - ✓ Systemd timers for full + diff backups with configurable schedules
-- ✓ `stanza-create` + `check` on standalone and server
+- ✓ `stanza-create` + `check` on server
 - ✓ Firewall task on server only
 - ✓ Bad roles deleted
 
 **Placeholder scan:** No TBDs, all steps include actual code.
 
 **Type consistency:**
+
 - `pgbackrest_user` used consistently across all templates and tasks
 - `pgbackrest_stanza` referenced consistently in config, stanza, archive, and timer tasks
 - `pgbackrest_pki_dir` used consistently in config template

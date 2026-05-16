@@ -1,5 +1,0 @@
----
-# backup_client has no local handlers: archive_command changes flush
-# through Patroni's DCS, not a local service restart. This file exists
-# so the role layout matches the other roles and so `meta:
-# flush_handlers` is safe to call if added later.

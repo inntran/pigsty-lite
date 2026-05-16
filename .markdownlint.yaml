@@ -3,3 +3,5 @@ default: true
 MD013: false  # line-length: rely on yamllint-style soft wrap
 MD033: false  # inline HTML allowed
 MD041: false  # first-line H1 not required (specs have YAML frontmatter)
+MD040: false  # fenced-code-language: ASCII topology diagrams use bare fences
+MD060: false  # table-column-style: house style is padded/aligned, not compact

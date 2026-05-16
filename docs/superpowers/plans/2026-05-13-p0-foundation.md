@@ -31,7 +31,7 @@ Files created or modified in P0, with responsibility per file. Listed in depende
 | `group_vars/postgres.yml` | Defaults shared by postgres-group roles (used in P2; placeholder in P0 with just file present) |
 | `group_vars/etcd.yml` | Defaults shared by etcd-group roles (used in P1; placeholder in P0 with just file present) |
 | `group_vars/monitor.yml` | Defaults for monitor group (used in P5; placeholder in P0 with just file present) |
-| `group_vars/backup_store.yml` | Defaults for backup_store group (used in P4; placeholder in P0 with just file present) |
+| `group_vars/backup_server.yml` | Defaults for backup_server group (used in P4; placeholder in P0 with just file present) |
 | `playbooks/site.yml` | Top-level orchestrator. In P0 it imports only P0 plays |
 | `playbooks/_preflight.yml` | All hosts; runs `preflight` role |
 | `playbooks/_ca.yml` | Localhost only; runs `ca` role |
@@ -567,7 +567,7 @@ import re
 from typing import Any
 
 ALLOWED_PROFILES = {"single", "ha"}
-ALLOWED_NODE_ROLES = {"monitor", "backup_store", "pg_primary", "pg_replica"}
+ALLOWED_NODE_ROLES = {"monitor", "backup_server", "pg_primary", "pg_replica"}
 ALLOWED_TUNE = {"oltp", "olap", "tiny"}
 ALLOWED_CA_MODES = {"generate", "existing", "byo"}
 ALLOWED_USER_TLS = {"ca_signed", "byo", "http"}
@@ -796,14 +796,14 @@ def _load(name: str) -> dict:
 def test_single_inventory_has_required_groups():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
     children = out["all"]["children"]
-    assert set(children) >= {"monitor", "backup_store", "etcd", "postgres"}
+    assert set(children) >= {"monitor", "backup_server", "etcd", "postgres"}
 
 
-def test_single_inventory_collocates_monitor_and_backup_store():
+def test_single_inventory_collocates_monitor_and_backup_server():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
     children = out["all"]["children"]
     mon_hosts = set(children["monitor"]["hosts"].keys())
-    bs_hosts = set(children["backup_store"]["hosts"].keys())
+    bs_hosts = set(children["backup_server"]["hosts"].keys())
     assert mon_hosts == bs_hosts == {"pgmon01"}
 
 
@@ -880,7 +880,7 @@ BANNER = (
 def _split_nodes_by_role(nodes: dict[str, dict]) -> dict[str, list[tuple[str, dict]]]:
     by_role: dict[str, list[tuple[str, dict]]] = {
         "monitor": [],
-        "backup_store": [],
+        "backup_server": [],
         "pg_primary": [],
         "pg_replica": [],
     }
@@ -902,12 +902,12 @@ def generate(response: dict[str, Any]) -> str:
         (name, {"ansible_host": node["ip"]}) for name, node in by_role["monitor"]
     ]
 
-    # backup_store group: defaults to monitor's hosts when no explicit
-    # backup_store entry exists.
-    if by_role["backup_store"]:
+    # backup_server group: defaults to monitor's hosts when no explicit
+    # backup_server entry exists.
+    if by_role["backup_server"]:
         backup_hosts = [
             (name, {"ansible_host": node["ip"]})
-            for name, node in by_role["backup_store"]
+            for name, node in by_role["backup_server"]
         ]
     else:
         backup_hosts = monitor_hosts.copy()
@@ -932,7 +932,7 @@ def generate(response: dict[str, Any]) -> str:
         "all": {
             "children": {
                 "monitor": _build_group(monitor_hosts),
-                "backup_store": _build_group(backup_hosts),
+                "backup_server": _build_group(backup_hosts),
                 "etcd": _build_group(etcd_hosts),
                 "postgres": _build_group(pg_hosts),
             }
@@ -1352,7 +1352,7 @@ git commit -m "feat(configure): silent + interactive + validate modes"
 - Create: `group_vars/postgres.yml` (placeholder for P2)
 - Create: `group_vars/etcd.yml` (placeholder for P1)
 - Create: `group_vars/monitor.yml` (placeholder for P5)
-- Create: `group_vars/backup_store.yml` (placeholder for P4)
+- Create: `group_vars/backup_server.yml` (placeholder for P4)
 
 - [ ] **Step 1: Generate example inventories**
 
@@ -1449,10 +1449,10 @@ Each of the following has identical content — a YAML doc start plus one commen
 # monitor group defaults. Populated in P5.
 ```
 
-`group_vars/backup_store.yml`:
+`group_vars/backup_server.yml`:
 ```yaml
 ---
-# backup_store group defaults. Populated in P4.
+# backup_server group defaults. Populated in P4.
 ```
 
 - [ ] **Step 4: Verify**
@@ -2153,13 +2153,13 @@ node_journald_max_file_sec: "1month"
 
 ```jinja
 # MANAGED BY pigsty-lite — DO NOT EDIT
-# Entries below are derived from inventory groups: postgres, monitor, backup_store, etcd.
+# Entries below are derived from inventory groups: postgres, monitor, backup_server, etcd.
 
 127.0.0.1   localhost localhost.localdomain
 ::1         localhost localhost.localdomain
 
 {% set seen = [] %}
-{% for grp in ['monitor', 'backup_store', 'postgres', 'etcd'] %}
+{% for grp in ['monitor', 'backup_server', 'postgres', 'etcd'] %}
 {% for host in groups.get(grp, []) %}
 {% set ip = hostvars[host].ansible_host | default('') %}
 {% if ip and host not in seen %}

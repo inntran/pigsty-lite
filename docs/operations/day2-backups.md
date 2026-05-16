@@ -83,12 +83,14 @@ Backups then push to both stores.
 - **`archive_mode` pending restart**: the first time archiving is
   enabled, Patroni needs a restart. Run
   `patronictl restart <cluster_name> --pending` in a maintenance window.
-- **SSH push fails**: the `backup_client` role generated a dedicated
-  keypair at `/var/lib/pgsql/.ssh/id_pgbackrest`; the `backup_store`
-  role authorized it. If you rebuilt a postgres node, re-run
-  `--tags backup` so the new key is re-authorized.
+- **TLS handshake fails**: pgbackrest uses mutual TLS via the cluster
+  PKI from `roles/certs`. Each postgres node's cert CN must appear in
+  the server's `tls-server-auth=<CN>=<stanza>` list. If you rebuilt a
+  postgres node or re-issued its cert, re-run `--tags backup` so the
+  server config picks up the new CN and the daemon reloads.
 - **Store disk full**: `/var/lib/pgbackrest` must be sized for
-  `retention.full` full backups plus the WAL between them. The backup
-  store role warns if it is not a directory when it starts.
+  `retention.full` full backups plus the WAL between them. The
+  `pgbackrest` role (server mode) warns if it is not a directory when
+  it starts.
 - **Restore / PITR**: not covered here; handled by `playbooks/restore.yml`
   and a separate runbook.

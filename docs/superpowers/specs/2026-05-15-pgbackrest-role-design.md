@@ -5,20 +5,21 @@
 
 ## Goal
 
-Replace `roles/bad_backup_client` and `roles/bad_backup_store` with a single `roles/pgbackrest` role that handles all three deployment topologies. The role name matches the tool name so it stays meaningful if the backup engine is ever swapped.
+Replace `roles/bad_backup_client` and `roles/bad_backup_store` with a single `roles/pgbackrest` role that handles both sides of the pigsty-lite backup topology. The role name matches the tool name so it stays meaningful if the backup engine is ever swapped.
 
 ## Modes
 
-Controlled by `pgbackrest_mode` (default: `standalone`):
+Controlled by `pgbackrest_mode` (no default — `meta/main.yml` lists it as required, so a missing value fails fast at role entry):
 
-- **`standalone`** — repo and PostgreSQL on the same host. Local repo, no TLS daemon, good defaults (archive enabled, stanza created, timers installed).
-- **`server`** — dedicated pgBackRest repository host. Owns the repo, runs `pgbackrest server` daemon, runs backup/expire timers, connects to postgres nodes over TLS.
-- **`client`** — postgres node in a multi-host setup. Points `repo1-host` at the server, runs `pgbackrest server` daemon so the server can reach back, sets `archive_command` via `postgres_extra_parameters`.
+- **`server`** — dedicated pgBackRest repository host (the `backup_server` group). Owns the repo, runs `pgbackrest server` daemon, runs backup/expire timers, connects to postgres nodes over TLS to pull WAL and run backups.
+- **`client`** — postgres node. Points `repo1-host` at the server, runs `pgbackrest server` daemon so the server can reach back to read PG data, sets `archive_command` via `postgres_extra_parameters`.
+
+There is **no `standalone` mode** for single-host all-in-one deployments. Per the pigsty-lite design principles (§1.1 of the main design doc), the backup repo is never colocated with PostgreSQL — a backup on the same disk as the data it backs up is not a backup. Operators who want off-host durability on the `single` profile enable the optional S3 secondary store on the `backup_server` host.
 
 ## Variables (`defaults/main.yml`)
 
 ```yaml
-pgbackrest_mode: standalone          # standalone | server | client
+pgbackrest_mode: ~                   # required: server | client (no default — fail fast)
 pgbackrest_stanza: pigsty
 pgbackrest_repo_path: /var/lib/pgbackrest
 pgbackrest_log_path: /var/log/pgbackrest
@@ -34,7 +35,7 @@ pgbackrest_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
 # Server host — used by client mode to point repo1-host
 pgbackrest_server_host: "{{ groups['backup_server'][0] }}"
 
-# PostgreSQL paths — used by server + standalone
+# PostgreSQL paths — used by server mode to render per-node pg<N>-path entries
 pgbackrest_pg_path: "{{ postgres_data_dir }}"
 pgbackrest_pg_port: "{{ postgres_port | default(5432) }}"
 
@@ -75,34 +76,22 @@ roles/pgbackrest/
 
 ## Task Flow per Mode
 
-| Task file      | standalone | server | client |
-|----------------|-----------|--------|--------|
-| `_install.yml` | ✓ | ✓ | ✓ |
-| `_config.yml`  | ✓ | ✓ | ✓ |
-| `_service.yml` | — | ✓ | ✓ |
-| `_firewall.yml`| — | ✓ | — |
-| `_stanza.yml`  | ✓ | ✓ | — |
-| `_archive.yml` | ✓ | ✓ | — |
-| `_timers.yml`  | ✓ | ✓ | — |
+| Task file      | server | client |
+|----------------|--------|--------|
+| `_install.yml` | ✓ | ✓ |
+| `_config.yml`  | ✓ | ✓ |
+| `_service.yml` | ✓ | ✓ |
+| `_firewall.yml`| ✓ | — |
+| `_stanza.yml`  | ✓ | — |
+| `_archive.yml` | ✓ | — |
+| `_timers.yml`  | ✓ | — |
 
 ## Config Template Logic
 
-All three modes use `/etc/pgbackrest/pgbackrest.conf` (owner: postgres, mode: 0640).
-
-**standalone:**
-```ini
-[global]
-repo1-path=/var/lib/pgbackrest
-repo1-retention-full=4
-log-path=/var/log/pgbackrest
-start-fast=y
-
-[pigsty]
-pg1-path=/var/lib/pgsql/18/data
-pg1-port=5432
-```
+Both modes use `/etc/pgbackrest/pgbackrest.conf` (owner: postgres, mode: 0640).
 
 **server:**
+
 ```ini
 [global]
 repo1-path=/var/lib/pgbackrest
@@ -134,6 +123,7 @@ pg1-port=5432
 ```
 
 **client:**
+
 ```ini
 [global]
 repo1-host=<server-hostname>
@@ -164,6 +154,6 @@ pg1-port=5432
 - **`archive_command` via `postgres_extra_parameters`** — the pgbackrest role sets `archive_mode` and `archive_command` by merging into `postgres_extra_parameters`, which the patroni template already renders. Patroni is reloaded to apply.
 - **S3 credentials from Ansible Vault** — rendered directly into `pgbackrest.conf` with `no_log: true`. No separate secrets file.
 - **`tls-server-auth` uses cert CN = `inventory_hostname`** — the certs role sets CN to `inventory_hostname`, so server authorizes clients by hostname.
-- **Stanza-create runs from server/standalone** — idempotent (`failed_when` ignores "already exists").
+- **Stanza-create runs from the server** — idempotent (`failed_when` ignores "already exists").
 - **`pgbackrest check` runs after stanza-create** — validates archiving end-to-end.
 - **Systemd timers** — two timer+service pairs: `pgbackrest-backup@full.timer` and `pgbackrest-backup@diff.timer`. Instance name passed to `--type` flag.

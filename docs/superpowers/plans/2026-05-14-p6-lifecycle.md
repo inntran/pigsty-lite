@@ -1321,8 +1321,8 @@ git commit -m "feat(lifecycle): minor upgrade playbook — rolling upgrade body"
   vars:
     ansible_limit: "{{ target_host }}"
 
-- name: Install the backup client on the new replica
-  ansible.builtin.import_playbook: _backup_client.yml
+- name: Install pgbackrest (client mode) on the new replica
+  ansible.builtin.import_playbook: _pgbackrest.yml
   vars:
     ansible_limit: "{{ target_host }}"
 
@@ -1360,8 +1360,8 @@ git commit -m "feat(lifecycle): minor upgrade playbook — rolling upgrade body"
       ansible.builtin.debug:
         msg: >-
           Replica {{ target_host }} added. Cluster now has
-          {{ cluster_ops_member_count }} members. The backup_store
-          authorized_keys and monitoring scrape targets pick the new
+          {{ cluster_ops_member_count }} members. The backup_server
+          TLS auth list and monitoring scrape targets pick the new
           node up on the next `make deploy`.
       run_once: true
 ```
@@ -1523,7 +1523,7 @@ git commit -m "feat(lifecycle): scale-add-replica playbook"
           Replica {{ target_host }} removed. Cluster now has
           {{ cluster_ops_member_count }} members. Next: remove
           {{ target_host }} from the inventory and re-run
-          `./configure -s -f ...` so the backup_store and monitoring
+          `./configure -s -f ...` so the backup_server and monitoring
           configs stop referencing it. The data directory on
           {{ target_host }} was intentionally left in place.
       run_once: true

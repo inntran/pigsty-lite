@@ -82,7 +82,7 @@
 - `playbooks/_monitoring_agents.yml` — runs `monitoring_agents` on `all`.
 - `playbooks/_grafana.yml` — runs `grafana` on the `monitor` group.
 - `playbooks/_nginx_proxy.yml` — runs `nginx_proxy` on the `monitor` group.
-- `playbooks/site.yml` — modify to import the four playbooks after `_backup_store.yml`, in spec order.
+- `playbooks/site.yml` — modify to import the four playbooks after `_pgbackrest.yml`, in spec order.
 - `playbooks/tags.md` — add `monitoring` and `nginx_proxy` module tags.
 - `group_vars/monitor.yml` — currently the stub `# monitor group defaults. Populated in P5.`; populate with the comment update only (role defaults suffice — see Task 1).
 - `group_vars/all.yml` — add monitoring coordination vars: `monitoring_scrape_interval`, exporter ports, VM/VL ports are already there (`vmsingle_port: 8428`, `vlsingle_port: 9428`, `vmalert_port: 8880`, `alertmanager_port: 9093`, `grafana_port: 3000` — verified present).
@@ -2588,7 +2588,7 @@ git commit -m "feat(configure): validate monitoring receivers and scrape interva
 
 - [ ] **Step 5: Wire into `playbooks/site.yml`**
 
-Edit `playbooks/site.yml`. After the `_backup_store.yml` import block
+Edit `playbooks/site.yml`. After the `_pgbackrest.yml` import block
 (the last block), append:
 
 ```yaml
@@ -2888,10 +2888,8 @@ scenario:
   ansible.builtin.import_playbook: ../../../../playbooks/_pgbouncer.yml
 - name: Install haproxy
   ansible.builtin.import_playbook: ../../../../playbooks/_haproxy.yml
-- name: Install the backup client + store
-  ansible.builtin.import_playbook: ../../../../playbooks/_backup_client.yml
-- name: Install the backup store
-  ansible.builtin.import_playbook: ../../../../playbooks/_backup_store.yml
+- name: Install pgbackrest (server + clients)
+  ansible.builtin.import_playbook: ../../../../playbooks/_pgbackrest.yml
 - name: Bring up the monitoring server
   ansible.builtin.import_playbook: ../../../../playbooks/_monitoring_server.yml
 
@@ -2906,8 +2904,8 @@ scenario:
 
 Note: the `prepare.yml` is heavy because monitoring_agents genuinely
 depends on the whole stack being present (exporters scrape real
-services). If `_backup_client.yml` requires `backup_store` group
-membership, add `backup_store` to the monitor container's `groups` in
+services). If `_pgbackrest.yml` requires `backup_server` group
+membership, add `backup_server` to the monitor container's `groups` in
 `molecule.yml` — confirm against the committed P4 role's `_assert.yml`
 during execution.
 

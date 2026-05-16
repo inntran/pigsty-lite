@@ -1,10 +1,13 @@
 # pigsty-lite — Design
+
 ## Credit
+
 We extend our sincere gratitude to Feng Ruohang, known as Vonng, and his foundational work on the [Pigsty project](https://github.com/pgsty/pigsty). His project, which is an enterprise-grade open-source PostgreSQL distribution, served as a great source of inspiration for this endeavor.
 
 However, the original Pigsty was designed to satisfy a very broad base of users, requiring Vonng to overcome specific technical challenges that, while impressive, were often regional (particularly for users in China) and diminished the project's utility for the rest of the world. Therefore, we decided to create a new project with a streamlined approach, specifically focused on the essential needs of open-minded system administrators and DBAs globally.
 
 ## Overview
+
 A turn-key Ansible deployment for production-grade PostgreSQL with HA, monitoring, and backups on RHEL-family Linux. A lean reinterpretation of pigsty that drops the scope creep, follows Ansible best practices, reuses high-quality community collections, and respects the host OS (SELinux enforcing, vendor paths, firewalld).
 
 - **Version:** v1
@@ -25,6 +28,16 @@ pigsty-lite keeps what makes pigsty's PG offering strong (Patroni, pgBackRest, e
 - Operator-owned storage layout — playbooks check, never `mkfs`.
 - Reuse of mature community collections (VictoriaMetrics, Grafana, community.postgresql, community.crypto) instead of reinventing them.
 - A response-file UX modeled on Oracle's silent install pattern: one file is the contract between operator and tooling.
+
+### 1.1 Design principles
+
+These are the load-bearing assumptions every other section in this document inherits. Changes to these principles invalidate the design and should trigger a re-review of the affected sections.
+
+- **Production-grade, not a toy.** The audience is operators standing up real PostgreSQL — staging tiers, small-prod, internal platform teams, homelabs that mirror production practice. Every default leans toward "safe in production": SELinux enforcing, firewalld on, TLS for inter-service traffic, vendor paths, mutual auth via cluster PKI. We do not ship convenience knobs that compromise durability or security.
+- **Separate failure domains for state.** PostgreSQL data, etcd state, and backup repositories live on different hosts (or at minimum different block devices for etcd vs PG in the colocated `single` profile). The backup store is *never* colocated with PostgreSQL — a backup on the same disk as the data it backs up is not a backup. The `single` profile uses a dedicated monitor/infra host (`pgmon01`) which doubles as the backup store; the `ha` profile keeps the same shape with three postgres nodes. Operators who want a true off-host copy enable the optional S3 secondary store.
+- **No single-host all-in-one.** There is no profile that runs PostgreSQL + backup repo + monitoring on one host. Single-host topologies are out of scope; if you have one host, you have a demo, not a deployment.
+- **Honest defaults over flexibility theater.** Where a "flexible" mode would only matter for a topology we do not support, we cut the mode rather than ship it untested. The role surface is what we actually deploy and test, not what is conceptually possible.
+- **Opinionated where it matters.** SELinux mode, TLS posture, storage layout, and topology are not configurable away. Roles, databases, extensions, tuning profile, and operator credentials are.
 
 ---
 
@@ -75,8 +88,8 @@ MinIO bundling, Redis, MongoDB, FerretDB, Greenplum, Citus, Polar, MSSQL/MySQL c
    │  vmalert  + alertmanager    │    │  pgbackrest (client)        │
    │  grafana                    │    │  haproxy (local)            │
    │  nginx_proxy (TLS)          │    │  vmagent / vlagent          │
-   │  backup_store (pgbackrest)  │◀──┤  node/pg/pgb/pgbr exporters │
-   │  /var/lib/pgbackrest        │SSH │                             │
+   │  pgbackrest (server mode)   │◀──┤  node/pg/pgb/pgbr exporters │
+   │  /var/lib/pgbackrest        │TLS │                             │
    │  /var/lib/victoria-logs     │    │                             │
    └─────────────────────────────┘    └─────────────────────────────┘
                                                   │
@@ -97,9 +110,9 @@ MinIO bundling, Redis, MongoDB, FerretDB, Greenplum, Citus, Polar, MSSQL/MySQL c
            │  vmsingle  vlsingle  vmagent vlagent │
            │  vmalert  alertmanager  grafana      │
            │  nginx_proxy (TLS)                   │
-           │  backup_store /var/lib/pgbackrest    │
+           │  pgbackrest (server) /var/lib/pgbackrest │
            └──┬─────────────────┬─────────────────┘
-              │SSH pull         │scrape /metrics
+              │TLS pull         │scrape /metrics
               │ backup          ▼
    ┌──────────┴───────┐    ┌──────────────────┐    ┌──────────────────┐
    │     pgnode01     │    │     pgnode02     │    │     pgnode03     │
@@ -109,7 +122,7 @@ MinIO bundling, Redis, MongoDB, FerretDB, Greenplum, Citus, Polar, MSSQL/MySQL c
    │ etcd member-1    │◀▶│ etcd member-2    │◀▶│ etcd member-3    │
    │ pgbouncer        │    │ pgbouncer        │    │ pgbouncer        │
    │ haproxy (local)  │    │ haproxy (local)  │    │ haproxy (local)  │
-   │ pgbackrest cli   │    │ pgbackrest cli   │    │ pgbackrest cli   │
+   │ pgbackrest (cli) │    │ pgbackrest (cli) │    │ pgbackrest (cli) │
    │ vmagent vlagent  │    │ vmagent vlagent  │    │ vmagent vlagent  │
    │ node/pg exporter │    │ node/pg exporter │    │ node/pg exporter │
    └──────────────────┘    └──────────────────┘    └──────────────────┘
@@ -124,12 +137,12 @@ MinIO bundling, Redis, MongoDB, FerretDB, Greenplum, Citus, Polar, MSSQL/MySQL c
 all:
   children:
     monitor:        # vmsingle/vlsingle/vmalert/alertmanager/grafana/nginx_proxy
-    backup_store:   # pgbackrest server-side; pulls from postgres nodes
+    backup_server:  # pgbackrest in server mode; pulls from postgres nodes over TLS
     etcd:           # 1 or 3 hosts (Patroni DCS)
-    postgres:       # 1 or 3+ hosts (PG + Patroni + pgbouncer + haproxy + backup_client)
+    postgres:       # 1 or 3+ hosts (PG + Patroni + pgbouncer + haproxy + pgbackrest client)
 ```
 
-By default `monitor` and `backup_store` resolve to the same host (`pgmon01`). Operators can split them onto separate hosts purely by editing inventory; no playbook changes required.
+By default `monitor` and `backup_server` resolve to the same host (`pgmon01`). Operators can split them onto separate hosts purely by editing inventory; no playbook changes required.
 
 ### 3.3 Storage assumptions (operator-provisioned, playbook preflight-checked)
 
@@ -159,7 +172,7 @@ preflight ─► ca (localhost) ─► node (repos, OS, firewalld baseline, cert
                                     │                         ▼
                                     │                     provision (primary only)
                                     │
-                                    ├─► backup_store ─► backup_client (needs postgres up)
+                                    ├─► pgbackrest (server + clients in one play; needs postgres up)
                                     │
                                     └─► monitoring_server ─► monitoring_agents ─► grafana ─► nginx_proxy
 ```
@@ -183,8 +196,7 @@ Each role does one thing.
 | `postgres` | postgres | Install postgresql-18 from PGDG, baseline `postgresql.auto.conf`; no initdb (Patroni owns bootstrap) |
 | `patroni` | postgres | Install Patroni, render `/etc/patroni/patroni.yml`, systemd unit, wait for leader election |
 | `pgbouncer` | postgres | Sidecar on every postgres node, userlist generation, HBA, listens on 6432 |
-| `backup_client` | postgres | Install pgbackrest, configure stanza pointing at `backup_store` host over SSH, register WAL archive command |
-| `backup_store` | backup_store | Install pgbackrest server-side, backup store at `/var/lib/pgbackrest`, accept SSH keys from postgres nodes, systemd timers for scheduled backups, optional S3 secondary store |
+| `pgbackrest` | postgres + backup_server | Single role, `pgbackrest_mode` selects side: `client` on postgres nodes (configures stanza, registers WAL `archive_command`, runs the TLS server daemon for the store to pull from); `server` on `backup_server` (owns `/var/lib/pgbackrest`, runs TLS server daemon, creates the stanza, installs systemd timers for scheduled backups, optional S3 secondary store). Mutual TLS via cluster PKI replaces SSH key exchange. There is no single-host mode — see §1.1 |
 | `haproxy` | postgres | Local HAProxy: service `default` (5432→primary), `primary` (5433→leader), `replica` (5434→replicas). Health via Patroni REST |
 | `vip_manager` | postgres (optional) | Install vip-manager, watch Patroni REST, bind L2 VIP to leader |
 | `monitoring_agents` | all | vmagent + vlagent + node_exporter + postgres_exporter + pgbouncer_exporter + pgbackrest_exporter |
@@ -241,7 +253,7 @@ pigsty-lite/
 ├── group_vars/
 │   ├── all.yml
 │   ├── monitor.yml
-│   ├── backup_store.yml
+│   ├── backup_server.yml
 │   ├── etcd.yml
 │   ├── postgres.yml
 │   └── response.yml                  # generated by configure; never hand-edit
@@ -260,8 +272,7 @@ pigsty-lite/
 │   ├── _haproxy.yml
 │   ├── _vip_manager.yml
 │   ├── _provision.yml
-│   ├── _backup_store.yml
-│   ├── _backup_client.yml
+│   ├── _pgbackrest.yml
 │   ├── _monitoring_server.yml
 │   ├── _monitoring_agents.yml
 │   ├── _grafana.yml
@@ -321,8 +332,7 @@ pigsty-lite/
 - import_playbook: _haproxy.yml
 - import_playbook: _vip_manager.yml
 - import_playbook: _provision.yml
-- import_playbook: _backup_store.yml
-- import_playbook: _backup_client.yml
+- import_playbook: _pgbackrest.yml
 - import_playbook: _monitoring_server.yml
 - import_playbook: _monitoring_agents.yml
 - import_playbook: _grafana.yml
@@ -332,7 +342,7 @@ pigsty-lite/
 ### 5.2 One-job-per-playbook rule
 
 - Install and bootstrap are different playbooks (`_postgres_install` vs `_postgres_bootstrap`) because their preconditions differ.
-- Per-host-group playbooks split when the same component has both client and server sides on different hosts (`_backup_client` on postgres, `_backup_store` on backup_store; `_monitoring_agents` on all, `_monitoring_server` on monitor).
+- Per-host-group playbooks split when the same component has both client and server sides on different hosts AND the two sides have meaningfully different deploy ordering (`_monitoring_agents` on all, `_monitoring_server` on monitor). `_pgbackrest.yml` is a single playbook with two plays — server on `backup_server`, then client on `postgres` — because the ordering is fixed and the same role handles both via `pgbackrest_mode`.
 - State that needs to cross playbooks lands on disk (CA cert, credentials.txt), not in memory.
 
 ### 5.3 Tag taxonomy
@@ -442,8 +452,8 @@ cluster:
 nodes:
   # `role` here is the response-file role assignment, mapped by `configure`
   # to inventory groups + postgres_role. Allowed values:
-  #   monitor          → group: monitor (and backup_store by default)
-  #   backup_store     → group: backup_store (only if splitting from monitor)
+  #   monitor          → group: monitor (and backup_server by default)
+  #   backup_server    → group: backup_server (only if splitting from monitor)
   #   pg_primary       → group: postgres + etcd; postgres_role=primary
   #   pg_replica       → group: postgres + etcd; postgres_role=replica
   pgmon01:  { ip: 10.20.30.10, role: monitor }
@@ -537,7 +547,7 @@ Rendered in order: system rules (`postgres_osdba` peer, local socket, cluster re
 6. `_postgres_bootstrap` — render Patroni config, start on primary, wait for leader, start replicas, poll until N members healthy.
 7. `_pgbouncer`, `_haproxy`, `_vip_manager` (optional) — connection layer.
 8. `_provision` — HBA, roles, dbs, extensions on primary.
-9. `_backup_store` → `_backup_client` — backup store first, then clients, then initial full backup.
+9. `_pgbackrest` — server play on `backup_server` first (installs daemon, owns the repo path), then client play on `postgres` (registers WAL `archive_command`); stanza create + initial full backup run from the server play.
 10. `_monitoring_server` → `_monitoring_agents` → `_grafana` → `_nginx_proxy`.
 11. Emit `artifacts/hosts.lite` and `artifacts/credentials.txt`.
 
@@ -581,7 +591,7 @@ pools connections to local PG. No client-visible port change is required.
 
 ### 8.4 Backup and PITR
 
-- Continuous WAL archive: PG `archive_command` → pgbackrest ssh push to `backup_store` (async, batched).
+- Continuous WAL archive: PG `archive_command` → pgbackrest TLS push to `backup_server` (async, batched). Mutual TLS uses the cluster PKI from `roles/certs`; no SSH keypair exchange.
 - Scheduled: weekly full (Sun 01:00), daily differential (Mon-Sat 01:00), hourly expire, nightly check.
 - Optional secondary store (`pgbackrest.secondary_store`, pgBackRest's `repo2`) — async push to an S3-compatible store on each backup operation.
 - PITR via `playbooks/restore.yml`: pause patroni → stop services → `pgbackrest restore --type=time` → reinit other replicas → resume.
@@ -603,7 +613,7 @@ Every role MUST be safe to re-run. Bootstrap tasks gate on Patroni REST cluster 
 | etcd unhealthy at end of `_etcd` | Fail before Patroni starts |
 | Patroni doesn't elect leader in `patroni_bootstrap_timeout` (default 5min) | Fail with `patronictl list` output |
 | `_provision` SQL fails | Fail; operator inspects |
-| `_backup_client` initial backup fails | Warn, do not fail (cluster up; alert will fire) |
+| `_pgbackrest` initial backup fails | Warn, do not fail (cluster up; alert will fire) |
 | `_nginx_proxy` cert renewal fails | Warn, keep old cert; alert fires |
 | Any runtime AVC denial | Fail with AVC details |
 
@@ -726,7 +736,7 @@ Three layers, slow to fast.
 One scenario per role: `prepare.yml` → `converge.yml` → `verify.yml` → `cleanup.yml`. Drivers split by need:
 
 - **Podman + init containers** for roles that don't need real systemd quirks or real firewalld (preflight, repos, ca, certs, monitoring_agents config, monitoring_server config, grafana config, nginx_proxy config). These run on GitHub Actions.
-- **Libvirt** for roles that need real systemd, real firewalld, real SELinux (etcd, postgres, patroni, pgbouncer, haproxy, backup_client, backup_store). These are local-only and excluded from GitHub matrices.
+- **Libvirt** for roles that need real systemd, real firewalld, real SELinux (etcd, postgres, patroni, pgbouncer, haproxy, pgbackrest). These are local-only and excluded from GitHub matrices.
 
 Every Molecule scenario runs `converge.yml` twice and asserts the second run is zero-change (idempotency). Every `verify.yml` runs `ausearch -m AVC -ts boot` and fails on AVC denials.
 
