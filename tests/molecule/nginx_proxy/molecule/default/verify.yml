@@ -20,7 +20,7 @@
 
     - name: Capture the expected certificate fingerprint
       ansible.builtin.command:
-        cmd: "openssl x509 -in {{ pki_dir }}/{{ inventory_hostname }}.crt -noout -fingerprint -sha256"
+        cmd: "openssl x509 -in {{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt -noout -fingerprint -sha256"
       register: expected_cert_fp
       changed_when: false
 

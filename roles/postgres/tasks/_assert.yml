@@ -23,7 +23,7 @@
 
 - name: Verify per-host certificate exists
   ansible.builtin.stat:
-    path: "{{ pki_dir }}/{{ inventory_hostname }}.crt"
+    path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
   register: postgres_cert_stat
 
 - name: Fail if certificate missing
@@ -31,5 +31,5 @@
     that:
       - postgres_cert_stat.stat.exists
     fail_msg: >-
-      Expected per-host certificate at {{ pki_dir }}/{{ inventory_hostname }}.crt;
+      Expected per-host certificate at {{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt;
       run the P0 _node.yml playbook (certs role) first.
