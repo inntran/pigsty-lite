@@ -39,7 +39,7 @@ monitoring_agents_scrape_interval: "{{ monitoring_scrape_interval | default('15s
 # vlagent (log shipping)
 monitoring_agents_vlagent_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vlagent_port | default(9429) }}"
 monitoring_agents_vlagent_remote_write_url: "http://{{ hostvars[monitoring_host].ansible_host }}:{{ vlsingle_port | default(9428) }}/insert/jsonline"
-monitoring_agents_ca_file: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
+monitoring_agents_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 
 # Patroni REST + HAProxy stats scrape targets (postgres hosts only)
 monitoring_agents_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"

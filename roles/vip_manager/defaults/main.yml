@@ -20,9 +20,9 @@ vip_manager_dcs_endpoints: >-
   [{% for h in groups['etcd'] -%}
     "{{ vip_manager_dcs_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
   {%- if not loop.last %},{% endif %}{%- endfor %}]
-vip_manager_dcs_cacert: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
-vip_manager_dcs_cert: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
-vip_manager_dcs_key: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.key"
+vip_manager_dcs_cacert: "{{ pigsty_pki_dir }}/ca.crt"
+vip_manager_dcs_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
+vip_manager_dcs_key: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
 
 # Cluster identity (matches patroni_scope from P2a)
 vip_manager_scope: "{{ cluster_name | default('pigsty-lite') }}"

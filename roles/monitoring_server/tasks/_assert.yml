@@ -20,14 +20,14 @@
 
 - name: Stat the monitor host certificate (from P0 certs role)
   ansible.builtin.stat:
-    path: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
+    path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
   register: monitoring_server_cert_stat
 
 - name: Warn if the monitor host certificate is missing
   ansible.builtin.debug:
     msg: >-
       WARNING: monitor host certificate not found at
-      {{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt.
+      {{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt.
       vmsingle/vlsingle still start over plain HTTP on loopback-adjacent
       binds, but nginx_proxy's TLS termination needs this cert. Run the
       P0 _node.yml playbook (certs role) first.

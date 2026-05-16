@@ -37,7 +37,7 @@ provisioner:
         etcd_client_firewall_sources:
           - address: 127.0.0.1
             family: ipv4
-        pigsty_pigsty_pki_dir: /etc/pki/pigsty
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:

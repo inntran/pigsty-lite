@@ -53,7 +53,7 @@ haproxy_check_rise: "{{ haproxy_check_intervals[haproxy_rto_profile].rise }}"
 # Patroni REST upstream config
 haproxy_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
 haproxy_patroni_rest_scheme: https
-haproxy_patroni_rest_ca_file: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
+haproxy_patroni_rest_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 haproxy_pgbouncer_port: "{{ pgbouncer_listen_port | default(6432) }}"
 
 # Backend connection target. Two valid choices:

@@ -48,7 +48,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pigsty_pigsty_pki_dir: /etc/pki/pigsty
+        pigsty_pki_dir: /etc/pki/pigsty
         certs_subject_alternative_names:
           - "DNS:{{ inventory_hostname }}"
           - "DNS:{{ inventory_hostname }}.test.local"

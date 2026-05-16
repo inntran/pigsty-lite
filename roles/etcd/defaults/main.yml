@@ -16,7 +16,7 @@ etcd_config_dir: /etc/etcd
 etcd_config_file: "{{ etcd_config_dir }}/etcd.conf.yml"
 etcd_systemd_dropin_dir: "/etc/systemd/system/{{ etcd_service_name }}.service.d"
 etcd_systemd_dropin_file: "{{ etcd_systemd_dropin_dir }}/10-pigsty-lite.conf"
-etcd_pki_dir: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}"
+etcd_pki_dir: "{{ pigsty_pki_dir }}"
 
 # TLS (reuse per-host cert from P0 certs role)
 etcd_cert_file: "{{ etcd_pki_dir }}/{{ inventory_hostname }}.crt"
