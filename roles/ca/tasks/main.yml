@@ -37,3 +37,40 @@
     selfsigned_not_after: "+{{ ca_valid_days }}d"
     mode: "0644"
   when: not ansible_check_mode
+
+- name: Ensure pigsty PKI distribution directory exists on control node
+  ansible.builtin.file:
+    path: "{{ playbook_dir | dirname }}/pki/pigsty"
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == 'localhost'
+
+- name: Copy CA cert and key to control node distribution directory
+  ansible.builtin.copy:
+    src: "{{ ca_dir }}/{{ item }}"
+    dest: "{{ playbook_dir | dirname }}/pki/pigsty/{{ item }}"
+    mode: "{{ '0600' if item == 'ca.key' else '0644' }}"
+  loop:
+    - ca.crt
+    - ca.key
+  when: inventory_hostname == 'localhost' and not ansible_check_mode
+
+- name: Ensure target PKI directory exists
+  ansible.builtin.file:
+    path: "{{ ca_dist_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy CA cert to target nodes
+  ansible.builtin.copy:
+    src: "{{ ca_dir }}/ca.crt"
+    dest: "{{ ca_dist_dir }}/ca.crt"
+    mode: "0644"
+  when: not ansible_check_mode
+
+- name: Copy CA key to target nodes
+  ansible.builtin.copy:
+    src: "{{ ca_dir }}/ca.key"
+    dest: "{{ ca_dist_dir }}/ca.key"
+    mode: "0600"
+  when: not ansible_check_mode

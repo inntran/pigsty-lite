@@ -177,8 +177,8 @@ Each role does one thing.
 | `preflight` | all | OS version, SELinux=enforcing, swap off, time sync, mounts present, block-device separation, fail fast with actionable errors |
 | `repos` | all | Install `pgdg-redhat-repo` RPM, manage repo priorities (PGDG > vendor > EPEL > pigsty); EPEL opt-in only; pigsty repo opt-in via `repos_pigsty_packages` |
 | `node` | all | Hostname, `/etc/hosts` from inventory, firewalld baseline, sysctl tuning, limits.d, journald sizing, time sync verification |
-| `ca` | localhost | Generate self-signed CA in `pki/ca/`; idempotent; uses `community.crypto`; never regenerates if present |
-| `certs` | all | Issue per-host certs from CA (postgres-server, patroni-rest, etcd-peer, etcd-client). Renew if `notAfter < cert_renewal_window` |
+| `ca` | localhost | Generate self-signed CA in `pki/ca/`; distribute to all nodes in `/etc/pki/pigsty/`; idempotent; uses `community.crypto`; never regenerates if present |
+| `certs` | all | Issue per-host certs from CA (postgres-server, patroni-rest, etcd-peer, etcd-client) to `/etc/pki/pigsty/`. Renew if `notAfter < cert_renewal_window` |
 | `etcd` | etcd | Install etcd RPM, render `/etc/etcd/etcd.conf.yml`, systemd unit, TLS, post-install `etcdctl endpoint health` gate. Modeled on kubespray's role |
 | `postgres` | postgres | Install postgresql-18 from PGDG, baseline `postgresql.auto.conf`; no initdb (Patroni owns bootstrap) |
 | `patroni` | postgres | Install Patroni, render `/etc/patroni/patroni.yml`, systemd unit, wait for leader election |
@@ -407,7 +407,7 @@ Custom services install to `/etc/firewalld/services/` only — never `/usr/lib/f
 Stay enforcing. Never `setenforce 0`. For paths and ports outside vendor defaults, declare context persistently with `semanage` (via `community.general.sefcontext` and `community.general.seport`), then `restorecon`.
 
 - Default discipline: prefer vendor paths (PG's `/var/lib/pgsql/<ver>/data`, etcd's `/var/lib/etcd`, pgbackrest's `/var/lib/pgbackrest`) so context is inherited.
-- Explicit fcontext rules needed where we create new directories (`/etc/pki/etcd/`, `/etc/pki/nginx/`, custom postgres data dirs if operator overrides).
+- Explicit fcontext rules needed where we create new directories (`/etc/pki/pigsty/`, custom postgres data dirs if operator overrides).
 - Custom port labels needed for exporters and Patroni REST (port type `unreserved_port_t` or relevant typed port).
 - Booleans: `httpd_can_network_connect` on monitor (nginx → loopback backends).
 - Each role's `verify.yml` runs `ausearch -m AVC -ts boot` and fails on any AVC denial. No silent SELinux fudging.
@@ -497,7 +497,7 @@ firewall:
 |---|---|---|
 | System-internal passwords (replicator, patroni REST, `postgres_osdba`, monitor user) | `artifacts/credentials.txt` (0600, owner=invoker) | Auto-generated 32-char by `configure`, stable across runs |
 | Operator-supplied (business user passwords, S3 keys, webhook URLs) | Response file, Ansible-Vault-encrypted blocks | Operator-supplied; `configure` accepts plaintext and offers to encrypt |
-| TLS private keys | `pki/ca/ca.key`, `pki/certs/*` | Generated locally; never leave the control node |
+| TLS private keys | `pki/ca/ca.key`, `pki/certs/*` (control), `/etc/pki/pigsty/` (all nodes) | Generated locally on control; distributed to all nodes |
 
 Vault password supplied via `ANSIBLE_VAULT_PASSWORD_FILE` or `--ask-vault-pass`. We do not manage the vault password.
 
@@ -517,8 +517,8 @@ Rendered in order: system rules (`postgres_osdba` peer, local socket, cluster re
 
 ### 7.7 CA and cert renewal
 
-- `_ca.yml` runs on localhost. Generates `pki/ca/ca.key` (0600) + `pki/ca/ca.crt` (0644) using `community.crypto`. Idempotent.
-- `certs` role: per-host private key generated on target, CSR signed centrally, distributed to `/etc/pki/<component>/`. Renews if `notAfter < cert_renewal_window` (default 30 days).
+- `_ca.yml` runs on localhost. Generates `pki/ca/ca.key` (0600) + `pki/ca/ca.crt` (0644) using `community.crypto`. Distributes to all nodes in `/etc/pki/pigsty/`. Idempotent.
+- `certs` role: per-host private key generated on target, CSR signed centrally, distributed to `/etc/pki/pigsty/{{ hostname }}.crt`. Renews if `notAfter < cert_renewal_window` (default 30 days).
 - BYO: set `tls.internal_ca: byo` and supply paths; `_ca.yml` and `certs` skipped.
 
 ---

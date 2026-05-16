@@ -22,7 +22,7 @@ provisioner:
     group_vars:
       all:
         cluster_name: pigsty-lite-test
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
       etcd:
         etcd_initial_cluster_state: new

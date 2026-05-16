@@ -22,9 +22,9 @@
         cmd: >-
           etcdctl
           --endpoints=https://{{ etcd_advertise_url_host | default(etcd_advertise_address) }}:2379
-          --cacert=/etc/pki/pigsty-lite/ca.crt
-          --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt
-          --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key
+          --cacert=/etc/pki/pigsty/ca.crt
+          --cert=/etc/pki/pigsty/{{ inventory_hostname }}.crt
+          --key=/etc/pki/pigsty/{{ inventory_hostname }}.key
           endpoint health
       register: etcd_health
       changed_when: false

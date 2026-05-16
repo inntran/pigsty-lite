@@ -9,8 +9,8 @@ nginx_proxy_config_file: /etc/nginx/conf.d/pigsty-lite.conf
 
 # TLS mode: ca_signed (P0-issued cert) | byo (operator cert) | http
 nginx_proxy_tls_mode: ca_signed
-nginx_proxy_ca_signed_cert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
-nginx_proxy_ca_signed_key: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.key"
+nginx_proxy_ca_signed_cert: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
+nginx_proxy_ca_signed_key: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.key"
 # Operator overrides these two when nginx_proxy_tls_mode == 'byo'
 nginx_proxy_byo_cert: ""
 nginx_proxy_byo_key: ""

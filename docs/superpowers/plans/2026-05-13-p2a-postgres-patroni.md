@@ -458,7 +458,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:
@@ -674,7 +674,7 @@ patroni_packages:
 patroni_config_dir: /etc/patroni
 patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
 patroni_log_dir: /var/log/patroni
-patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
 
 # TLS (reuse per-host cert from P0 certs role) - Patroni REST and PG SSL
 patroni_cert_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.crt"
@@ -1592,7 +1592,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:
@@ -1855,7 +1855,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:

@@ -2,9 +2,9 @@
 - name: Verify
   hosts: all
   tasks:
-    - name: Host cert exists at /etc/pki/pigsty-lite/<host>.crt
+    - name: Host cert exists at /etc/pki/pigsty/<host>.crt
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt"
+        path: "/etc/pki/pigsty/{{ inventory_hostname }}.crt"
       register: certs_host_cert
 
     - name: Assert host cert
@@ -15,7 +15,7 @@
 
     - name: Host key exists, mode 0640
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.key"
+        path: "/etc/pki/pigsty/{{ inventory_hostname }}.key"
       register: certs_host_key
 
     - name: Assert host key
@@ -26,7 +26,7 @@
 
     - name: CA cert is installed on host
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/ca.crt"
+        path: "/etc/pki/pigsty/ca.crt"
       register: certs_ca_cert
 
     - name: Assert CA cert

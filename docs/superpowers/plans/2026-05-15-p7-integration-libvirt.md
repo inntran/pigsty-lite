@@ -1080,9 +1080,9 @@ git commit -m "feat(integration): add converge and verify runner scripts"
   ansible.builtin.command: >
     etcdctl endpoint health
     --endpoints=https://127.0.0.1:2379
-    --cacert=/etc/pki/pigsty-lite/ca.crt
-    --cert=/etc/pki/pigsty-lite/etcd/peer.crt
-    --key=/etc/pki/pigsty-lite/etcd/peer.key
+    --cacert=/etc/pki/pigsty/ca.crt
+    --cert=/etc/pki/pigsty/etcd/peer.crt
+    --key=/etc/pki/pigsty/etcd/peer.key
   register: etcd_health
   changed_when: false
   when: "'etcd' in group_names"
@@ -1098,9 +1098,9 @@ git commit -m "feat(integration): add converge and verify runner scripts"
   ansible.builtin.command: >
     etcdctl member list
     --endpoints=https://127.0.0.1:2379
-    --cacert=/etc/pki/pigsty-lite/ca.crt
-    --cert=/etc/pki/pigsty-lite/etcd/peer.crt
-    --key=/etc/pki/pigsty-lite/etcd/peer.key
+    --cacert=/etc/pki/pigsty/ca.crt
+    --cert=/etc/pki/pigsty/etcd/peer.crt
+    --key=/etc/pki/pigsty/etcd/peer.key
     --write-out=fields
   register: etcd_members
   changed_when: false

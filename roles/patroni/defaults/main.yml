@@ -13,7 +13,7 @@ patroni_packages:
 patroni_config_dir: /etc/patroni
 patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
 patroni_log_dir: /var/log/patroni
-patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+patroni_pki_dir: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}"
 
 # PostgreSQL contract consumed by this role. group_vars/postgres.yml normally
 # owns the postgres_* values; prefixed defaults keep direct role execution usable.

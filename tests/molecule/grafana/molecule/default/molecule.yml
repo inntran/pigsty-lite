@@ -23,7 +23,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pigsty_pki_dir: /etc/pki/pigsty
         vmsingle_retention: 7d
         vlsingle_retention: 7d
         alertmanager_receivers: []

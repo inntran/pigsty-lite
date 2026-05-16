@@ -1662,7 +1662,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:

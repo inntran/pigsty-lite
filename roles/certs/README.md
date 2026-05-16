@@ -5,7 +5,7 @@ exist on the control node (`roles/ca`).
 
 ## Flow
 
-1. Ensure `/etc/pki/pigsty-lite/` exists on target.
+1. Ensure `/etc/pki/pigsty/` exists on target.
 2. Distribute `ca.crt` to target.
 3. Generate host key on target.
 4. Generate CSR on target; fetch back to control.
@@ -14,7 +14,7 @@ exist on the control node (`roles/ca`).
 
 ## Inputs
 
-- `certs_pki_dir` (default `/etc/pki/pigsty-lite`)
+- `certs_pki_dir` (default `/etc/pki/pigsty`, derived from `pigsty_pki_dir`)
 - `certs_validity_days` (default 730)
 - `certs_subject_alternative_names` (auto-built; override only if needed)
 

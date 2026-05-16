@@ -36,7 +36,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
     host_vars:
       pigsty-lite-monagt-default-1: {}

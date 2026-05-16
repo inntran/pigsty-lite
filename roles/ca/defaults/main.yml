@@ -1,5 +1,6 @@
 ---
 ca_dir: "{{ playbook_dir | dirname }}/pki/ca"
+ca_dist_dir: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}"
 ca_common_name: "pigsty-lite CA - {{ cluster_name | default('pigsty-lite') }}"
 ca_organization: "pigsty-lite"
 ca_key_size: 4096

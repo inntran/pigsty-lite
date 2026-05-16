@@ -42,7 +42,7 @@ Files created or modified in P0, with responsibility per file. Listed in depende
 | `roles/repos/` | Install `pgdg-redhat-repo` RPM, RHEL/Rocky/Alma vendor repos enabled, EPEL opt-in only, pigsty repo opt-in via list of packages, dnf priorities set |
 | `roles/node/` | Hostname from inventory, `/etc/hosts` rendered from inventory, sysctl tuning, journald sizing, firewalld baseline (ssh open, default zone), unattended-upgrades disabled |
 | `roles/ca/` | Localhost-only role: generate self-signed CA in `pki/ca/` via `community.crypto`. Idempotent. |
-| `roles/certs/` | Per-host certs: generate local private key, build CSR with SANs, sign on control node, distribute to `/etc/pki/pigsty-lite/<host>.{crt,key}`. Renew if `notAfter < cert_renewal_window` |
+| `roles/certs/` | Per-host certs: generate local private key, build CSR with SANs, sign on control node, distribute to `/etc/pki/pigsty/<host>.{crt,key}`. Renew if `notAfter < cert_renewal_window` |
 | `files/firewalld/services/` | Empty dir in P0 (custom XMLs added in later sub-plans). Committed `.gitkeep` |
 | `tests/molecule/preflight/` | Molecule scenario for `preflight` role (podman driver) |
 | `tests/molecule/repos/` | Molecule scenario for `repos` role (podman driver) |
@@ -1390,7 +1390,7 @@ firewalld_default_zone: "public"
 postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
 etcd_data_dir: "/var/lib/etcd"
 pgbackrest_store_path: "/var/lib/pgbackrest"
-pki_dir: "/etc/pki/pigsty-lite"
+pki_dir: "/etc/pki/pigsty"
 
 # Ports -------------------------------------------------------------
 postgres_port: 5432
@@ -2519,7 +2519,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
 verifier:
   name: ansible
 scenario:
@@ -2571,9 +2571,9 @@ Path: `tests/molecule/certs/verify.yml`
   hosts: all
   become: true
   tasks:
-    - name: Host cert exists at /etc/pki/pigsty-lite/<host>.crt
+    - name: Host cert exists at /etc/pki/pigsty/<host>.crt
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt"
+        path: "/etc/pki/pigsty/{{ inventory_hostname }}.crt"
       register: hc
     - ansible.builtin.assert:
         that:
@@ -2582,7 +2582,7 @@ Path: `tests/molecule/certs/verify.yml`
 
     - name: Host key exists, mode 0640
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/{{ inventory_hostname }}.key"
+        path: "/etc/pki/pigsty/{{ inventory_hostname }}.key"
       register: hk
     - ansible.builtin.assert:
         that:
@@ -2591,7 +2591,7 @@ Path: `tests/molecule/certs/verify.yml`
 
     - name: CA cert is installed on host
       ansible.builtin.stat:
-        path: "/etc/pki/pigsty-lite/ca.crt"
+        path: "/etc/pki/pigsty/ca.crt"
       register: cac
     - ansible.builtin.assert:
         that:
@@ -2625,7 +2625,7 @@ dependencies: []
 ```yaml
 ---
 certs_ca_dir_on_control: "{{ playbook_dir | dirname }}/pki/ca"
-certs_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}"
+certs_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
 certs_validity_days: "{{ cert_validity_days | default(730) }}"
 certs_renewal_window_days: "{{ cert_renewal_window_days | default(30) }}"
 certs_key_size: 2048
@@ -2708,7 +2708,7 @@ Issues per-host certificates signed by the pigsty-lite CA. The CA must
 already exist on the control node (`roles/ca`).
 
 ## Flow
-1. Ensure `/etc/pki/pigsty-lite/` exists on target.
+1. Ensure `/etc/pki/pigsty/` exists on target.
 2. Distribute `ca.crt` to target.
 3. Generate host key on target.
 4. Generate CSR on target; fetch back to control.
@@ -2716,7 +2716,7 @@ already exist on the control node (`roles/ca`).
 6. Copy signed cert back to target.
 
 ## Inputs
-- `certs_pki_dir` (default `/etc/pki/pigsty-lite`)
+- `certs_pki_dir` (default `/etc/pki/pigsty`)
 - `certs_validity_days` (default 730)
 - `certs_subject_alternative_names` (auto-built; override only if needed)
 
@@ -3106,7 +3106,7 @@ Target hosts (1 for `single`, 4 for `ha`):
    ```
 
 After P0 the deploy ends with every host having: PGDG enabled, baseline
-firewalld, sysctl tuning, and `/etc/pki/pigsty-lite/<host>.{crt,key}`
+firewalld, sysctl tuning, and `/etc/pki/pigsty/<host>.{crt,key}`
 plus `ca.crt`.
 
 ## Troubleshooting
@@ -3190,9 +3190,9 @@ make deploy
 ```bash
 ssh <target> 'dnf repolist enabled | grep pgdg && \
               firewall-cmd --list-services | grep ssh && \
-              ls -l /etc/pki/pigsty-lite/'
+              ls -l /etc/pki/pigsty/'
 ```
-Expected: PGDG repo enabled, ssh in firewalld services, three files in `/etc/pki/pigsty-lite/` (`ca.crt`, `<host>.crt`, `<host>.key`).
+Expected: PGDG repo enabled, ssh in firewalld services, three files in `/etc/pki/pigsty/` (`ca.crt`, `<host>.crt`, `<host>.key`).
 
 - [ ] **Step 5: Re-run deploy and confirm zero changes**
 

@@ -557,7 +557,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:
@@ -1277,7 +1277,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:
@@ -1514,7 +1514,7 @@ provisioner:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
         certs_subject_alternative_names:
@@ -1806,9 +1806,9 @@ vip_manager_dcs_endpoints: >-
     "{{ vip_manager_dcs_protocol }}://{{ hostvars[h].ansible_host }}:{{ etcd_client_port | default(2379) }}"
     {%- if not loop.last %},{% endif %}
   {%- endfor %}]
-vip_manager_dcs_cacert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/ca.crt"
-vip_manager_dcs_cert: "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.crt"
-vip_manager_dcs_key:  "{{ pki_dir | default('/etc/pki/pigsty-lite') }}/{{ inventory_hostname }}.key"
+vip_manager_dcs_cacert: "{{ pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
+vip_manager_dcs_cert: "{{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
+vip_manager_dcs_key:  "{{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.key"
 
 # Cluster identity (matches patroni_scope from P2a)
 vip_manager_scope: "{{ cluster_name | default('pigsty-lite') }}"
@@ -2119,7 +2119,7 @@ provisioner:
     group_vars:
       all:
         cluster_name: pigsty-lite-test
-        pki_dir: /etc/pki/pigsty-lite
+        pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
       etcd:
         etcd_initial_cluster_state: new
