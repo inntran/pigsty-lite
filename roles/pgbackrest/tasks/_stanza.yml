@@ -1,0 +1,23 @@
+---
+- name: Create pgBackRest stanza
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} stanza-create
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  delegate_to: "{{ groups['postgres'][0] }}"
+  register: _pgbackrest_stanza_create
+  changed_when: >-
+    'completed successfully' in (_pgbackrest_stanza_create.stdout ~ _pgbackrest_stanza_create.stderr)
+  failed_when: >-
+    _pgbackrest_stanza_create.rc != 0
+    and 'already exists' not in (_pgbackrest_stanza_create.stderr | default(''))
+
+- name: Check pgBackRest stanza configuration
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} check
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  delegate_to: "{{ groups['postgres'][0] }}"
+  changed_when: false
+  register: _pgbackrest_stanza_check
+  failed_when: _pgbackrest_stanza_check.rc != 0
