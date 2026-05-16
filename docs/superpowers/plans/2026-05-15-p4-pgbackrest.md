@@ -725,34 +725,186 @@ git commit -m "feat(pgbackrest): add backup timer templates and _timers task"
 
 ---
 
-### Task 9: Delete bad roles
+### Task 9: Create the `_pgbackrest.yml` playbook and retire the old ones
+
+The role implements both sides via `pgbackrest_mode`, so a single playbook runs the role twice — server play first (sets up the repo + daemon + stanza), then client play (registers `archive_command` and starts the client-side TLS daemon so the server can pull).
 
 **Files:**
 
-- Delete: `roles/bad_backup_client/` (entire directory)
-- Delete: `roles/bad_backup_store/` (entire directory)
-- Modify: `docs/superpowers/plans/2026-05-14-p4-backups.md` — mark superseded
+- Create: `playbooks/_pgbackrest.yml`
+- Delete: `playbooks/_backup_client.yml`
+- Delete: `playbooks/_backup_store.yml`
 
-- [ ] **Step 1: Remove bad roles from git**
+- [ ] **Step 1: Create `playbooks/_pgbackrest.yml`**
 
-```bash
-git rm -r roles/bad_backup_client roles/bad_backup_store
+```yaml
+---
+- name: pgBackRest — server (backup_server group)
+  hosts: backup_server
+  become: true
+  vars:
+    pgbackrest_mode: server
+  roles:
+    - role: pgbackrest
+      tags: [pgbackrest, backup]
+
+- name: pgBackRest — client (postgres group)
+  hosts: postgres
+  become: true
+  vars:
+    pgbackrest_mode: client
+  roles:
+    - role: pgbackrest
+      tags: [pgbackrest, backup]
 ```
 
-- [ ] **Step 2: Mark old plan as superseded**
+The server play runs first because: (a) it owns the repo path and TLS daemon the clients connect back to, (b) `_archive.yml` inside server mode delegates to each postgres node and reloads Patroni — that delegation requires the postgres group to exist in inventory but does NOT require the client play to have run first (the client play only adds the postgres-side TLS daemon that the server uses to *pull* backups, not to push archive). Running server-then-client also means the server's stanza-create + initial check happen against fresh archiving on the postgres nodes.
 
-Add one line at the top of `docs/superpowers/plans/2026-05-14-p4-backups.md`:
+- [ ] **Step 2: Remove the old playbooks**
 
-```markdown
-> **SUPERSEDED** by `roles/pgbackrest` — see `docs/superpowers/plans/2026-05-15-pgbackrest-role.md`.
+```bash
+git rm playbooks/_backup_client.yml playbooks/_backup_store.yml
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-05-14-p4-backups.md
-git commit -m "chore: remove bad_backup_client and bad_backup_store roles, superseded by pgbackrest"
+git add playbooks/_pgbackrest.yml
+git commit -m "feat(playbooks): replace _backup_client.yml + _backup_store.yml with _pgbackrest.yml"
 ```
+
+---
+
+### Task 10: Wire `_pgbackrest.yml` into orchestration
+
+**Files:**
+
+- Modify: `playbooks/site.yml`
+- Modify: `playbooks/scale_add_replica.yml`
+- Modify: `playbooks/scale_remove_replica.yml`
+
+- [ ] **Step 1: Update `playbooks/site.yml`**
+
+Find the block that currently imports both old playbooks:
+
+```yaml
+- name: Import P4 backup client playbook
+  import_playbook: _backup_client.yml
+  tags: [backup]
+- name: Import P4 backup store playbook
+  import_playbook: _backup_store.yml
+  tags: [backup]
+```
+
+Replace with:
+
+```yaml
+- name: Import P4 pgbackrest playbook
+  import_playbook: _pgbackrest.yml
+  tags: [backup]
+```
+
+- [ ] **Step 2: Update `playbooks/scale_add_replica.yml`**
+
+Around line 95 it imports `_backup_client.yml` limited to the new replica. Replace with `_pgbackrest.yml` limited to the new replica. Because `_pgbackrest.yml` has two plays (`backup_server` first, then `postgres`), limiting to one host runs only the client play (the new replica is in `postgres`, not in `backup_server`) — which is exactly what we want for adding a replica. Verify by reading the surrounding `ansible_limit` / `--limit` pattern in that file and matching its style.
+
+The completion message text further down that file also references "the backup_store and monitoring" — update to "the backup_server and monitoring".
+
+- [ ] **Step 3: Update `playbooks/scale_remove_replica.yml`**
+
+Around line 116 the completion message says "the backup_store and monitoring" — update to "the backup_server and monitoring". No playbook import change is needed (replica removal doesn't run the backup playbook).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add playbooks/site.yml playbooks/scale_add_replica.yml playbooks/scale_remove_replica.yml
+git commit -m "feat(playbooks): wire _pgbackrest.yml into site.yml and replica scaling"
+```
+
+---
+
+### Task 11: Rename the inventory group and group_vars
+
+The inventory group is renamed from `backup_store` to `backup_server` to match the new role's terminology and the design-doc convention (the host is a *server* — the pgbackrest TLS server daemon — not a passive store).
+
+**Files:**
+
+- Rename: `group_vars/backup_store.yml` → `group_vars/backup_server.yml`
+- Modify: `group_vars/all.yml`
+- Modify: `inventory/examples/single.yml`
+- Modify: `inventory/examples/ha.yml`
+- Modify: `inventory/site.yml` (currently a "generated" file, but no `configure` script exists yet — edit it directly)
+
+- [ ] **Step 1: Rename `group_vars/backup_store.yml`**
+
+```bash
+git mv group_vars/backup_store.yml group_vars/backup_server.yml
+```
+
+Then update its header comments to refer to `backup_server` instead of `backup_store`.
+
+- [ ] **Step 2: Update `group_vars/all.yml`**
+
+Rename two variables to match the new group:
+
+- `backup_store_path` → `backup_server_path`
+- `backup_store_user` → `backup_server_user`
+
+Grep the whole repo for any other consumer of these variables after renaming and update them. (At time of writing, there should be none outside `group_vars/` and templates inside `roles/pgbackrest/` you wrote in Tasks 1–8.)
+
+- [ ] **Step 3: Update inventory examples and `inventory/site.yml`**
+
+In `inventory/examples/single.yml`, `inventory/examples/ha.yml`, and `inventory/site.yml`, rename the YAML key `backup_store:` (under `all.children:`) to `backup_server:`. The anchor/alias structure (`pgmon01: &id001` and `pgmon01: *id001`) stays as-is.
+
+- [ ] **Step 4: Verify nothing still references the old group name**
+
+```bash
+grep -rn "backup_store\|backup_client" --include="*.yml" --include="*.yaml" --include="*.j2" .
+```
+
+The only remaining hits should be in `docs/` (intentional historical refs in plans/specs) and `roles/pgbackrest/` (only if you wrote them there — re-check; the role uses `groups['backup_server']`).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add group_vars/ inventory/
+git commit -m "refactor: rename inventory group backup_store -> backup_server"
+```
+
+---
+
+### Task 12: Syntax-check and final verification
+
+- [ ] **Step 1: Ansible syntax check**
+
+```bash
+ansible-playbook --syntax-check -i inventory/examples/single.yml playbooks/site.yml
+ansible-playbook --syntax-check -i inventory/examples/ha.yml playbooks/site.yml
+```
+
+Both must exit zero. If they fail, fix and re-run before continuing.
+
+- [ ] **Step 2: ansible-lint (if installed)**
+
+```bash
+ansible-lint roles/pgbackrest/ playbooks/_pgbackrest.yml
+```
+
+Address any new warnings/errors introduced by this work. Pre-existing lint debt in unchanged roles is not in scope.
+
+- [ ] **Step 3: markdownlint on changed docs**
+
+```bash
+markdownlint-cli2 docs/superpowers/plans/2026-05-15-p4-pgbackrest.md roles/pgbackrest/README.md
+```
+
+Must report zero errors. The project linter config at `.markdownlint.yaml` is already relaxed for the codebase's house style.
+
+- [ ] **Step 4: Molecule (libvirt) — DO NOT run as part of this plan**
+
+Molecule scenarios for pgbackrest require libvirt and are local-only (see `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md` §13.2). Flag in the final report that the user should run them on their libvirt host before considering P4 complete.
+
+- [ ] **Step 5: No commit for this task** — syntax check is a verification gate, not a change.
 
 ---
 
@@ -768,7 +920,14 @@ git commit -m "chore: remove bad_backup_client and bad_backup_store roles, super
 - ✓ Systemd timers for full + diff backups with configurable schedules
 - ✓ `stanza-create` + `check` on server
 - ✓ Firewall task on server only
-- ✓ Bad roles deleted
+- ✓ Single `_pgbackrest.yml` playbook replaces `_backup_client.yml` + `_backup_store.yml`
+- ✓ Inventory group renamed `backup_store` → `backup_server` everywhere
+- ✓ `playbooks/scale_add_replica.yml` updated to use `_pgbackrest.yml`
+- ✓ Syntax check + ansible-lint + markdownlint gates before declaring done
+
+**Out of scope (already done in prior commits):**
+
+- `roles/backup_client/` and `roles/backup_store/` directories — already removed by commit `2fe4306` ("Remove old backup implementation"). The plan's earlier wording about "deleting bad_backup_*" is historical; the directories no longer exist on disk and Task 9+ below is the actual wiring work.
 
 **Placeholder scan:** No TBDs, all steps include actual code.
 
