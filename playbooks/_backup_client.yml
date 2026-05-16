@@ -1,9 +1,0 @@
----
-- name: P4 backup client - configure pgBackRest on postgres nodes
-  hosts: postgres
-  become: true
-  gather_facts: true
-  roles:
-    - role: backup_client
-      tags: [backup]
-      when: backup_enabled | default(false) | bool

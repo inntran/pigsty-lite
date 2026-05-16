@@ -1,9 +1,0 @@
----
-- name: P4 backup store - configure pgBackRest store and schedules
-  hosts: backup_store
-  become: true
-  gather_facts: true
-  roles:
-    - role: backup_store
-      tags: [backup]
-      when: backup_enabled | default(false) | bool
