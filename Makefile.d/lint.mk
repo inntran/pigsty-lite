@@ -15,7 +15,7 @@ lint-python:
 	ruff format --check .
 
 lint-markdown:
-	markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#.uv-cache" "#docs/superpowers"
+	markdownlint-cli2 "**/*.md" "#collections" "#.ansible" "#.uv-cache" "#.worktrees" "#docs/superpowers"
 
 lint-shell:
 	@files=$$(find bin -path '*/__pycache__' -prune -o -type f -not -name '*.py' -not -name '_*.py' -print 2>/dev/null); \
