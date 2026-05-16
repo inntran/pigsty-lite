@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=pgBackRest Server
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User={{ pgbackrest_user }}
+ExecStart=/usr/bin/pgbackrest server
+ExecStartPost=/bin/sleep 3
+ExecStartPost=/bin/bash -c "[ ! -z $MAINPID ]"
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

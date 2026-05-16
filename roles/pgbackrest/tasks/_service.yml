@@ -1,0 +1,18 @@
+---
+- name: Deploy pgBackRest server systemd unit
+  ansible.builtin.template:
+    src: pgbackrest.service.j2
+    dest: /etc/systemd/system/pgbackrest.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers to reload systemd before starting service
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start pgBackRest server daemon
+  ansible.builtin.systemd:
+    name: pgbackrest
+    enabled: true
+    state: started
