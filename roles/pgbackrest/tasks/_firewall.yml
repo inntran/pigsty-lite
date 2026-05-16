@@ -1,0 +1,15 @@
+---
+- name: Open pgBackRest TLS port from postgres nodes
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family='ipv4'
+      source address='{{ hostvars[item].ansible_host | default(item) }}'
+      port port='{{ pgbackrest_tls_port }}' protocol='tcp'
+      accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ pgbackrest_firewalld_zone }}"
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
