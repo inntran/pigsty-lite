@@ -1,0 +1,65 @@
+---
+- name: Install pgBackRest and SELinux helpers
+  ansible.builtin.dnf:
+    name: "{{ [pgbackrest_package] + pgbackrest_support_packages }}"
+    state: present
+
+- name: Ensure pgBackRest config directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+
+- name: Ensure pgBackRest log directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_log_path }}"
+    state: directory
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+
+- name: Ensure pgBackRest repo directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_repo_path }}"
+    state: directory
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+  when: pgbackrest_mode == 'server'
+
+- name: Register SELinux fcontext for repo directory
+  community.general.sefcontext:
+    target: "{{ pgbackrest_repo_path }}(/.*)?"
+    setype: var_t
+    state: present
+  register: _pgbackrest_repo_fcontext
+  when:
+    - pgbackrest_mode == 'server'
+    - ansible_facts.selinux.status == "enabled"
+
+- name: Relabel repo directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ pgbackrest_repo_path }}"
+  when:
+    - pgbackrest_mode == 'server'
+    - ansible_facts.selinux.status == "enabled"
+    - _pgbackrest_repo_fcontext.changed
+  changed_when: true
+
+- name: Register SELinux fcontext for log directory
+  community.general.sefcontext:
+    target: "{{ pgbackrest_log_path }}(/.*)?"
+    setype: postgresql_log_t
+    state: present
+  register: _pgbackrest_log_fcontext
+  when: ansible_facts.selinux.status == "enabled"
+
+- name: Relabel log directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ pgbackrest_log_path }}"
+  when:
+    - ansible_facts.selinux.status == "enabled"
+    - _pgbackrest_log_fcontext.changed
+  changed_when: true
