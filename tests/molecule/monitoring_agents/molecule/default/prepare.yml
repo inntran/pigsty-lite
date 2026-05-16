@@ -24,11 +24,3 @@
   ansible.builtin.import_playbook: ../../../../../playbooks/_backup_store.yml
 - name: Bring up the monitoring server
   ansible.builtin.import_playbook: ../../../../../playbooks/_monitoring_server.yml
-
-- name: Pin ansible_host
-  hosts: all
-  gather_facts: true
-  tasks:
-    - name: Set ansible_host to default IPv4
-      ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_default_ipv4.address }}"

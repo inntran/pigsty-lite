@@ -16,7 +16,7 @@
   roles:
     - role: ../../../../../roles/ca
 
-- name: Prepare - repos, node, certs, etcd, postgres, patroni
+- name: Prepare - repos, node, certs on all hosts
   hosts: all
   gather_facts: true
   vars:
@@ -31,7 +31,6 @@
   pre_tasks:
     - name: Pin advertise addresses and SANs to container IP
       ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         certs_subject_alternative_names:
@@ -42,6 +41,24 @@
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node
     - role: ../../../../../roles/certs
+
+- name: Prepare - etcd, postgres, patroni on postgres nodes only
+  hosts: postgres
+  gather_facts: true
+  vars:
+    certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
+    repos_pgdg_enabled: true
+    repos_epel_enabled: true
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+    node_sysctl_apply: false
+  pre_tasks:
+    - name: Pin advertise addresses to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+  roles:
     - role: ../../../../../roles/etcd
     - role: ../../../../../roles/postgres
     - role: ../../../../../roles/patroni

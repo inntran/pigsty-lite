@@ -10,10 +10,10 @@ platforms:
     volume_mounts:
       - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities: [SYS_ADMIN]
+    security_opts: ["label=disable"]
     systemd: always
     groups: [monitor, backup_store]
-    networks:
-      - name: pigsty-lite-monagt
+    network: pigsty-lite-monagt
   - name: pigsty-lite-monagt-default-2
     image: docker.io/oraclelinux:10
     pre_build_image: true
@@ -22,10 +22,10 @@ platforms:
     volume_mounts:
       - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities: [SYS_ADMIN]
+    security_opts: ["label=disable"]
     systemd: always
     groups: [postgres]
-    networks:
-      - name: pigsty-lite-monagt
+    network: pigsty-lite-monagt
 provisioner:
   name: ansible
   config_options:

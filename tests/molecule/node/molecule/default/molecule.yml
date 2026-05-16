@@ -10,6 +10,7 @@ platforms:
     volume_mounts:
       - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities: [SYS_ADMIN, NET_ADMIN]
+    security_opts: ["label=disable"]
     systemd: always
 provisioner:
   name: ansible

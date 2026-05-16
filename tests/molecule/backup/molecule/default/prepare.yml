@@ -31,7 +31,6 @@
   pre_tasks:
     - name: Pin advertise addresses and SANs to container IP
       ansible.builtin.set_fact:
-        ansible_host: "{{ ansible_facts['default_ipv4']['address'] }}"
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         certs_subject_alternative_names:
