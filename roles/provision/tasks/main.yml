@@ -43,7 +43,7 @@
     name: "{{ item.name }}"
     password: "{{ item.password | default(omit) }}"
     role_attr_flags: "{{ item.role_attr_flags | default('LOGIN') }}"
-    db: "{{ item.db | default(omit) }}"
+    login_db: "{{ item.db | default(omit) }}"
     state: present
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"
@@ -115,7 +115,7 @@
 - name: Install / upgrade extensions
   community.postgresql.postgresql_ext:
     name: "{{ item.name }}"
-    db: "{{ item.db | default(provision_extensions_in_db) }}"
+    login_db: "{{ item.db | default(provision_extensions_in_db) }}"
     state: present
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"

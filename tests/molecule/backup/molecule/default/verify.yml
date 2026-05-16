@@ -50,7 +50,7 @@
     - name: Force a WAL switch
       community.postgresql.postgresql_query:
         query: "SELECT pg_switch_wal()"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       become: true
       become_user: postgres

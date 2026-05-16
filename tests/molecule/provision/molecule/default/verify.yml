@@ -8,7 +8,7 @@
     - name: Role 'app' exists
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_role
       changed_when: false
@@ -21,7 +21,7 @@
     - name: Database 'app' exists
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_db
       changed_when: false
@@ -34,7 +34,7 @@
     - name: Extension pg_stat_statements installed in postgres db
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_pgss
       changed_when: false
@@ -47,7 +47,7 @@
     - name: Extension pg_stat_statements installed in app db
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'"
-        db: app
+        login_db: app
         login_unix_socket: /var/run/postgresql
       register: q_pgss_app
       changed_when: false

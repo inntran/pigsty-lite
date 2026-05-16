@@ -4,7 +4,7 @@
     query: "SELECT pg_reload_conf()"
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"
-    db: postgres
+    login_db: postgres
   become: true
   become_user: "{{ provision_osdba }}"
   delegate_to: "{{ provision_leader_host }}"

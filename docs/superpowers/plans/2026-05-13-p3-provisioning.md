@@ -469,7 +469,7 @@ git commit -m "feat(provision): pg_hba management"
     name: "{{ item.name }}"
     password: "{{ item.password | default(omit) }}"
     role_attr_flags: "{{ item.role_attr_flags | default('LOGIN') }}"
-    db: "{{ item.db | default(omit) }}"
+    login_db: "{{ item.db | default(omit) }}"
     state: present
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"
@@ -598,7 +598,7 @@ git commit -m "feat(provision): manage databases"
 - name: Install / upgrade extensions
   community.postgresql.postgresql_ext:
     name: "{{ item.name }}"
-    db: "{{ item.db | default(provision_extensions_in_db) }}"
+    login_db: "{{ item.db | default(provision_extensions_in_db) }}"
     state: present
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"
@@ -639,7 +639,7 @@ git commit -m "feat(provision): manage extensions"
     query: "SELECT pg_reload_conf()"
     login_unix_socket: "{{ provision_osdba_socket_dir }}"
     login_user: "{{ provision_osdba }}"
-    db: postgres
+    login_db: postgres
   become: true
   become_user: "{{ provision_osdba }}"
   delegate_to: "{{ provision_leader_host }}"
@@ -1033,7 +1033,7 @@ scenario:
     - name: Role 'app' exists
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_role
       changed_when: false
@@ -1046,7 +1046,7 @@ scenario:
     - name: Database 'app' exists
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_db
       changed_when: false
@@ -1059,7 +1059,7 @@ scenario:
     - name: Extension pg_stat_statements installed in postgres db
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_pgss
       changed_when: false
@@ -1072,7 +1072,7 @@ scenario:
     - name: Extension pgvector installed in app db
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
-        db: app
+        login_db: app
         login_unix_socket: /var/run/postgresql
       register: q_pgv
       changed_when: false
@@ -1283,7 +1283,7 @@ Same as Task 15 Step 2 prepare.yml. Copy verbatim — the engineer may be readin
     - name: Role 'app' visible on every host (via streaming replication)
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_role
       changed_when: false
@@ -1297,7 +1297,7 @@ Same as Task 15 Step 2 prepare.yml. Copy verbatim — the engineer may be readin
     - name: Database 'app' visible on every host
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
-        db: postgres
+        login_db: postgres
         login_unix_socket: /var/run/postgresql
       register: q_db
       changed_when: false
