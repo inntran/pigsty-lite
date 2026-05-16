@@ -13,6 +13,7 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [postgres]
+    network: pigsty-lite-postgres-default
 provisioner:
   name: ansible
   config_options:

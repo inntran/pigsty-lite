@@ -13,11 +13,13 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [monitor]
+    network: pigsty-lite-grafana-default
 provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
+      roles_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
+      collections_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
   inventory:
     group_vars:
       all:

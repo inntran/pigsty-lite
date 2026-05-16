@@ -13,6 +13,7 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [etcd, postgres]
+    network: pigsty-lite-patroni-spof
 provisioner:
   name: ansible
   config_options:

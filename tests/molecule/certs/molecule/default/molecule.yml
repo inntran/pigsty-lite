@@ -12,6 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
+    network: pigsty-lite-certs-default
 provisioner:
   name: ansible
   config_options:

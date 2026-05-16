@@ -12,6 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN, NET_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
+    network: pigsty-lite-node-default
 provisioner:
   name: ansible
   config_options:

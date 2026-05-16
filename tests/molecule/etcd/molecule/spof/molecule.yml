@@ -13,6 +13,7 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [etcd]
+    network: pigsty-lite-etcd-spof
 provisioner:
   name: ansible
   config_options:

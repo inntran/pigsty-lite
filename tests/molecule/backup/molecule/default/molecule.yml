@@ -13,7 +13,7 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [etcd, postgres]
-    network: pigsty-lite-backup
+    network: pigsty-lite-backup-default
   - name: pigsty-lite-backup-default-server
     image: localhost/molecule-base:latest
     pre_build_image: true
@@ -25,7 +25,7 @@ platforms:
     security_opts: ["label=disable"]
     systemd: always
     groups: [monitor, backup_server]
-    network: pigsty-lite-backup
+    network: pigsty-lite-backup-default
 provisioner:
   name: ansible
   config_options:
