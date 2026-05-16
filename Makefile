@@ -6,26 +6,29 @@ SHELL := bash
 
 include Makefile.d/lint.mk
 
-.PHONY: help init configure plan deploy clean test-role molecule-image switchover failover minor-upgrade scale-add-replica scale-remove-replica
+.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint test-image test-role clean
 
 help:
 	@echo "pigsty-lite - operator commands"
 	@echo
-	@echo "  make init          Set up the control node (install Galaxy collections + roles)"
-	@echo "  make configure     Interactive wizard; emits inventory + response file"
-	@echo "  make plan          Run site.yml in --check --diff mode"
-	@echo "  make deploy        Run site.yml against the active inventory"
-	@echo "  make lint          Run all linters"
-	@echo "  make molecule-image Build/reuse local shared Molecule base image"
-	@echo "  make test-role ROLE=<name>   Run molecule for a single role"
-	@echo "  make clean         Remove generated artifacts"
+	@echo "  Deploy actions:"
+	@echo "  make init                          Set up control node (Galaxy collections + roles)"
+	@echo "  make configure                     Interactive wizard; emits inventory + response file"
+	@echo "  make plan                          Run site.yml in --check --diff mode"
+	@echo "  make deploy                        Run site.yml against the active inventory"
 	@echo
-	@echo "  Lifecycle operations:"
+	@echo "  Operations actions:"
 	@echo "  make switchover                     Controlled primary switchover"
 	@echo "  make failover CANDIDATE=<host>      Manual failover to a named candidate"
 	@echo "  make minor-upgrade                  Rolling minor PostgreSQL upgrade"
 	@echo "  make scale-add-replica HOST=<host>  Add a replica (host must be in inventory)"
 	@echo "  make scale-remove-replica HOST=<host>  Decommission a replica"
+	@echo
+	@echo "  Dev/testing actions:"
+	@echo "  make lint                          Run all linters"
+	@echo "  make test-image                    Build/reuse local shared Molecule base image"
+	@echo "  make test-role ROLE=<name>         Run molecule for a single role"
+	@echo "  make clean                         Remove generated artifacts"
 
 init:
 	ansible-galaxy collection install -r requirements.yml -p ./collections
@@ -40,10 +43,10 @@ plan: init
 deploy: init
 	ansible-playbook playbooks/site.yml
 
-molecule-image:
+test-image:
 	./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
 
-test-role: molecule-image
+test-role: test-image
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
 	cd tests/molecule/$(ROLE) && molecule test
 
