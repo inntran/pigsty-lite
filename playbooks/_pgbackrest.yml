@@ -1,5 +1,5 @@
 ---
-- name: pgBackRest — server (backup_server group)
+- name: PgBackRest — server (backup_server group)
   hosts: backup_server
   become: true
   vars:
@@ -8,7 +8,7 @@
     - role: pgbackrest
       tags: [pgbackrest, backup]
 
-- name: pgBackRest — client (postgres group)
+- name: PgBackRest — client (postgres group)
   hosts: postgres
   become: true
   vars:

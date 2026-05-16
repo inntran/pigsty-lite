@@ -1,5 +1,5 @@
 ---
-- name: Inject archive_mode and archive_command into postgres_extra_parameters
+- name: Inject archive_mode and archive_command into postgres_extra_parameters  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     postgres_extra_parameters: >-
       {{
