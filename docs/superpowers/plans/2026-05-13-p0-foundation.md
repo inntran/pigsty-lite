@@ -2181,8 +2181,37 @@ node_journald_max_file_sec: "1month"
 
 - [ ] **Step 8: Create `roles/node/tasks/main.yml`**
 
+The role MUST start by creating the `pigsty` shared identity (UID/GID 926, system user, `/sbin/nologin`). This is the trust group that every service daemon (postgres, etcd, pgbackrest, future) is appended to, and the owner of all cross-role state — chiefly the per-host TLS material under `pigsty_pki_dir`. See §6.4 of `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md` for the contract.
+
 ```yaml
 ---
+- name: Ensure pigsty shared group exists
+  ansible.builtin.group:
+    name: pigsty
+    gid: 926
+    system: true
+    state: present
+
+- name: Ensure pigsty shared system user exists
+  ansible.builtin.user:
+    name: pigsty
+    uid: 926
+    group: pigsty
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/pigsty
+    create_home: true
+    comment: "pigsty-lite shared identity"
+    state: present
+
+- name: Lock down pigsty home
+  ansible.builtin.file:
+    path: /var/lib/pigsty
+    state: directory
+    owner: pigsty
+    group: pigsty
+    mode: "0750"
+
 - name: Set hostname to inventory host
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"

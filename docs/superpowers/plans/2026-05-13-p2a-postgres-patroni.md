@@ -1338,12 +1338,14 @@ git commit -m "feat(patroni): restart handler"
     mode: "0640"
   notify: Restart patroni
 
-- name: Allow patroni to read its host private key
-  ansible.builtin.file:
-    path: "{{ patroni_key_file }}"
-    owner: "{{ postgres_user }}"
-    group: "{{ postgres_group }}"
-    mode: "0640"
+- name: Ensure postgres user can read shared PKI via the pigsty group
+  ansible.builtin.user:
+    name: "{{ patroni_postgres_user }}"
+    groups: pigsty
+    append: true
+# PKI files under pigsty_pki_dir are owned pigsty:pigsty 0640 by roles/certs.
+# Group membership above is all patroni needs to read its own key — no chgrp here.
+# See §6.4 of the main design doc.
 
 - name: Ensure patroni systemd drop-in dir exists
   ansible.builtin.file:

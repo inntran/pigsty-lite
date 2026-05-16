@@ -219,6 +219,8 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
 
 ### Task 2: Install task
 
+The pgBackRest TLS server daemon runs as `User=postgres` and needs read access to the host's PKI material (cert + key under `pigsty_pki_dir`). Authorization is via the shared `pigsty` group, not a role-local `chgrp`. The package installs the `postgres` system user via its RPM dependencies; this task appends `postgres` to the `pigsty` group with `append: true`. PKI file ownership itself (`pigsty:pigsty 0640`) is set by `roles/certs`. See §6.4 of the main design doc.
+
 **Files:**
 
 - Create: `roles/pgbackrest/tasks/_install.yml`

@@ -38,6 +38,7 @@ These are the load-bearing assumptions every other section in this document inhe
 - **No single-host all-in-one.** There is no profile that runs PostgreSQL + backup repo + monitoring on one host. Single-host topologies are out of scope; if you have one host, you have a demo, not a deployment.
 - **Honest defaults over flexibility theater.** Where a "flexible" mode would only matter for a topology we do not support, we cut the mode rather than ship it untested. The role surface is what we actually deploy and test, not what is conceptually possible.
 - **Opinionated where it matters.** SELinux mode, TLS posture, storage layout, and topology are not configurable away. Roles, databases, extensions, tuning profile, and operator credentials are.
+- **Single shared identity for cross-role state.** A non-login system user/group `pigsty:pigsty` (UID/GID `926`) owns every file that must be readable by more than one daemon — primarily the per-host TLS material under `pigsty_pki_dir`. Every service daemon (`postgres`, `etcd`, the pgbackrest daemon process, future additions) is appended to the `pigsty` group and reads shared state via group permissions. No role chgrps another role's files; cross-role authorization happens at one place and one time. See §6.4.
 
 ---
 
@@ -422,6 +423,35 @@ Stay enforcing. Never `setenforce 0`. For paths and ports outside vendor default
 - Booleans: `httpd_can_network_connect` on monitor (nginx → loopback backends).
 - Each role's `verify.yml` runs `ausearch -m AVC -ts boot` and fails on any AVC denial. No silent SELinux fudging.
 - We do NOT auto-generate policy with `audit2allow`. Anything needing a custom policy module is a real design issue.
+
+### 6.4 Shared identity: `pigsty` user/group
+
+Cross-role state — chiefly the per-host TLS material under `pigsty_pki_dir` — is authorized via a single non-login system identity. This eliminates ad-hoc `chgrp` patches in consumer roles and replaces the earlier informal pattern (e.g. Patroni piggy-backing on the `etcd` group), which is fragile on hosts where the borrowed group does not exist.
+
+**Identity:**
+
+- User name: `pigsty`
+- Group name: `pigsty`
+- UID: `926` (fixed, system range)
+- GID: `926` (fixed, system range)
+- Shell: `/sbin/nologin`
+- Home: `/var/lib/pigsty` (mode `0750`, owner `pigsty:pigsty`) — reserved as a sink for future shared state; PKI-only in v1.
+- System user: yes (no aging, no login history)
+- GECOS: `pigsty-lite shared identity`
+- Sudoers: nothing. No SSH key. Never used interactively.
+
+**Created by:** `roles/node`, on every host, before any other role runs.
+
+**Authorization contract:**
+
+- Every service daemon's OS user (`postgres`, `etcd`, and any future daemon that consumes shared state) is added to the `pigsty` group with `append: true`. This is the responsibility of the service's own role at the point it ensures the OS user exists.
+- The `pigsty` group is the **only** mechanism used to grant cross-role read access. No role chgrps another role's files. No role adds a service user to another role's primary group.
+- All files under `pigsty_pki_dir` (`/etc/pki/pigsty/`) are owned `pigsty:pigsty`. Directory mode `0750`. Certs (`*.crt`) and the CA cert (`ca.crt`) are `0640`. Private keys (`*.key`) are `0640`. Daemons read via group membership.
+- This is owned end-to-end by `roles/certs` for issued material and `roles/ca` for the CA. No other role touches PKI ownership.
+
+**Scope in v1:** PKI only. Other potentially-shared files (Patroni config, pgBouncer userlist, application secrets) are not in scope for the `pigsty` group in v1 and remain owned by their producing role's service user.
+
+**Out of scope:** Running any daemon as `pigsty`. Granting `pigsty` shell access. Using `pigsty` as a fallback owner for "I don't know who owns this." Role-private state stays role-owned.
 
 ---
 
