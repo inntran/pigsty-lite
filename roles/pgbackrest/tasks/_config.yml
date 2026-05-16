@@ -1,0 +1,10 @@
+---
+- name: Render pgBackRest configuration
+  ansible.builtin.template:
+    src: pgbackrest.conf.j2
+    dest: "{{ pgbackrest_config_file }}"
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0640"
+  no_log: "{{ pgbackrest_s3_enabled }}"
+  notify: Restart pgbackrest
