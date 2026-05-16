@@ -1,6 +1,6 @@
 # pgBackRest Role Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Create `roles/pgbackrest` — a single Ansible role replacing `roles/bad_backup_client` and `roles/bad_backup_store`, supporting two modes: `server` (the `backup_server` host) and `client` (postgres nodes).
 
@@ -49,7 +49,7 @@
 - Create: `roles/pgbackrest/tasks/main.yml`
 - Create: `roles/pgbackrest/README.md`
 
-- [ ] **Step 1: Create `defaults/main.yml`**
+- [x] **Step 1: Create `defaults/main.yml`**
 
 ```yaml
 ---
@@ -100,7 +100,7 @@ pgbackrest_s3_key_secret: ~     # from Ansible Vault
 pgbackrest_s3_retention_full: "{{ pgbackrest_retention_full }}"
 ```
 
-- [ ] **Step 2: Create `meta/main.yml`**
+- [x] **Step 2: Create `meta/main.yml`**
 
 ```yaml
 ---
@@ -116,7 +116,7 @@ galaxy_info:
 dependencies: []
 ```
 
-- [ ] **Step 3: Create `handlers/main.yml`**
+- [x] **Step 3: Create `handlers/main.yml`**
 
 ```yaml
 ---
@@ -130,7 +130,7 @@ dependencies: []
     state: restarted
 ```
 
-- [ ] **Step 4: Create `tasks/main.yml`**
+- [x] **Step 4: Create `tasks/main.yml`**
 
 ```yaml
 ---
@@ -168,7 +168,7 @@ dependencies: []
   tags: [pgbackrest, timers]
 ```
 
-- [ ] **Step 5: Create `README.md`**
+- [x] **Step 5: Create `README.md`**
 
 ```markdown
 # pgbackrest
@@ -208,7 +208,7 @@ Set `pgbackrest_s3_enabled: true` and supply vault-encrypted values for:
 - `pgbackrest_s3_bucket`, `pgbackrest_s3_endpoint`, `pgbackrest_s3_region`, `pgbackrest_s3_path`
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add roles/pgbackrest/
@@ -223,7 +223,7 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
 
 - Create: `roles/pgbackrest/tasks/_install.yml`
 
-- [ ] **Step 1: Create `tasks/_install.yml`**
+- [x] **Step 1: Create `tasks/_install.yml`**
 
 ```yaml
 ---
@@ -293,7 +293,7 @@ git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, hand
   changed_when: true
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add roles/pgbackrest/tasks/_install.yml
@@ -316,7 +316,7 @@ The template uses `pgbackrest_mode` to render the correct sections. Key facts:
 - On server mode, each postgres node gets a `pgN-host` entry in the stanza section
 - On client mode, `repo1-host` points at `pgbackrest_server_host`; also runs TLS server so the server can reach back
 
-- [ ] **Step 1: Create `templates/pgbackrest.conf.j2`**
+- [x] **Step 1: Create `templates/pgbackrest.conf.j2`**
 
 ```jinja2
 # {{ ansible_managed }}
@@ -382,7 +382,7 @@ pg1-port={{ pgbackrest_pg_port }}
 {% endif %}
 ```
 
-- [ ] **Step 2: Create `tasks/_config.yml`**
+- [x] **Step 2: Create `tasks/_config.yml`**
 
 ```yaml
 ---
@@ -397,7 +397,7 @@ pg1-port={{ pgbackrest_pg_port }}
   notify: Restart pgbackrest
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add roles/pgbackrest/templates/pgbackrest.conf.j2 roles/pgbackrest/tasks/_config.yml
@@ -420,7 +420,7 @@ The official RHEL guide uses:
 
 Since we always use `postgres`, `User={{ pgbackrest_user }}` resolves to `postgres` in both cases.
 
-- [ ] **Step 1: Create `templates/pgbackrest.service.j2`**
+- [x] **Step 1: Create `templates/pgbackrest.service.j2`**
 
 ```jinja2
 # {{ ansible_managed }}
@@ -443,7 +443,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 WantedBy=multi-user.target
 ```
 
-- [ ] **Step 2: Create `tasks/_service.yml`**
+- [x] **Step 2: Create `tasks/_service.yml`**
 
 ```yaml
 ---
@@ -466,7 +466,7 @@ WantedBy=multi-user.target
     state: started
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add roles/pgbackrest/templates/pgbackrest.service.j2 roles/pgbackrest/tasks/_service.yml
@@ -483,7 +483,7 @@ git commit -m "feat(pgbackrest): add TLS server systemd service template and _se
 
 Opens `pgbackrest_tls_port` (8432/tcp) on the server host, accepting connections from each postgres node's address.
 
-- [ ] **Step 1: Create `tasks/_firewall.yml`**
+- [x] **Step 1: Create `tasks/_firewall.yml`**
 
 ```yaml
 ---
@@ -503,7 +503,7 @@ Opens `pgbackrest_tls_port` (8432/tcp) on the server host, accepting connections
     label: "{{ item }}"
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add roles/pgbackrest/tasks/_firewall.yml
@@ -520,7 +520,7 @@ git commit -m "feat(pgbackrest): add _firewall task — open TLS port from postg
 
 Runs on the server host only. Idempotent — ignores "already exists" errors.
 
-- [ ] **Step 1: Create `tasks/_stanza.yml`**
+- [x] **Step 1: Create `tasks/_stanza.yml`**
 
 ```yaml
 ---
@@ -546,7 +546,7 @@ Runs on the server host only. Idempotent — ignores "already exists" errors.
   failed_when: _pgbackrest_stanza_check.rc != 0
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add roles/pgbackrest/tasks/_stanza.yml
@@ -567,7 +567,7 @@ The patroni template at `roles/patroni/templates/patroni.yml.j2:113` already ite
 
 Runs from the server host and delegates to each postgres node.
 
-- [ ] **Step 1: Create `tasks/_archive.yml`**
+- [x] **Step 1: Create `tasks/_archive.yml`**
 
 ```yaml
 ---
@@ -625,7 +625,7 @@ Runs from the server host and delegates to each postgres node.
   changed_when: false
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add roles/pgbackrest/tasks/_archive.yml
@@ -644,7 +644,7 @@ git commit -m "feat(pgbackrest): add _archive task — inject archive_command vi
 
 Two timers: `pgbackrest-backup@full.timer` and `pgbackrest-backup@diff.timer`. The `%i` instance name is passed as `--type` to `pgbackrest backup`.
 
-- [ ] **Step 1: Create `templates/pgbackrest-backup@.service.j2`**
+- [x] **Step 1: Create `templates/pgbackrest-backup@.service.j2`**
 
 ```jinja2
 # {{ ansible_managed }}
@@ -660,7 +660,7 @@ Group={{ pgbackrest_group }}
 ExecStart=/usr/bin/pgbackrest --stanza={{ pgbackrest_stanza }} --type=%i backup
 ```
 
-- [ ] **Step 2: Create `templates/pgbackrest-backup@.timer.j2`**
+- [x] **Step 2: Create `templates/pgbackrest-backup@.timer.j2`**
 
 ```jinja2
 # {{ ansible_managed }}
@@ -676,7 +676,7 @@ Unit=pgbackrest-backup@%i.service
 WantedBy=timers.target
 ```
 
-- [ ] **Step 3: Create `tasks/_timers.yml`**
+- [x] **Step 3: Create `tasks/_timers.yml`**
 
 ```yaml
 ---
@@ -716,7 +716,7 @@ WantedBy=timers.target
     - diff
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add roles/pgbackrest/templates/pgbackrest-backup@.service.j2 roles/pgbackrest/templates/pgbackrest-backup@.timer.j2 roles/pgbackrest/tasks/_timers.yml
@@ -735,7 +735,7 @@ The role implements both sides via `pgbackrest_mode`, so a single playbook runs 
 - Delete: `playbooks/_backup_client.yml`
 - Delete: `playbooks/_backup_store.yml`
 
-- [ ] **Step 1: Create `playbooks/_pgbackrest.yml`**
+- [x] **Step 1: Create `playbooks/_pgbackrest.yml`**
 
 ```yaml
 ---
@@ -760,13 +760,13 @@ The role implements both sides via `pgbackrest_mode`, so a single playbook runs 
 
 The server play runs first because: (a) it owns the repo path and TLS daemon the clients connect back to, (b) `_archive.yml` inside server mode delegates to each postgres node and reloads Patroni — that delegation requires the postgres group to exist in inventory but does NOT require the client play to have run first (the client play only adds the postgres-side TLS daemon that the server uses to *pull* backups, not to push archive). Running server-then-client also means the server's stanza-create + initial check happen against fresh archiving on the postgres nodes.
 
-- [ ] **Step 2: Remove the old playbooks**
+- [x] **Step 2: Remove the old playbooks**
 
 ```bash
 git rm playbooks/_backup_client.yml playbooks/_backup_store.yml
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add playbooks/_pgbackrest.yml
@@ -783,7 +783,7 @@ git commit -m "feat(playbooks): replace _backup_client.yml + _backup_store.yml w
 - Modify: `playbooks/scale_add_replica.yml`
 - Modify: `playbooks/scale_remove_replica.yml`
 
-- [ ] **Step 1: Update `playbooks/site.yml`**
+- [x] **Step 1: Update `playbooks/site.yml`**
 
 Find the block that currently imports both old playbooks:
 
@@ -804,17 +804,17 @@ Replace with:
   tags: [backup]
 ```
 
-- [ ] **Step 2: Update `playbooks/scale_add_replica.yml`**
+- [x] **Step 2: Update `playbooks/scale_add_replica.yml`**
 
 Around line 95 it imports `_backup_client.yml` limited to the new replica. Replace with `_pgbackrest.yml` limited to the new replica. Because `_pgbackrest.yml` has two plays (`backup_server` first, then `postgres`), limiting to one host runs only the client play (the new replica is in `postgres`, not in `backup_server`) — which is exactly what we want for adding a replica. Verify by reading the surrounding `ansible_limit` / `--limit` pattern in that file and matching its style.
 
 The completion message text further down that file also references "the backup_store and monitoring" — update to "the backup_server and monitoring".
 
-- [ ] **Step 3: Update `playbooks/scale_remove_replica.yml`**
+- [x] **Step 3: Update `playbooks/scale_remove_replica.yml`**
 
 Around line 116 the completion message says "the backup_store and monitoring" — update to "the backup_server and monitoring". No playbook import change is needed (replica removal doesn't run the backup playbook).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add playbooks/site.yml playbooks/scale_add_replica.yml playbooks/scale_remove_replica.yml
@@ -835,7 +835,7 @@ The inventory group is renamed from `backup_store` to `backup_server` to match t
 - Modify: `inventory/examples/ha.yml`
 - Modify: `inventory/site.yml` (currently a "generated" file, but no `configure` script exists yet — edit it directly)
 
-- [ ] **Step 1: Rename `group_vars/backup_store.yml`**
+- [x] **Step 1: Rename `group_vars/backup_store.yml`**
 
 ```bash
 git mv group_vars/backup_store.yml group_vars/backup_server.yml
@@ -843,7 +843,7 @@ git mv group_vars/backup_store.yml group_vars/backup_server.yml
 
 Then update its header comments to refer to `backup_server` instead of `backup_store`.
 
-- [ ] **Step 2: Update `group_vars/all.yml`**
+- [x] **Step 2: Update `group_vars/all.yml`**
 
 Rename two variables to match the new group:
 
@@ -852,11 +852,11 @@ Rename two variables to match the new group:
 
 Grep the whole repo for any other consumer of these variables after renaming and update them. (At time of writing, there should be none outside `group_vars/` and templates inside `roles/pgbackrest/` you wrote in Tasks 1–8.)
 
-- [ ] **Step 3: Update inventory examples and `inventory/site.yml`**
+- [x] **Step 3: Update inventory examples and `inventory/site.yml`**
 
 In `inventory/examples/single.yml`, `inventory/examples/ha.yml`, and `inventory/site.yml`, rename the YAML key `backup_store:` (under `all.children:`) to `backup_server:`. The anchor/alias structure (`pgmon01: &id001` and `pgmon01: *id001`) stays as-is.
 
-- [ ] **Step 4: Verify nothing still references the old group name**
+- [x] **Step 4: Verify nothing still references the old group name**
 
 ```bash
 grep -rn "backup_store\|backup_client" --include="*.yml" --include="*.yaml" --include="*.j2" .
@@ -864,7 +864,7 @@ grep -rn "backup_store\|backup_client" --include="*.yml" --include="*.yaml" --in
 
 The only remaining hits should be in `docs/` (intentional historical refs in plans/specs) and `roles/pgbackrest/` (only if you wrote them there — re-check; the role uses `groups['backup_server']`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add group_vars/ inventory/
@@ -875,7 +875,7 @@ git commit -m "refactor: rename inventory group backup_store -> backup_server"
 
 ### Task 12: Syntax-check and final verification
 
-- [ ] **Step 1: Ansible syntax check**
+- [x] **Step 1: Ansible syntax check**
 
 ```bash
 ansible-playbook --syntax-check -i inventory/examples/single.yml playbooks/site.yml
@@ -884,7 +884,7 @@ ansible-playbook --syntax-check -i inventory/examples/ha.yml playbooks/site.yml
 
 Both must exit zero. If they fail, fix and re-run before continuing.
 
-- [ ] **Step 2: ansible-lint (if installed)**
+- [x] **Step 2: ansible-lint (if installed)**
 
 ```bash
 ansible-lint roles/pgbackrest/ playbooks/_pgbackrest.yml
@@ -892,7 +892,7 @@ ansible-lint roles/pgbackrest/ playbooks/_pgbackrest.yml
 
 Address any new warnings/errors introduced by this work. Pre-existing lint debt in unchanged roles is not in scope.
 
-- [ ] **Step 3: markdownlint on changed docs**
+- [x] **Step 3: markdownlint on changed docs**
 
 ```bash
 markdownlint-cli2 docs/superpowers/plans/2026-05-15-p4-pgbackrest.md roles/pgbackrest/README.md
@@ -900,11 +900,11 @@ markdownlint-cli2 docs/superpowers/plans/2026-05-15-p4-pgbackrest.md roles/pgbac
 
 Must report zero errors. The project linter config at `.markdownlint.yaml` is already relaxed for the codebase's house style.
 
-- [ ] **Step 4: Molecule (libvirt) — DO NOT run as part of this plan**
+- [x] **Step 4: Molecule (libvirt) — DO NOT run as part of this plan**
 
 Molecule scenarios for pgbackrest require libvirt and are local-only (see `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md` §13.2). Flag in the final report that the user should run them on their libvirt host before considering P4 complete.
 
-- [ ] **Step 5: No commit for this task** — syntax check is a verification gate, not a change.
+- [x] **Step 5: No commit for this task** — syntax check is a verification gate, not a change.
 
 ---
 
