@@ -2,7 +2,7 @@
 driver:
   name: podman
 platforms:
-  - name: pigsty-lite-monagt-default-1
+  - name: pigsty-lite-monagt-default-server
     image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
@@ -39,7 +39,7 @@ provisioner:
         pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
     host_vars:
-      pigsty-lite-monagt-default-1: {}
+      pigsty-lite-monagt-default-server: {}
       pigsty-lite-monagt-default-2:
         postgres_role: primary
 verifier:

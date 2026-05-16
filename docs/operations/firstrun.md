@@ -28,7 +28,7 @@ Target hosts:
 1. Generate a response file.
 
    ```bash
-   cp responses/single.rsp.yml.example responses/site.rsp.yml
+   cp responses/spof.rsp.yml.example responses/site.rsp.yml
    $EDITOR responses/site.rsp.yml
    ```
 
@@ -90,8 +90,8 @@ After `_etcd.yml` succeeds, two playbooks run against the `postgres` group:
 
 Profile mapping:
 
-- `single`: 1 PG host with `postgres_role=primary`.
-- `ha`: 1 primary + replicas. Patroni elects the leader via etcd.
+- `spof` (**SPOF**): 1 PG host with `postgres_role=primary`.
+- `ha` (**HA**): 1 primary + replicas. Patroni elects the leader via etcd.
 
 Useful checks:
 

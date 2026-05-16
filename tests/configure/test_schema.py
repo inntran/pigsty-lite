@@ -18,12 +18,12 @@ def _load(name: str) -> dict:
         return yaml.safe_load(fh)
 
 
-def _minimal_single_response() -> dict:
-    return deepcopy(_load("single.rsp.yml"))
+def _minimal_spof_response() -> dict:
+    return deepcopy(_load("spof.rsp.yml"))
 
 
-def test_single_profile_fixture_validates():
-    data = _load("single.rsp.yml")
+def test_spof_profile_fixture_validates():
+    data = _load("spof.rsp.yml")
     validate(data)
 
 
@@ -59,69 +59,69 @@ def test_ipv6_single_stack_rejects_ipv4_hba_source():
 
 
 def test_postgres_users_must_be_list_of_dicts():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["users"] = ["bare-string-not-dict"]
     with pytest.raises(SchemaError, match=r"postgres\.users\[0\]: must be a mapping"):
         validate(data)
 
 
 def test_postgres_users_require_name():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["users"] = [{"password": "pw"}]
     with pytest.raises(SchemaError, match=r"postgres\.users\[0\]\.name"):
         validate(data)
 
 
 def test_postgres_databases_must_be_list_of_dicts():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["databases"] = ["bare-string"]
     with pytest.raises(SchemaError, match=r"postgres\.databases\[0\]: must be a mapping"):
         validate(data)
 
 
 def test_postgres_databases_require_name():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["databases"] = [{"owner": "app"}]
     with pytest.raises(SchemaError, match=r"postgres\.databases\[0\]\.name"):
         validate(data)
 
 
 def test_postgres_extensions_must_be_strings_or_name_dicts():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["extensions"] = [42]
     with pytest.raises(SchemaError, match=r"postgres\.extensions\[0\]"):
         validate(data)
 
 
 def test_postgres_extensions_dict_requires_name():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["postgres"]["extensions"] = [{"db": "app"}]
     with pytest.raises(SchemaError, match=r"postgres\.extensions\[0\]\.name"):
         validate(data)
 
 
 def test_minor_upgrade_block_must_be_mapping():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["postgres"]["minor_upgrade"] = "soon"
     with pytest.raises(SchemaError, match=r"postgres\.minor_upgrade: must be a mapping"):
         validate(response)
 
 
 def test_minor_upgrade_require_recent_backup_hours_must_be_positive_int():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["postgres"]["minor_upgrade"] = {"require_recent_backup_hours": 0}
     with pytest.raises(SchemaError, match=r"postgres\.minor_upgrade\.require_recent_backup_hours"):
         validate(response)
 
 
 def test_minor_upgrade_block_is_optional():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["postgres"].pop("minor_upgrade", None)
     validate(response)
 
 
 def test_unknown_network_ip_version_rejected():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["network"] = {"ip_version": "ipv5"}
     with pytest.raises(SchemaError, match="network.ip_version"):
         validate(data)
@@ -154,10 +154,10 @@ def test_unknown_node_role_rejected():
         validate(data)
 
 
-def test_single_profile_must_have_exactly_one_postgres_node():
+def test_spof_profile_must_have_exactly_one_postgres_node():
     data = _load("ha.rsp.yml")
-    data["profile"] = "single"
-    with pytest.raises(SchemaError, match="single"):
+    data["profile"] = "spof"
+    with pytest.raises(SchemaError, match="spof"):
         validate(data)
 
 
@@ -176,21 +176,21 @@ def test_ha_profile_requires_exactly_one_primary():
 
 
 def test_backup_enabled_must_be_bool():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["backup"] = {"enabled": "yes-please"}
     with pytest.raises(SchemaError, match=r"backup\.enabled: must be a boolean"):
         validate(data)
 
 
 def test_backup_retention_full_must_be_positive_int():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["backup"] = {"enabled": True, "tool": "pgbackrest", "retention": {"full": 0}}
     with pytest.raises(SchemaError, match=r"backup\.retention\.full"):
         validate(data)
 
 
 def test_backup_schedule_entries_must_be_strings():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["backup"] = {
         "enabled": True,
         "tool": "pgbackrest",
@@ -201,7 +201,7 @@ def test_backup_schedule_entries_must_be_strings():
 
 
 def test_backup_secondary_store_requires_bucket_when_enabled():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["backup"] = {
         "enabled": True,
         "tool": "pgbackrest",
@@ -212,19 +212,19 @@ def test_backup_secondary_store_requires_bucket_when_enabled():
 
 
 def test_backup_disabled_skips_inner_validation():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data["backup"] = {"enabled": False, "retention": {"full": 0}}
     validate(data)
 
 
 def test_backup_section_is_optional():
-    data = _load("single.rsp.yml")
+    data = _load("spof.rsp.yml")
     data.pop("backup", None)
     validate(data)
 
 
 def test_monitoring_receiver_must_be_mapping():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["monitoring"]["alertmanager"] = {"receivers": ["not-a-dict"]}
     with pytest.raises(
         SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]: must be a mapping"
@@ -233,14 +233,14 @@ def test_monitoring_receiver_must_be_mapping():
 
 
 def test_monitoring_receiver_requires_name_and_type():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["monitoring"]["alertmanager"] = {"receivers": [{"type": "slack"}]}
     with pytest.raises(SchemaError, match=r"monitoring\.alertmanager\.receivers\[0\]\.name"):
         validate(response)
 
 
 def test_monitoring_receiver_type_must_be_known():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["monitoring"]["alertmanager"] = {
         "receivers": [{"name": "x", "type": "carrier-pigeon"}]
     }
@@ -249,13 +249,13 @@ def test_monitoring_receiver_type_must_be_known():
 
 
 def test_monitoring_scrape_interval_must_be_duration():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["monitoring"]["scrape_interval"] = "fifteen"
     with pytest.raises(SchemaError, match=r"monitoring\.scrape_interval"):
         validate(response)
 
 
 def test_monitoring_scrape_interval_is_optional():
-    response = _minimal_single_response()
+    response = _minimal_spof_response()
     response["monitoring"].pop("scrape_interval", None)
     validate(response)

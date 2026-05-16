@@ -1,5 +1,5 @@
 ---
-profile: single
+profile: spof
 network:
   ip_version: ipv6
 cluster:

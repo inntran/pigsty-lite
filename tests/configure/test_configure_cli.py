@@ -33,8 +33,8 @@ def _load_configure_module():
 def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_path):
     module = _load_configure_module()
     (tmp_path / "responses").mkdir()
-    (tmp_path / "responses" / "single.rsp.yml.example").write_text(
-        (ROOT / "responses" / "single.rsp.yml.example").read_text()
+    (tmp_path / "responses" / "spof.rsp.yml.example").write_text(
+        (ROOT / "responses" / "spof.rsp.yml.example").read_text()
     )
 
     monkeypatch.setattr(module, "ROOT", tmp_path)
@@ -45,9 +45,9 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
     answers = iter(["pg-dev", "example.internal"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
-    rc = module.cmd_interactive(argparse.Namespace(profile="single"))
+    rc = module.cmd_interactive(argparse.Namespace(profile="spof"))
 
     assert rc == 0
     raw = (tmp_path / "responses" / "site.rsp.yml").read_text()
     assert raw.startswith("---\n")
-    assert yaml.safe_load(raw)["profile"] == "single"
+    assert yaml.safe_load(raw)["profile"] == "spof"

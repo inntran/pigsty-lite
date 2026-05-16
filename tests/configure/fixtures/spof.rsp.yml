@@ -1,5 +1,5 @@
 ---
-profile: single
+profile: spof
 cluster:
   name: pg-dev
   domain: example.internal

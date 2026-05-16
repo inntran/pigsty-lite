@@ -12,7 +12,20 @@ platforms:
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
-    groups: [etcd, postgres, backup_server]
+    groups: [etcd, postgres]
+    network: pigsty-lite-backup
+  - name: pigsty-lite-backup-default-server
+    image: localhost/molecule-base:latest
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    security_opts: ["label=disable"]
+    systemd: always
+    groups: [monitor, backup_server]
+    network: pigsty-lite-backup
 provisioner:
   name: ansible
   config_options:

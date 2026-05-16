@@ -2,7 +2,7 @@
 driver:
   name: podman
 platforms:
-  - name: pigsty-lite-etcd-single
+  - name: pigsty-lite-patroni-spof
     image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
@@ -12,7 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
-    groups: [etcd]
+    groups: [etcd, postgres]
 provisioner:
   name: ansible
   config_options:
@@ -24,8 +24,19 @@ provisioner:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
+        postgres_version: 18
+        postgres_port: 5432
       etcd:
         etcd_initial_cluster_state: new
+      postgres:
+        patroni_superuser_password: superuser-test-pw
+        patroni_replication_password: replicator-test-pw
+        patroni_rewind_password: rewind-test-pw
+        postgres_tune_profile: tiny
+    host_vars:
+      pigsty-lite-patroni-spof:
+        postgres_role: primary
+        etcd_seq: 1
 verifier:
   name: ansible
 scenario:

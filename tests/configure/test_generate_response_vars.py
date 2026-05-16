@@ -40,7 +40,7 @@ def test_firewall_keys_promoted_to_top_level():
 
 
 def test_network_defaults_to_dual_stack():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     assert out["network_ip_version"] == "dual"
     assert out["network_ipv6_single_stack"] is False
     assert out["network_loopback_address"] == "127.0.0.1"
@@ -74,7 +74,7 @@ def test_monitoring_retention_namespaced():
 
 
 def test_monitoring_scrape_interval_defaults_to_15s():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     assert out["monitoring_scrape_interval"] == "15s"
 
 
@@ -86,7 +86,7 @@ def test_monitoring_scrape_interval_is_promoted():
 
 
 def test_backup_disabled_when_response_says_so():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     assert out["backup_enabled"] is False
 
 
@@ -104,6 +104,6 @@ def test_backup_schedule_promoted():
 
 
 def test_generated_file_has_banner():
-    raw = generate(_load("single.rsp.yml"))
+    raw = generate(_load("spof.rsp.yml"))
     assert raw.lstrip().startswith("#")
     assert "GENERATED" in raw

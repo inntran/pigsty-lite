@@ -19,7 +19,7 @@
       ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
       changed_when: false
 
-    - name: "Route to primary (single-node cluster: same host) on {{ haproxy_default_port }}"
+    - name: "Route to primary (SPOF cluster: same host) on {{ haproxy_default_port }}"
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.2 port={{ haproxy_default_port }} dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
@@ -51,7 +51,7 @@
         that:
           - probe_5433.stdout.strip() in ['f', 'false']
 
-    - name: "5434 has no healthy backends on a single-node cluster"
+    - name: "5434 has no healthy backends on a SPOF cluster"
       ansible.builtin.command: >
         /usr/pgsql-18/bin/psql
         "host=127.0.0.2 port=5434 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
@@ -60,7 +60,7 @@
       changed_when: false
       failed_when: false
 
-    - name: Assert 5434 refuses (no replicas exist in single profile)
+    - name: Assert 5434 refuses (no replicas exist in SPOF profile)
       ansible.builtin.assert:
         that:
           - probe_5434.rc != 0

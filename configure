@@ -3,7 +3,7 @@
 
 Modes:
   ./configure                  Interactive wizard (TTY required)
-  ./configure -c {single,ha}   Preset profile, prompts for the rest
+  ./configure -c {spof,ha}     Preset profile, prompts for the rest
   ./configure -s -f FILE       Silent: load FILE, validate, regenerate
   ./configure --validate FILE  Validate FILE and exit
 
@@ -78,12 +78,15 @@ def cmd_silent(args: argparse.Namespace) -> int:
 
 def cmd_interactive(args: argparse.Namespace) -> int:
     if not sys.stdin.isatty():
-        print("ERROR: interactive mode requires a TTY; use -s -f FILE for silent mode", file=sys.stderr)
+        print(
+            "ERROR: interactive mode requires a TTY; use -s -f FILE for silent mode",
+            file=sys.stderr,
+        )
         return 1
     print("pigsty-lite interactive configure")
     print("(P0 implements minimal prompts; future tasks extend this)")
     print()
-    profile = args.profile or input("Profile (single|ha) [ha]: ").strip() or "ha"
+    profile = args.profile or input("Profile (spof|ha) [ha]: ").strip() or "ha"
     cluster_name = input("Cluster name [pg-prod]: ").strip() or "pg-prod"
     cluster_domain = input("Cluster domain [example.internal]: ").strip() or "example.internal"
 
@@ -121,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--validate", metavar="FILE", help="validate FILE and exit")
     parser.add_argument("-s", "--silent", action="store_true")
     parser.add_argument("-f", "--file", help="response file for silent mode")
-    parser.add_argument("-c", "--profile", choices=("single", "ha"), help="preset profile for wizard")
+    parser.add_argument("-c", "--profile", choices=("spof", "ha"), help="preset profile for wizard")
     args = parser.parse_args(argv)
 
     if args.validate:

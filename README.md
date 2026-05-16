@@ -15,7 +15,7 @@ integration tests, P6b portability bundle) are pending. The architecture and sco
 - **VictoriaMetrics + VictoriaLogs** for metrics and logs via the official `victoriametrics.cluster` collection.
 - **Grafana** dashboards (PG, HAProxy, node, Patroni, pgBouncer, pgBackRest) behind an nginx TLS reverse proxy.
 - **vmalert + Alertmanager** with sensible default rules.
-- **Two reference profiles:** `single` (1 monitor + 1 postgres) for dev or small prod, `ha` (1 monitor + 3 postgres with colocated etcd quorum) for production. Read replicas scale by inventory edit, not a new profile.
+- **Two reference profiles:** `spof` (**SPOF**, 1 monitor + 1 postgres) for dev or small prod, `ha` (**HA**, 1 monitor + 3 postgres with colocated etcd quorum) for production. Read replicas scale by inventory edit, not a new profile.
 - **Operator response file** in Oracle silent-install style: one YAML file is the contract between operator and tooling.
 - **Portable** — `make export` produces a single AES256-encrypted bundle of all operator state (CA, certs, passwords, response file, inventory) that can be moved to any new control node with `make import`.
 

@@ -1,8 +1,8 @@
-# pigsty-lite response file - SINGLE profile (1 monitor + 1 postgres).
+# pigsty-lite response file - SPOF profile (1 monitor + 1 postgres).
 # Copy to responses/site.rsp.yml and edit IPv4/IPv6 IPs / credentials / domain.
 # Then run: ./configure -s -f responses/site.rsp.yml
 ---
-profile: single
+profile: spof
 network:
   ip_version: dual  # dual, ipv4, or ipv6
 cluster:

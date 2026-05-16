@@ -38,7 +38,7 @@ platforms:
     systemd: always
     groups: [etcd, postgres]
     network: pigsty-lite-backup
-  - name: pigsty-lite-backup-ha-4
+  - name: pigsty-lite-backup-server
     image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true

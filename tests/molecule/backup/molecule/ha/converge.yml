@@ -3,7 +3,8 @@
   hosts: all
   gather_facts: true
   tasks:
-    - ansible.builtin.set_fact:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: Apply the pgbackrest role (server + client)

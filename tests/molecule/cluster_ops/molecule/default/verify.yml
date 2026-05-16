@@ -13,13 +13,13 @@
       ansible.builtin.set_fact:
         cluster_ops_facts: "{{ cluster_ops_facts_raw.content | b64decode | from_json }}"
 
-    - name: The leader is the single node
+    - name: The leader is the SPOF node
       ansible.builtin.assert:
         that:
           - cluster_ops_facts.leader_host == "pigsty-lite-clusterops-default-1"
         fail_msg: "find_leader.yml did not identify the expected leader"
 
-    - name: There are no replicas in a single-node cluster
+    - name: There are no replicas in a SPOF cluster
       ansible.builtin.assert:
         that:
           - cluster_ops_facts.replica_hosts | length == 0

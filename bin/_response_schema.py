@@ -10,7 +10,7 @@ import ipaddress
 import re
 from typing import Any
 
-ALLOWED_PROFILES = {"single", "ha"}
+ALLOWED_PROFILES = {"spof", "ha"}
 ALLOWED_NODE_ROLES = {"monitor", "backup_store", "pg_primary", "pg_replica"}
 ALLOWED_IP_VERSIONS = {"dual", "ipv4", "ipv6"}
 ALLOWED_TUNE = {"oltp", "olap", "tiny"}
@@ -120,10 +120,10 @@ def _validate_nodes(nodes: dict, profile: str, ip_version: str) -> None:
             f"nodes: profile '{profile}' requires exactly 1 pg_primary; got {primaries}"
         )
 
-    if profile == "single":
+    if profile == "spof":
         if replicas != 0:
             raise SchemaError(
-                "nodes: profile 'single' allows 0 pg_replica; "
+                "nodes: profile 'spof' allows 0 pg_replica; "
                 f"got {replicas} (use profile 'ha' for replicas)"
             )
     elif profile == "ha" and replicas < 2:

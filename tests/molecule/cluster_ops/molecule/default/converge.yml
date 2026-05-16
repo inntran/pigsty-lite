@@ -1,6 +1,6 @@
 ---
 # Exercise the cluster_ops assertion library against the live
-# single-node cluster. converge runs the includes; verify checks the
+# SPOF cluster. converge runs the includes; verify checks the
 # facts they set.
 - name: Exercise the cluster_ops library
   hosts: postgres

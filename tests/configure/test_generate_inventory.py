@@ -16,22 +16,22 @@ def _load(name: str) -> dict:
         return yaml.safe_load(fh)
 
 
-def test_single_inventory_has_required_groups():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+def test_spof_inventory_has_required_groups():
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     children = out["all"]["children"]
     assert set(children) >= {"monitor", "backup_server", "etcd", "postgres"}
 
 
-def test_single_inventory_collocates_monitor_and_backup_server():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+def test_spof_inventory_collocates_monitor_and_backup_server():
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     children = out["all"]["children"]
     mon_hosts = set(children["monitor"]["hosts"].keys())
     bs_hosts = set(children["backup_server"]["hosts"].keys())
     assert mon_hosts == bs_hosts == {"pgmon01"}
 
 
-def test_single_postgres_node_is_in_etcd_group():
-    out = yaml.safe_load(generate(_load("single.rsp.yml")))
+def test_spof_postgres_node_is_in_etcd_group():
+    out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     etcd_hosts = out["all"]["children"]["etcd"]["hosts"]
     pg_hosts = out["all"]["children"]["postgres"]["hosts"]
     assert set(etcd_hosts.keys()) == set(pg_hosts.keys()) == {"pgnode01"}
@@ -78,6 +78,6 @@ def test_ipv6_ansible_host_propagated_from_response():
 
 
 def test_generated_inventory_includes_banner_comment():
-    raw = generate(_load("single.rsp.yml"))
+    raw = generate(_load("spof.rsp.yml"))
     assert raw.lstrip().startswith("#")
     assert "configure" in raw.splitlines()[0]

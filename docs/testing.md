@@ -11,7 +11,7 @@ PYTHONPATH=. UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/configure -v
 ## Targeted P3 lint
 
 ```bash
-yamllint roles/provision playbooks/_provision.yml playbooks/site.yml tests/molecule/provision .github/workflows/molecule.yml responses/single.rsp.yml.example responses/ha.rsp.yml.example
+yamllint roles/provision playbooks/_provision.yml playbooks/site.yml tests/molecule/provision .github/workflows/molecule.yml responses/spof.rsp.yml.example responses/ha.rsp.yml.example
 ```
 
 ```bash

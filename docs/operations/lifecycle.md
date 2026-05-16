@@ -59,7 +59,7 @@ After it finishes, remove the host from inventory and rerun
 ## Manual libvirt validation
 
 Lifecycle playbooks require a real multi-node cluster. Suggested checks
-on an `ha` libvirt cluster:
+on an `HA` libvirt cluster:
 
 1. `make switchover`
 2. `make failover CANDIDATE=<replica>`
