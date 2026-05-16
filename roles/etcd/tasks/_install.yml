@@ -4,6 +4,12 @@
     name: "{{ [etcd_package] + etcd_support_packages }}"
     state: present
 
+- name: Ensure etcd user can read shared PKI via the pigsty group
+  ansible.builtin.user:
+    name: etcd
+    groups: pigsty
+    append: true
+
 - name: Ensure config directory exists
   ansible.builtin.file:
     path: "{{ etcd_config_dir }}"

@@ -9,6 +9,13 @@
     state: present
   tags: [patroni, install]
 
+- name: Ensure postgres user can read shared PKI via the pigsty group
+  ansible.builtin.user:
+    name: "{{ patroni_postgres_user }}"
+    groups: pigsty
+    append: true
+  tags: [patroni, install]
+
 - name: Ensure patroni log dir exists
   ansible.builtin.file:
     path: "{{ patroni_log_dir }}"
