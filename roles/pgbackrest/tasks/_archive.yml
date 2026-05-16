@@ -1,0 +1,53 @@
+---
+- name: Inject archive_mode and archive_command into postgres_extra_parameters
+  ansible.builtin.set_fact:
+    postgres_extra_parameters: >-
+      {{
+        (hostvars[item].postgres_extra_parameters | default({})) | combine({
+          'archive_mode': 'on',
+          'archive_command': "pgbackrest --stanza=" ~ pgbackrest_stanza ~ " archive-push %p"
+        })
+      }}
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Re-render patroni.yml with archive settings on each postgres node
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../roles/patroni/templates/patroni.yml.j2"
+    dest: "{{ hostvars[item].patroni_config_file | default('/etc/patroni/patroni.yml') }}"
+    owner: root
+    group: "{{ hostvars[item].postgres_group | default('postgres') }}"
+    mode: "0640"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _pgbackrest_patroni_config
+
+- name: Reload Patroni to apply archive settings
+  ansible.builtin.systemd:
+    name: patroni
+    state: reloaded
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+  when: _pgbackrest_patroni_config.results | selectattr('item', 'equalto', item) | map(attribute='changed') | first | default(false)
+
+- name: Wait for archive_command to be active in PostgreSQL
+  ansible.builtin.command:
+    cmd: psql -U {{ hostvars[item].pgbackrest_user | default('postgres') }} -tAc "SHOW archive_command"
+  become: true
+  become_user: "{{ hostvars[item].pgbackrest_user | default('postgres') }}"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _pgbackrest_archive_cmd
+  until: "'pgbackrest' in (_pgbackrest_archive_cmd.stdout | default(''))"
+  retries: 12
+  delay: 5
+  changed_when: false
