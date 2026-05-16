@@ -446,7 +446,7 @@ Cross-role state — chiefly the per-host TLS material under `pigsty_pki_dir` �
 
 - Every service daemon's OS user (`postgres`, `etcd`, and any future daemon that consumes shared state) is added to the `pigsty` group with `append: true`. This is the responsibility of the service's own role at the point it ensures the OS user exists.
 - The `pigsty` group is the **only** mechanism used to grant cross-role read access. No role chgrps another role's files. No role adds a service user to another role's primary group.
-- All files under `pigsty_pki_dir` (`/etc/pki/pigsty/`) are owned `pigsty:pigsty`. Directory mode `0750`. Certs (`*.crt`) and the CA cert (`ca.crt`) are `0640`. Private keys (`*.key`) are `0640`. Daemons read via group membership.
+- All PKI files under `pigsty_pki_dir` (`/etc/pki/pigsty/`) are uniformly `root:pigsty 0440` (directory: `root:pigsty 0750`). Root owns; the `pigsty` group reads. `0440` rather than `0640` because nothing writes these files in place — `roles/certs` re-issues by replacing as root. Owner=root rather than `pigsty` because PostgreSQL's `be-secure-openssl.c` paranoid check rejects any server key not owned by the DB user or root, and we want one rule, not one with an exception for `.key`. Daemons read via group membership in `pigsty`. The `pigsty` user itself never reads its own files — it exists to anchor the group.
 - This is owned end-to-end by `roles/certs` for issued material and `roles/ca` for the CA. No other role touches PKI ownership.
 
 **Scope in v1:** PKI only. Other potentially-shared files (Patroni config, pgBouncer userlist, application secrets) are not in scope for the `pigsty` group in v1 and remain owned by their producing role's service user.

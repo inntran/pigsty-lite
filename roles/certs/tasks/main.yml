@@ -8,7 +8,7 @@
   ansible.builtin.file:
     path: "{{ pigsty_pki_dir }}"
     state: directory
-    owner: pigsty
+    owner: root
     group: pigsty
     mode: "0750"
 
@@ -32,17 +32,17 @@
   ansible.builtin.copy:
     src: "{{ certs_ca_dir_on_control }}/ca.crt"
     dest: "{{ pigsty_pki_dir }}/ca.crt"
-    owner: pigsty
+    owner: root
     group: pigsty
-    mode: "0640"
+    mode: "0440"
 
 - name: Generate host private key
   community.crypto.openssl_privatekey:
     path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
     size: "{{ certs_key_size }}"
     type: RSA
-    mode: "0640"
-    owner: pigsty
+    mode: "0440"
+    owner: root
     group: pigsty
 
 - name: Generate host CSR
@@ -51,9 +51,9 @@
     privatekey_path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
     common_name: "{{ inventory_hostname }}"
     subject_alt_name: "{{ certs_subject_alternative_names }}"
-    owner: pigsty
+    owner: root
     group: pigsty
-    mode: "0640"
+    mode: "0440"
 
 - name: Fetch CSR back to control node
   ansible.builtin.fetch:
@@ -77,6 +77,6 @@
   ansible.builtin.copy:
     src: "{{ certs_ca_dir_on_control }}/issued/{{ inventory_hostname }}.crt"
     dest: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
-    owner: pigsty
+    owner: root
     group: pigsty
-    mode: "0640"
+    mode: "0440"
