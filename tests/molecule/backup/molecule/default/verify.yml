@@ -8,7 +8,7 @@
       ansible.builtin.command:
         cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
       become: true
-      become_user: pgbackrest
+      become_user: postgres
       register: pgbr_info
       changed_when: false
 
@@ -22,7 +22,7 @@
       ansible.builtin.command:
         cmd: pgbackrest --stanza=pigsty-lite-test --type=full backup
       become: true
-      become_user: pgbackrest
+      become_user: postgres
       register: pgbr_backup
       changed_when: >-
         'completed successfully' in pgbr_backup.stderr
@@ -32,7 +32,7 @@
       ansible.builtin.command:
         cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
       become: true
-      become_user: pgbackrest
+      become_user: postgres
       register: pgbr_info_after_backup
       changed_when: false
 
@@ -64,7 +64,7 @@
       ansible.builtin.command:
         cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
       become: true
-      become_user: pgbackrest
+      become_user: postgres
       register: pgbr_info_after_wal
       changed_when: false
       retries: 12

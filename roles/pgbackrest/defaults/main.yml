@@ -8,7 +8,7 @@ pgbackrest_support_packages:
   - python3-libselinux
   - policycoreutils-python-utils
 
-pgbackrest_stanza: pigsty
+pgbackrest_stanza: "{{ backup_stanza | default('pigsty') }}"
 pgbackrest_repo_path: /var/lib/pgbackrest
 pgbackrest_log_path: /var/log/pgbackrest
 pgbackrest_config_file: /etc/pgbackrest/pgbackrest.conf
