@@ -24,7 +24,6 @@
 
 - name: Open firewalld for pgBackRest TLS port
   ansible.builtin.import_tasks: _firewall.yml
-  when: pgbackrest_mode == 'server'
   tags: [pgbackrest, firewall]
 
 - name: Create pgBackRest stanza

@@ -1,14 +1,29 @@
 ---
-- name: Build pgbackrest firewall sources from postgres nodes
+# Both sides of the pgbackrest TLS topology run a pgbackrest server
+# daemon on pgbackrest_tls_port. Each side must allow inbound 8432 from
+# the other side's hosts so backups can flow:
+#
+#   server mode: open 8432 from every postgres host (server calls back
+#                to each postgres node to read PG data via the client's
+#                pgbackrest server daemon).
+#   client mode: open 8432 from backup_server (client receives requests
+#                from the server, e.g. for archive-push and read paths).
+
+- name: Build pgbackrest firewall sources
   ansible.builtin.set_fact:
     pgbackrest_firewall_sources: >-
       {{ (pgbackrest_firewall_sources | default([]))
          + [{'address': pgbackrest_firewall_source_address,
              'family': ('ipv6' if ':' in (pgbackrest_firewall_source_address | string) else 'ipv4')}] }}
-  loop: "{{ groups['postgres'] }}"
+  loop: "{{ pgbackrest_firewall_peer_hosts }}"
   loop_control:
     label: "{{ item }}"
   vars:
+    pgbackrest_firewall_peer_hosts: >-
+      {{
+        groups['postgres'] if pgbackrest_mode == 'server'
+        else groups['backup_server']
+      }}
     pgbackrest_source_hostvars: "{{ hostvars[item] }}"
     pgbackrest_firewall_source_address: >-
       {{ pgbackrest_source_hostvars.get(
@@ -22,7 +37,7 @@
            )
          ) }}
 
-- name: Open pgBackRest TLS port from postgres nodes
+- name: Open pgBackRest TLS port from peer hosts
   ansible.posix.firewalld:
     rich_rule: >-
       rule family="{{ item.family }}" source address="{{ item.address }}"
