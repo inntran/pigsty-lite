@@ -53,8 +53,9 @@ provisioner:
     host_vars:
       pigsty-lite-clusterops-default-1:
         etcd_advertise_address: 127.0.0.1
-        ansible_default_ipv4:
-          address: 127.0.0.1
+        ansible_facts:
+          default_ipv4:
+            address: 127.0.0.1
         postgres_role: primary
         etcd_seq: 1
 verifier:

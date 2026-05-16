@@ -13,7 +13,7 @@ postgres_data_dir: "{{ postgres_version_dir }}/data"
 postgres_log_dir: "{{ postgres_version_dir }}/log"
 postgres_listen_address: >-
   {{
-    ([ansible_host | default(ansible_default_ipv4.address)]
+    ([ansible_host | default(ansible_facts.default_ipv4.address)]
      + (network_loopback_addresses
         | default([network_loopback_address | default('127.0.0.1')])))
     | unique | join(',')

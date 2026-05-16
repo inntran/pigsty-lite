@@ -29,7 +29,7 @@ patroni_trusted_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 
 # Network
 patroni_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
-patroni_advertise_address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+patroni_advertise_address: "{{ ansible_host | default(ansible_facts.default_ipv4.address) }}"
 patroni_rest_port: 8008
 
 # DCS - rendered by template from groups['etcd']
