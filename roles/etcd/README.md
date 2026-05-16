@@ -28,3 +28,26 @@ fcontext rules are tied to the vendor default `/var/lib/etcd`.
 Opens built-in services `etcd-client` and `etcd-server` with rich rules
 restricting source addresses to the `etcd` group (peer) and `etcd` plus
 `postgres` group (client). Nothing else.
+
+## Backups (intentionally none)
+
+There is no etcd snapshot timer in this stack. Everything in etcd is
+Patroni DCS state: leader lease, member list, dynamic config, failover
+history. Leases are ephemeral by definition; member list and dynamic
+config are reconstructible from `pg_controldata` plus the static
+`patroni.yml`; failover history is observability, not recoverability.
+
+### Recovery from total etcd loss
+
+1. Stop Patroni on every postgres node (`systemctl stop patroni`).
+2. Wipe and reinstall etcd on the etcd hosts (re-run the `etcd` role).
+   For `ha`, start all three members in `initial-cluster-state: new`.
+3. Start Patroni on every postgres node (`systemctl start patroni`).
+   Each node bootstraps from its on-disk data directory; one wins the
+   leader race within a few seconds and the others rejoin as replicas.
+4. Verify with `patronictl list` and confirm `archive_command` is still
+   in effect (`SHOW archive_command` on the leader).
+
+This is faster than restoring an etcd snapshot would be, and it cannot
+restore stale state (e.g. a snapshot that names a leader that has since
+been replaced).

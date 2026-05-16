@@ -6,6 +6,10 @@
 
 **Architecture:** One role, `pgbackrest_mode` variable selects which task files run. All three modes install the package and render config. `server` and `client` also run the `pgbackrest server` TLS daemon. `standalone` and `server` create the stanza, set `archive_command`, and install backup timers. Certs are referenced directly from `pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
 
+**Why TLS, not SSH:** pgBackRest 2.55+ ships a native TLS server that eliminates the SSH keypair exchange that older pgBackRest deployments require. No SSH keypairs need to be generated, exchanged, distributed via Ansible facts, or rotated. Both the store and each client run `pgbackrest server` as a long-lived daemon; mutual TLS authentication uses the cluster PKI already deployed by `roles/certs`. The `tls-server-auth=<CN>=<stanza>` option maps the client cert's CN to the stanza it may access, giving per-host authorization without a second credential system. Net effect: one less secret type to manage, one less role boundary to cross (`certs` already owns PKI distribution), and a configuration surface that's purely declarative in `pgbackrest.conf`.
+
+**etcd backup: intentionally not implemented.** etcd here only stores Patroni DCS state (leader lease, member list, dynamic config, failover history) — all of it ephemeral or reconstructible from `pg_controldata` plus the static `patroni.yml`. Recovery from total etcd loss is "reinstall etcd, restart Patroni, leadership re-elects in seconds." Adding an etcd snapshot timer would add a systemd unit, store path, rotation, and restore runbook for a recovery path slower than the rebuild it would replace. See `roles/etcd/README.md` for the recovery procedure.
+
 **Tech Stack:** Ansible, pgBackRest 2.55+, systemd, firewalld, SELinux (RHEL/EL10), Patroni (for `postgres_extra_parameters` injection).
 
 ---
