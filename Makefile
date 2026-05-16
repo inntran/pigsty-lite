@@ -27,7 +27,7 @@ help:
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
 	@echo "  make test-image                    Build/reuse local shared Molecule base image"
-	@echo "  make test-role ROLE=<name>         Run molecule for a single role"
+	@echo "  make test-role ROLE=<name>         Run all Molecule scenarios for a single role"
 	@echo "  make clean                         Remove generated artifacts"
 
 init:
@@ -48,7 +48,7 @@ test-image:
 
 test-role: test-image
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
-	cd tests/molecule/$(ROLE) && molecule test
+	cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all
 
 clean:
 	rm -rf .ansible/facts dist/ artifacts/
