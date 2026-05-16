@@ -6,7 +6,7 @@ SHELL := bash
 
 include Makefile.d/lint.mk
 
-.PHONY: help init configure plan deploy clean test-role switchover failover minor-upgrade scale-add-replica scale-remove-replica
+.PHONY: help init configure plan deploy clean test-role molecule-image switchover failover minor-upgrade scale-add-replica scale-remove-replica
 
 help:
 	@echo "pigsty-lite - operator commands"
@@ -16,6 +16,7 @@ help:
 	@echo "  make plan          Run site.yml in --check --diff mode"
 	@echo "  make deploy        Run site.yml against the active inventory"
 	@echo "  make lint          Run all linters"
+	@echo "  make molecule-image Build/reuse local shared Molecule base image"
 	@echo "  make test-role ROLE=<name>   Run molecule for a single role"
 	@echo "  make clean         Remove generated artifacts"
 	@echo
@@ -39,7 +40,10 @@ plan: init
 deploy: init
 	ansible-playbook playbooks/site.yml
 
-test-role:
+molecule-image:
+	./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
+
+test-role: molecule-image
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
 	cd tests/molecule/$(ROLE) && molecule test
 
