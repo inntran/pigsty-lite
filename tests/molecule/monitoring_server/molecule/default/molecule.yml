@@ -16,15 +16,13 @@ platforms:
     network: pigsty-lite-monsrv-default
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
+        node_sysctl_apply: false
         vmsingle_retention: 7d
         vlsingle_retention: 7d
         alertmanager_receivers: []

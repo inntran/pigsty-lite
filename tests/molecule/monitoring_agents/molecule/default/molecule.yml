@@ -28,15 +28,13 @@ platforms:
     network: pigsty-lite-monagt-default
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
+        node_sysctl_apply: false
         postgres_version: 18
     host_vars:
       pigsty-lite-monagt-default-server: {}
