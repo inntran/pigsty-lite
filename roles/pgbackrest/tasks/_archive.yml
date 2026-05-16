@@ -1,37 +1,50 @@
 ---
-# This task file runs on the postgres group directly (no delegation),
-# from the third play of playbooks/_pgbackrest.yml. Patroni's role
-# defaults are loaded into the play before this runs, so the patroni
-# template can be re-rendered in this play's variable scope.
+# Activate WAL archiving via Patroni's REST API (PATCH /config).
+# This file is included from the third play of playbooks/_pgbackrest.yml,
+# which targets hosts: postgres. We never touch roles/patroni's templates
+# or files — Patroni owns its own config rendering.
+#
+# archive_mode=on is seeded by roles/patroni in bootstrap.dcs at first
+# cluster init (a postmaster-level parameter that must be set before
+# initdb, otherwise toggling it later requires a Postgres restart).
+# Here we only PATCH the reload-only parameter archive_command, which
+# Patroni applies via SIGHUP automatically. See:
+# https://patroni.readthedocs.io/en/latest/yaml_configuration.html
 
-- name: Inject archive_mode and archive_command into postgres_extra_parameters  # noqa: var-naming[no-role-prefix]
-  ansible.builtin.set_fact:
-    postgres_extra_parameters: >-
-      {{
-        (postgres_extra_parameters | default({})) | combine({
-          'archive_mode': 'on',
-          'archive_command': "pgbackrest --stanza=" ~ pgbackrest_stanza ~ " archive-push %p"
-        })
-      }}
+- name: Read current Patroni dynamic config
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host | default(inventory_hostname) }}:{{ patroni_rest_port | default(8008) }}/config"
+    method: GET
+    client_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
+    client_key: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
+    ca_path: "{{ pigsty_pki_dir }}/ca.crt"
+    status_code: [200]
+    return_content: true
+  run_once: true
+  register: _pgbackrest_patroni_current
 
-- name: Re-render patroni.yml with archive settings
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/../roles/patroni/templates/patroni.yml.j2"
-    dest: "{{ patroni_config_file | default('/etc/patroni/patroni.yml') }}"
-    owner: root
-    group: "{{ postgres_group | default('postgres') }}"
-    mode: "0640"
-  register: _pgbackrest_patroni_config
+- name: PATCH archive_command into Patroni dynamic config
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host | default(inventory_hostname) }}:{{ patroni_rest_port | default(8008) }}/config"
+    method: PATCH
+    body_format: json
+    body:
+      postgresql:
+        parameters:
+          archive_command: "pgbackrest --stanza={{ pgbackrest_stanza }} archive-push %p"
+    client_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
+    client_key: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
+    ca_path: "{{ pigsty_pki_dir }}/ca.crt"
+    status_code: [200]
+    return_content: true
+  run_once: true
+  when: >-
+    (_pgbackrest_patroni_current.json
+       | default({})).get('postgresql', {}).get('parameters', {}).get('archive_command', '')
+    != "pgbackrest --stanza=" ~ pgbackrest_stanza ~ " archive-push %p"
+  changed_when: true
 
-- name: Reload Patroni to apply archive settings  # noqa: no-handler
-  ansible.builtin.systemd:
-    name: patroni
-    state: reloaded
-  when: _pgbackrest_patroni_config.changed
-  # Inline (not a handler) because the next task (wait for archive_command)
-  # must observe the reload's effect before the play moves on.
-
-- name: Wait for archive_command to be active in PostgreSQL
+- name: Wait for archive_command to be active on every postgres node
   ansible.builtin.command:
     cmd: psql -U {{ pgbackrest_user | default('postgres') }} -tAc "SHOW archive_command"
   become: true
@@ -41,6 +54,34 @@
   retries: 12
   delay: 5
   changed_when: false
+
+# `pgbackrest check` requires archive.info to exist on the repo, which is
+# only created on the first successful WAL push. Force a WAL switch so the
+# first segment ships immediately, rather than waiting for archive_timeout
+# or organic WAL pressure. run_once on the primary: WAL switches are a
+# cluster-wide operation; one call suffices.
+- name: Force initial WAL switch so archive.info is created
+  ansible.builtin.command:
+    cmd: psql -U {{ pgbackrest_user | default('postgres') }} -tAc "SELECT pg_switch_wal()"
+  become: true
+  become_user: "{{ pgbackrest_user | default('postgres') }}"
+  delegate_to: "{{ groups['postgres'] | select('match', '.*') | first }}"
+  run_once: true
+  register: _pgbackrest_wal_switch
+  changed_when: false
+  # pg_switch_wal is a no-op if no WAL has been written since the last
+  # switch; either way, we want to ensure the archiver has a segment to
+  # ship before pgbackrest check runs.
+
+- name: Wait for archive.info to land on the repo
+  ansible.builtin.stat:
+    path: "{{ pgbackrest_repo_path }}/archive/{{ pgbackrest_stanza }}/archive.info"
+  delegate_to: "{{ groups['backup_server'][0] }}"
+  register: _pgbackrest_archive_info
+  until: _pgbackrest_archive_info.stat.exists
+  retries: 24
+  delay: 5
+  run_once: true
 
 - name: Check pgBackRest stanza configuration
   ansible.builtin.command:

@@ -51,6 +51,11 @@ bootstrap:
         maintenance_work_mem: {{ maint_mem_mb }}MB
         ssl: "on"
         ssl_min_protocol_version: "TLSv1.2"
+        # archive_mode is enabled at cluster bootstrap so later toggling
+        # of archive_command via DCS dynamic config (PATCH /config) takes
+        # effect via SIGHUP without a postmaster restart. archive_command
+        # itself is set by roles/pgbackrest's _archive.yml, not here.
+        archive_mode: "on"
 
   initdb:
     - encoding: UTF8

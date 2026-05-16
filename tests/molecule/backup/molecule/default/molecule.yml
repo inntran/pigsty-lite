@@ -50,9 +50,10 @@ provisioner:
         patroni_replication_password: replicator-test-pw
         patroni_rewind_password: rewind-test-pw
         postgres_tune_profile: tiny
-        postgres_extra_parameters:
-          archive_mode: "on"
-          archive_command: "/bin/true"
+        # archive_mode/archive_command are intentionally NOT seeded here.
+        # roles/pgbackrest's _archive.yml PATCHes them into Patroni DCS
+        # dynamic config via the REST API after the stanza is created;
+        # a static placeholder would override the dynamic value.
     host_vars:
       pigsty-lite-backup-default-1:
         postgres_role: primary

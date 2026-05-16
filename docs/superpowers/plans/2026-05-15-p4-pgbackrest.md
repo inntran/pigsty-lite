@@ -12,7 +12,20 @@
 
 **etcd backup: intentionally not implemented.** etcd here only stores Patroni DCS state (leader lease, member list, dynamic config, failover history) — all of it ephemeral or reconstructible from `pg_controldata` plus the static `patroni.yml`. Recovery from total etcd loss is "reinstall etcd, restart Patroni, leadership re-elects in seconds." Adding an etcd snapshot timer would add a systemd unit, store path, rotation, and restore runbook for a recovery path slower than the rebuild it would replace. See `roles/etcd/README.md` for the recovery procedure.
 
-**Tech Stack:** Ansible, pgBackRest 2.55+, systemd, firewalld, SELinux (RHEL/EL10), Patroni (for `postgres_extra_parameters` injection).
+**Tech Stack:** Ansible, pgBackRest 2.55+, systemd, firewalld, SELinux (RHEL/EL10), Patroni (DCS dynamic config via REST API).
+
+---
+
+## Design refinements during execution (2026-05-16)
+
+Several refinements emerged while running the molecule scenario end-to-end. The code, defaults, and templates on disk reflect these; the per-task code blocks below may show earlier shapes — when in doubt, read the on-disk role.
+
+- **No cross-role file edits.** The pgbackrest role does NOT re-render `roles/patroni/templates/patroni.yml.j2`. Patroni owns its own config rendering. pgbackrest's `_archive.yml` sets `archive_command` via Patroni REST `PATCH /config` (DCS dynamic config), which Patroni applies via SIGHUP across the cluster.
+- **`archive_mode=on` seeded at cluster bootstrap.** Patroni's template now includes `archive_mode: "on"` under `bootstrap.dcs.postgresql.parameters`. This puts it into DCS at first cluster init, so later toggling of `archive_command` via PATCH /config takes effect by SIGHUP only — no postmaster restart needed. (Per Patroni docs: `bootstrap.dcs` is read only once, on the empty-cluster bootstrap.)
+- **Forced initial WAL switch.** `_archive.yml` ends with `SELECT pg_switch_wal()` (delegated to the primary, `run_once`) before `pgbackrest check`. `pgbackrest stanza-create` writes `backup.info` but not `archive.info`; the latter only lands when the first WAL segment ships. Forcing a switch guarantees deterministic timing for `check` instead of relying on `archive_timeout`.
+- **Optional initial full backup.** New `pgbackrest_initial_backup` variable (default `false`). When true, `playbooks/_pgbackrest.yml`'s third play runs a full backup after archive activation. Gives operators the choice between "deploy finishes with a real recovery point" vs "deploy finishes fast".
+- **Three-play playbook.** `playbooks/_pgbackrest.yml` is three plays, not two: client install on `postgres`, server install + stanza on `backup_server`, archive activation (+ optional initial backup) on `postgres`. Reason: archive activation runs natively on the postgres group so Patroni's REST endpoint is reachable in this play's variable scope without delegation.
+- **Patroni systemd ordering.** Drop-in adds `After=etcd.service` + `Requires=etcd.service` on hosts where etcd is colocated. Documented in `roles/patroni/README.md` since drop-ins are easy to miss.
 
 ---
 
@@ -24,12 +37,13 @@
 | `roles/pgbackrest/meta/main.yml` | Galaxy metadata |
 | `roles/pgbackrest/handlers/main.yml` | `reload systemd`, `restart pgbackrest` |
 | `roles/pgbackrest/tasks/main.yml` | Entry point — imports tasks based on mode |
-| `roles/pgbackrest/tasks/_install.yml` | Install package, create dirs, SELinux labels |
+| `roles/pgbackrest/tasks/_install.yml` | Install package, create dirs, SELinux labels, append daemon user to `pigsty` group |
 | `roles/pgbackrest/tasks/_config.yml` | Render `pgbackrest.conf` |
 | `roles/pgbackrest/tasks/_service.yml` | Deploy + start `pgbackrest.service` (server + client) |
 | `roles/pgbackrest/tasks/_firewall.yml` | Open TLS port from postgres nodes (server only) |
-| `roles/pgbackrest/tasks/_stanza.yml` | `stanza-create` + `check` (server only) |
-| `roles/pgbackrest/tasks/_archive.yml` | Set `archive_mode`/`archive_command` via `postgres_extra_parameters` on each postgres node, reload Patroni (server only, delegated) |
+| `roles/pgbackrest/tasks/_stanza.yml` | `stanza-create` — idempotent via `stat` of `archive.info` (server only) |
+| `roles/pgbackrest/tasks/_archive.yml` | PATCH `archive_command` into Patroni dynamic config via REST, force a WAL switch, then `pgbackrest check` (postgres play, no delegation) |
+| `roles/pgbackrest/tasks/_initial_backup.yml` | Optional first full backup at deploy time (gated on `pgbackrest_initial_backup`) |
 | `roles/pgbackrest/tasks/_timers.yml` | Deploy full/diff systemd timers (server only) |
 | `roles/pgbackrest/templates/pgbackrest.conf.j2` | Config template — mode-conditional |
 | `roles/pgbackrest/templates/pgbackrest.service.j2` | TLS server daemon unit |

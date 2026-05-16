@@ -18,6 +18,12 @@ pgbackrest_retention_full: 4
 pgbackrest_schedule_full: "Sun *-*-* 01:00:00"
 pgbackrest_schedule_diff: "Mon..Sat *-*-* 01:00:00"
 
+# Run a full backup at the end of `make deploy` so the cluster comes out
+# of initial deploy with a real recovery point, not just a configured repo.
+# Default false to keep deploy time predictable; operators flip true if
+# they want backup-on-first-boot semantics.
+pgbackrest_initial_backup: false
+
 # PKI — certs role deploys <hostname>.crt, <hostname>.key, ca.crt here
 
 # OS user that owns the repo and runs the daemon (always postgres)

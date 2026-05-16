@@ -41,3 +41,8 @@
   ansible.builtin.import_tasks: _timers.yml
   when: pgbackrest_mode == 'server'
   tags: [pgbackrest, timers]
+
+# Note: the initial backup runs in playbooks/_pgbackrest.yml's third play,
+# AFTER archive activation. Putting it here (server play, before
+# archive_command is live) would fail with "archive_command must contain
+# pgbackrest" because backup needs WAL archiving operational.

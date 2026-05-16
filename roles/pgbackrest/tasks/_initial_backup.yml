@@ -1,0 +1,30 @@
+---
+# Optional: take the first full backup at deploy time so the cluster comes
+# out of `make deploy` with a real recovery point, not just a configured
+# repo. Gated on pgbackrest_initial_backup (default false) so operators
+# who don't want a backup on the deploy critical path can stay opt-out.
+# Idempotent: skips if pgbackrest info already reports at least one
+# completed backup.
+
+- name: Inspect existing backups for the stanza
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --output=json info
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  delegate_to: "{{ groups['postgres'][0] }}"
+  register: _pgbackrest_initial_info
+  changed_when: false
+
+- name: Take initial full backup
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --type=full backup
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  delegate_to: "{{ groups['postgres'][0] }}"
+  when: >-
+    (_pgbackrest_initial_info.stdout | from_json
+       | selectattr('name', 'equalto', pgbackrest_stanza)
+       | map(attribute='backup') | list | first | default([]) | length) == 0
+  register: _pgbackrest_initial_backup
+  changed_when: _pgbackrest_initial_backup.rc == 0
+  failed_when: _pgbackrest_initial_backup.rc != 0

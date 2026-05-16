@@ -1,16 +1,22 @@
 ---
+# Idempotence: stanza-create creates /var/lib/pgbackrest/archive/<stanza>/archive.info
+# on the server. We test that file's existence (on the server host, where the repo
+# lives) and only run stanza-create when it's missing. stanza-create itself is
+# delegated to a postgres node because it needs to talk to PostgreSQL via libpq.
+
+- name: Check whether stanza archive.info already exists on the server
+  ansible.builtin.stat:
+    path: "{{ pgbackrest_repo_path }}/archive/{{ pgbackrest_stanza }}/archive.info"
+  register: _pgbackrest_stanza_archive_info
+
 - name: Create pgBackRest stanza
   ansible.builtin.command:
     cmd: pgbackrest --stanza={{ pgbackrest_stanza }} stanza-create
   become: true
   become_user: "{{ pgbackrest_user }}"
   delegate_to: "{{ groups['postgres'][0] }}"
-  register: _pgbackrest_stanza_create
-  changed_when: >-
-    'completed successfully' in (_pgbackrest_stanza_create.stdout ~ _pgbackrest_stanza_create.stderr)
-  failed_when: >-
-    _pgbackrest_stanza_create.rc != 0
-    and 'already exists' not in (_pgbackrest_stanza_create.stderr | default(''))
+  when: not _pgbackrest_stanza_archive_info.stat.exists
+  changed_when: true
 
 # Note: `pgbackrest check` is run at the end of _archive.yml, once
 # archive_command is live in Postgres. Running it here fails with

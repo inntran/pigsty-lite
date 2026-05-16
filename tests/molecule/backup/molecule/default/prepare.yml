@@ -16,7 +16,7 @@
   roles:
     - role: ../../../../../roles/ca
 
-- name: Prepare - repos, node, certs, etcd, postgres, patroni
+- name: Prepare - repos, node, certs on all hosts
   hosts: all
   gather_facts: true
   vars:
@@ -41,6 +41,24 @@
     - role: ../../../../../roles/repos
     - role: ../../../../../roles/node
     - role: ../../../../../roles/certs
+
+- name: Prepare - etcd on the etcd group
+  hosts: etcd
+  gather_facts: false
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
     - role: ../../../../../roles/etcd
+
+- name: Prepare - postgres + patroni on the postgres group
+  hosts: postgres
+  gather_facts: false
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
     - role: ../../../../../roles/postgres
     - role: ../../../../../roles/patroni
