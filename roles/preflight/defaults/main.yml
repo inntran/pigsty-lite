@@ -5,6 +5,5 @@ preflight_required_packages:
   - firewalld
   - policycoreutils
   - policycoreutils-python-utils
-  - chrony
 preflight_required_selinux_mode: "{{ selinux_required_mode | default('Enforcing') }}"
 preflight_warn_only_on_block_devices: true

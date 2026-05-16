@@ -17,7 +17,6 @@ RUN dnf install -y \
     man-db \
     sudo \
     firewalld \
-    chrony \
     policycoreutils \
     policycoreutils-python-utils \
     python3-libselinux \
