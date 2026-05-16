@@ -1,0 +1,6 @@
+---
+# backup_server group defaults.
+# Role defaults in roles/pgbackrest/defaults/main.yml cover everything;
+# this file exists as the documented override point for operators who
+# split backup_server onto its own host (e.g. a different firewalld zone
+# or backup repo mount path).

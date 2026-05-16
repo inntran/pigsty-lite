@@ -1,6 +1,6 @@
 ---
 - name: Verify the stanza and a full backup from the backup store host
-  hosts: backup_store
+  hosts: backup_server
   become: true
   gather_facts: false
   tasks:

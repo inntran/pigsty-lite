@@ -48,7 +48,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
-    groups: [monitor, backup_store]
+    groups: [monitor, backup_server]
     network: pigsty-lite-backup
 provisioner:
   name: ansible

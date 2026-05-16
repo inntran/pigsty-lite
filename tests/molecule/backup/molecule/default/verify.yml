@@ -1,6 +1,6 @@
 ---
 - name: Verify the stanza and a full backup on the backup store host
-  hosts: backup_store
+  hosts: backup_server
   become: true
   gather_facts: false
   tasks:
@@ -56,7 +56,7 @@
       become_user: postgres
 
 - name: Confirm the WAL segment reached the backup store
-  hosts: backup_store
+  hosts: backup_server
   become: true
   gather_facts: false
   tasks:

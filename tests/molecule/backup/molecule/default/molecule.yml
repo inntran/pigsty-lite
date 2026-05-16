@@ -12,7 +12,7 @@ platforms:
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
-    groups: [etcd, postgres, backup_store]
+    groups: [etcd, postgres, backup_server]
 provisioner:
   name: ansible
   config_options:

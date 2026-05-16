@@ -1,5 +1,5 @@
 # MANAGED BY pigsty-lite - DO NOT EDIT
-# Entries below are derived from inventory groups: postgres, monitor, backup_store, etcd.
+# Entries below are derived from inventory groups: postgres, monitor, backup_server, etcd.
 
 {% if not (network_ipv6_single_stack | default(false)) %}
 127.0.0.1   localhost localhost.localdomain
@@ -7,7 +7,7 @@
 ::1         localhost localhost.localdomain
 
 {% set seen = [] %}
-{% for grp in ['monitor', 'backup_store', 'postgres', 'etcd'] %}
+{% for grp in ['monitor', 'backup_server', 'postgres', 'etcd'] %}
 {% for host in groups.get(grp, []) %}
 {% set ip = hostvars[host].ansible_host | default('') %}
 {% if ip and host not in seen %}

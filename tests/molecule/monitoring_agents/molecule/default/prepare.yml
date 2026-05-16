@@ -18,9 +18,7 @@
   ansible.builtin.import_playbook: ../../../../../playbooks/_pgbouncer.yml
 - name: Install haproxy
   ansible.builtin.import_playbook: ../../../../../playbooks/_haproxy.yml
-- name: Install the backup client + store
-  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_client.yml
-- name: Install the backup store
-  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_store.yml
+- name: Install pgBackRest (server + client)
+  ansible.builtin.import_playbook: ../../../../../playbooks/_pgbackrest.yml
 - name: Bring up the monitoring server
   ansible.builtin.import_playbook: ../../../../../playbooks/_monitoring_server.yml

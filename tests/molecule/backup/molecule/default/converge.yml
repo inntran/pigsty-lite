@@ -6,7 +6,5 @@
     - ansible.builtin.set_fact:
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 
-- name: Apply the backup client role
-  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_client.yml
-- name: Apply the backup store role
-  ansible.builtin.import_playbook: ../../../../../playbooks/_backup_store.yml
+- name: Apply the pgbackrest role (server + client)
+  ansible.builtin.import_playbook: ../../../../../playbooks/_pgbackrest.yml

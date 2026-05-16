@@ -62,7 +62,7 @@ def generate(response: dict[str, Any]) -> str:
         "all": {
             "children": {
                 "monitor": _build_group(monitor_hosts),
-                "backup_store": _build_group(backup_hosts),
+                "backup_server": _build_group(backup_hosts),
                 "etcd": _build_group(etcd_hosts),
                 "postgres": _build_group(pg_hosts),
             }

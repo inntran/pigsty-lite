@@ -17,7 +17,7 @@ def _render_hosts(*, ipv6_single_stack: bool) -> str:
         cluster_domain="example.internal",
         groups={
             "monitor": ["pgmon01"],
-            "backup_store": ["pgmon01"],
+            "backup_server": ["pgmon01"],
             "postgres": ["pgnode01"],
             "etcd": ["pgnode01"],
         },

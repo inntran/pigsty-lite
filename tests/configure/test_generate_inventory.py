@@ -19,14 +19,14 @@ def _load(name: str) -> dict:
 def test_single_inventory_has_required_groups():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
     children = out["all"]["children"]
-    assert set(children) >= {"monitor", "backup_store", "etcd", "postgres"}
+    assert set(children) >= {"monitor", "backup_server", "etcd", "postgres"}
 
 
-def test_single_inventory_collocates_monitor_and_backup_store():
+def test_single_inventory_collocates_monitor_and_backup_server():
     out = yaml.safe_load(generate(_load("single.rsp.yml")))
     children = out["all"]["children"]
     mon_hosts = set(children["monitor"]["hosts"].keys())
-    bs_hosts = set(children["backup_store"]["hosts"].keys())
+    bs_hosts = set(children["backup_server"]["hosts"].keys())
     assert mon_hosts == bs_hosts == {"pgmon01"}
 
 
