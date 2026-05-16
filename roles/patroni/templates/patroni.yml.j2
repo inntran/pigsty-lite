@@ -40,7 +40,7 @@ bootstrap:
       use_pg_rewind: true
       use_slots: true
       parameters:
-{% set memtotal_mb = ansible_memtotal_mb | default(4096) | int %}
+{% set memtotal_mb = ansible_facts.get('memtotal_mb', 4096) | int %}
 {% set shared_buffers_mb = ((memtotal_mb * (patroni_shared_buffer_ratio | float)) | int) %}
 {% set effective_cache_mb = ((memtotal_mb * 0.6) | int) %}
 {% set work_mem_mb = ([(memtotal_mb // 64), 4] | max) %}
