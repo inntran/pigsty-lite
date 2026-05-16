@@ -7,11 +7,13 @@
 ## Problem Statement
 
 Currently, TLS certificates are scattered across multiple paths:
+
 - Control node: `pki/ca/` (local filesystem)
 - Target nodes: `/etc/pki/pigsty/` (consolidated location)
 - Various roles use different path variables: `certs_pki_dir`, `etcd_pki_dir`, `ca_dir`
 
 This fragmentation makes it harder to:
+
 - Locate certificates quickly
 - Understand security boundaries
 - Manage certificate permissions consistently
@@ -26,11 +28,13 @@ This fragmentation makes it harder to:
 #### 1. New Single-Source-of-Truth Variable
 
 Create `pigsty_pki_dir` in `group_vars/all.yml`:
+
 ```yaml
 pigsty_pki_dir: /etc/pki/pigsty
 ```
 
 All roles that previously used:
+
 - `certs_pki_dir` → becomes `{{ pigsty_pki_dir }}`
 - `etcd_pki_dir` → becomes `{{ pigsty_pki_dir }}`
 - `ca_dir` → becomes `{{ pigsty_pki_dir }}` (for distributed cert/key)
@@ -38,10 +42,12 @@ All roles that previously used:
 #### 2. CA Key & Cert Distribution
 
 **Control node (localhost):**
+
 - Generate CA cert + key in `pki/ca/` (local, for signing)
 - Also copy to `{{ playbook_dir | dirname }}/pki/pigsty/ca.crt` and `ca.key`
 
 **All target nodes:**
+
 - Create directory `/etc/pki/pigsty/` with permissions `0755`
 - Distribute CA cert: `ca.crt` (readable by all services)
 - Distribute CA key: `ca.key` (readable only by ansible runner or cert renewal process)
@@ -49,6 +55,7 @@ All roles that previously used:
 #### 3. Certificate Layout
 
 After consolidation, all nodes have:
+
 ```
 /etc/pki/pigsty/
 ├── ca.crt                    # Public CA cert (readable by all)
@@ -61,6 +68,7 @@ After consolidation, all nodes have:
 ```
 
 **Permissions:**
+
 - `ca.crt`: `0644` (world-readable, needed for TLS validation)
 - `ca.key`: `0600` (readable only by the ansible process or designated cert renewal user)
 - `*.crt` (host certs): `0644`
@@ -69,12 +77,14 @@ After consolidation, all nodes have:
 #### 4. Files to Update
 
 **Defaults (variables):**
+
 - `group_vars/all.yml` — add `pigsty_pki_dir: /etc/pki/pigsty`
 - `roles/ca/defaults/main.yml` — point `ca_dir` to `{{ pigsty_pki_dir }}`
 - `roles/certs/defaults/main.yml` — point `certs_pki_dir` to `{{ pigsty_pki_dir }}`
 - All other role defaults that reference cert paths
 
 **Tasks:**
+
 - `roles/ca/tasks/main.yml` — ensure `/etc/pki/pigsty/` exists; distribute CA cert + key
 - `roles/certs/tasks/main.yml` — generate/sign certs to `{{ pigsty_pki_dir }}/{{ hostname }}.crt`
 - `roles/etcd/tasks/main.yml` — read from `{{ pigsty_pki_dir }}/`
@@ -82,12 +92,14 @@ After consolidation, all nodes have:
 - `roles/monitoring_agents/tasks/main.yml` — read CA cert from `{{ pigsty_pki_dir }}/ca.crt`
 
 **Documentation:**
+
 - `roles/ca/README.md` — update to reflect `/etc/pki/pigsty/`
 - `roles/certs/README.md` — update paths and flow
 - `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md` — update architecture section
 - `docs/superpowers/plans/*` — update all references
 
 **Tests & Verification:**
+
 - `tests/molecule/certs/molecule/default/molecule.yml` — update paths
 - `tests/molecule/*/molecule/*/verify.yml` — validate cert locations
 - All molecule.yml fixtures that reference cert paths
@@ -101,6 +113,7 @@ After consolidation, all nodes have:
 #### 6. CA Operating Manual
 
 A separate operating manual (`docs/operations/ca-operating-manual.md`) covers:
+
 - CA generation and initialization
 - Certificate signing workflow
 - Manual certificate renewal

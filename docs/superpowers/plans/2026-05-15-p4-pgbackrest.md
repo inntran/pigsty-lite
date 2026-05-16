@@ -73,7 +73,7 @@ pgbackrest_schedule_full: "Sun *-*-* 01:00:00"
 pgbackrest_schedule_diff: "Mon..Sat *-*-* 01:00:00"
 
 # PKI — certs role deploys <hostname>.crt, <hostname>.key, ca.crt here
-pgbackrest_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
+# (alias removed; use pigsty_pki_dir directly)
 
 # OS user that owns the repo and runs the daemon (always postgres)
 pgbackrest_user: "{{ postgres_user | default('postgres') }}"
@@ -196,7 +196,7 @@ There is no single-host mode. See §1.1 of the main design doc.
 | `pgbackrest_retention_full` | `4` | Number of full backups to retain |
 | `pgbackrest_schedule_full` | `Sun *-*-* 01:00:00` | systemd OnCalendar for full backups |
 | `pgbackrest_schedule_diff` | `Mon..Sat *-*-* 01:00:00` | systemd OnCalendar for differential backups |
-| `pgbackrest_pki_dir` | `/etc/pki/pigsty` | Path where certs role deployed certs |
+| `pigsty_pki_dir` | `/etc/pki/pigsty` | Path where certs role deployed certs |
 | `pgbackrest_s3_enabled` | `false` | Enable S3 secondary repo |
 | `pgbackrest_tls_port` | `8432` | pgBackRest TLS server port |
 
@@ -313,7 +313,7 @@ git commit -m "feat(pgbackrest): add _install task — package, dirs, SELinux la
 
 The template uses `pgbackrest_mode` to render the correct sections. Key facts:
 
-- Cert files are at `{{ pgbackrest_pki_dir }}/ca.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key`
+- Cert files are at `{{ pigsty_pki_dir }}/ca.crt`, `{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt`, `{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key`
 - `tls-server-auth` uses the client's cert CN = `inventory_hostname`
 - On server mode, each postgres node gets a `pgN-host` entry in the stanza section
 - On client mode, `repo1-host` points at `pgbackrest_server_host`; also runs TLS server so the server can reach back
@@ -344,18 +344,18 @@ repo2-retention-full={{ pgbackrest_s3_retention_full }}
 {% if pgbackrest_mode == 'client' %}
 repo1-host={{ pgbackrest_server_host }}
 repo1-host-type=tls
-repo1-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-repo1-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-repo1-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+repo1-host-ca-file={{ pigsty_pki_dir }}/ca.crt
+repo1-host-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+repo1-host-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 repo1-host-port={{ pgbackrest_tls_port }}
 archive-async=y
 spool-path=/var/spool/pgbackrest
 {% endif %}
 tls-server-address=*
 tls-server-port={{ pgbackrest_tls_port }}
-tls-server-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-tls-server-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-tls-server-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+tls-server-ca-file={{ pigsty_pki_dir }}/ca.crt
+tls-server-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+tls-server-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 {% if pgbackrest_mode == 'server' %}
 {% for host in groups['postgres'] %}
 tls-server-auth={{ host }}={{ pgbackrest_stanza }}
@@ -370,9 +370,9 @@ tls-server-auth={{ pgbackrest_server_host }}={{ pgbackrest_stanza }}
 {% for host in groups['postgres'] %}
 pg{{ loop.index }}-host={{ host }}
 pg{{ loop.index }}-host-type=tls
-pg{{ loop.index }}-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-pg{{ loop.index }}-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-pg{{ loop.index }}-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+pg{{ loop.index }}-host-ca-file={{ pigsty_pki_dir }}/ca.crt
+pg{{ loop.index }}-host-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+pg{{ loop.index }}-host-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 pg{{ loop.index }}-host-port={{ pgbackrest_tls_port }}
 pg{{ loop.index }}-path={{ hostvars[host].pgbackrest_pg_path | default(pgbackrest_pg_path) }}
 pg{{ loop.index }}-port={{ hostvars[host].pgbackrest_pg_port | default(pgbackrest_pg_port) }}
@@ -937,6 +937,6 @@ Molecule scenarios for pgbackrest require libvirt and are local-only (see `docs/
 
 - `pgbackrest_user` used consistently across all templates and tasks
 - `pgbackrest_stanza` referenced consistently in config, stanza, archive, and timer tasks
-- `pgbackrest_pki_dir` used consistently in config template
+- `pigsty_pki_dir` used consistently in config template
 - Handler name `Reload systemd` matches `handlers/main.yml` exactly
 - Handler name `Restart pgbackrest` matches `handlers/main.yml` exactly

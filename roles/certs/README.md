@@ -14,7 +14,7 @@ exist on the control node (`roles/ca`).
 
 ## Inputs
 
-- `certs_pki_dir` (default `/etc/pki/pigsty`, derived from `pigsty_pki_dir`)
+- `pigsty_pki_dir` (default `/etc/pki/pigsty`) — shared TLS material directory
 - `certs_validity_days` (default 730)
 - `certs_subject_alternative_names` (auto-built; override only if needed)
 

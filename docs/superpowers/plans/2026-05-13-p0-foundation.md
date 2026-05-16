@@ -2654,7 +2654,7 @@ dependencies: []
 ```yaml
 ---
 certs_ca_dir_on_control: "{{ playbook_dir | dirname }}/pki/ca"
-certs_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
+# (alias removed; use pigsty_pki_dir directly)
 certs_validity_days: "{{ cert_validity_days | default(730) }}"
 certs_renewal_window_days: "{{ cert_renewal_window_days | default(30) }}"
 certs_key_size: 2048
@@ -2670,7 +2670,7 @@ certs_subject_alternative_names:
 ---
 - name: Ensure host PKI directory exists
   ansible.builtin.file:
-    path: "{{ certs_pki_dir }}"
+    path: "{{ pigsty_pki_dir }}"
     state: directory
     owner: root
     group: root
@@ -2679,14 +2679,14 @@ certs_subject_alternative_names:
 - name: Distribute CA certificate to host
   ansible.builtin.copy:
     src: "{{ certs_ca_dir_on_control }}/ca.crt"
-    dest: "{{ certs_pki_dir }}/ca.crt"
+    dest: "{{ pigsty_pki_dir }}/ca.crt"
     owner: root
     group: root
     mode: "0644"
 
 - name: Generate host private key (on target)
   community.crypto.openssl_privatekey:
-    path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.key"
+    path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
     size: "{{ certs_key_size }}"
     type: RSA
     mode: "0640"
@@ -2695,15 +2695,15 @@ certs_subject_alternative_names:
 
 - name: Generate host CSR
   community.crypto.openssl_csr:
-    path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.csr"
-    privatekey_path: "{{ certs_pki_dir }}/{{ inventory_hostname }}.key"
+    path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
     common_name: "{{ inventory_hostname }}"
     subject_alt_name: "{{ certs_subject_alternative_names }}"
     mode: "0640"
 
 - name: Fetch CSR back to control node
   ansible.builtin.fetch:
-    src: "{{ certs_pki_dir }}/{{ inventory_hostname }}.csr"
+    src: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.csr"
     dest: "{{ certs_ca_dir_on_control }}/csrs/{{ inventory_hostname }}.csr"
     flat: true
 
@@ -2722,7 +2722,7 @@ certs_subject_alternative_names:
 - name: Copy signed cert back to host
   ansible.builtin.copy:
     src: "{{ certs_ca_dir_on_control }}/issued/{{ inventory_hostname }}.crt"
-    dest: "{{ certs_pki_dir }}/{{ inventory_hostname }}.crt"
+    dest: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
     owner: root
     group: root
     mode: "0644"
@@ -2745,7 +2745,7 @@ already exist on the control node (`roles/ca`).
 6. Copy signed cert back to target.
 
 ## Inputs
-- `certs_pki_dir` (default `/etc/pki/pigsty`)
+- `pigsty_pki_dir` (default `/etc/pki/pigsty`)
 - `certs_validity_days` (default 730)
 - `certs_subject_alternative_names` (auto-built; override only if needed)
 

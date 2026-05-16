@@ -674,12 +674,12 @@ patroni_packages:
 patroni_config_dir: /etc/patroni
 patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
 patroni_log_dir: /var/log/patroni
-patroni_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
+# (alias removed; use pigsty_pki_dir directly)
 
 # TLS (reuse per-host cert from P0 certs role) - Patroni REST and PG SSL
-patroni_cert_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.crt"
-patroni_key_file: "{{ patroni_pki_dir }}/{{ inventory_hostname }}.key"
-patroni_trusted_ca_file: "{{ patroni_pki_dir }}/ca.crt"
+patroni_cert_file: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
+patroni_key_file: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
+patroni_trusted_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 
 # Network
 patroni_listen_address: "{{ network_any_address | default('0.0.0.0') }}"

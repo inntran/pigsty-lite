@@ -8,19 +8,6 @@
     mode: "0640"
   notify: Restart patroni
 
-- name: Add postgres user to shared PKI read group
-  ansible.builtin.user:
-    name: "{{ patroni_postgres_user }}"
-    groups: "{{ patroni_pki_read_group }}"
-    append: true
-
-- name: Allow etcd and patroni to read the host private key
-  ansible.builtin.file:
-    path: "{{ patroni_key_file }}"
-    owner: root
-    group: "{{ patroni_pki_read_group }}"
-    mode: "0640"
-
 - name: Ensure patroni systemd drop-in dir exists
   ansible.builtin.file:
     path: "{{ patroni_systemd_dropin_dir }}"

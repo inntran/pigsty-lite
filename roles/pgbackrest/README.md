@@ -23,7 +23,7 @@ There is no single-host mode. See §1.1 of the main design doc.
 | `pgbackrest_retention_full` | `4` | Number of full backups to retain |
 | `pgbackrest_schedule_full` | `Sun *-*-* 01:00:00` | systemd OnCalendar for full backups |
 | `pgbackrest_schedule_diff` | `Mon..Sat *-*-* 01:00:00` | systemd OnCalendar for differential backups |
-| `pgbackrest_pki_dir` | `/etc/pki/pigsty` | Path where certs role deployed certs |
+| `pigsty_pki_dir` | `/etc/pki/pigsty` | Path where certs role deployed certs (shared, not pgbackrest-specific) |
 | `pgbackrest_s3_enabled` | `false` | Enable S3 secondary repo |
 | `pgbackrest_tls_port` | `8432` | pgBackRest TLS server port |
 

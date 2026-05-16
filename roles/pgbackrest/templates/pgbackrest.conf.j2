@@ -21,18 +21,18 @@ repo2-retention-full={{ pgbackrest_s3_retention_full }}
 {% if pgbackrest_mode == 'client' %}
 repo1-host={{ pgbackrest_server_host }}
 repo1-host-type=tls
-repo1-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-repo1-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-repo1-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+repo1-host-ca-file={{ pigsty_pki_dir }}/ca.crt
+repo1-host-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+repo1-host-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 repo1-host-port={{ pgbackrest_tls_port }}
 archive-async=y
 spool-path=/var/spool/pgbackrest
 {% endif %}
 tls-server-address=*
 tls-server-port={{ pgbackrest_tls_port }}
-tls-server-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-tls-server-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-tls-server-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+tls-server-ca-file={{ pigsty_pki_dir }}/ca.crt
+tls-server-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+tls-server-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 {% if pgbackrest_mode == 'server' %}
 {% for host in groups['postgres'] %}
 tls-server-auth={{ host }}={{ pgbackrest_stanza }}
@@ -47,9 +47,9 @@ tls-server-auth={{ pgbackrest_server_host }}={{ pgbackrest_stanza }}
 {% for host in groups['postgres'] %}
 pg{{ loop.index }}-host={{ host }}
 pg{{ loop.index }}-host-type=tls
-pg{{ loop.index }}-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
-pg{{ loop.index }}-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
-pg{{ loop.index }}-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+pg{{ loop.index }}-host-ca-file={{ pigsty_pki_dir }}/ca.crt
+pg{{ loop.index }}-host-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
+pg{{ loop.index }}-host-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 pg{{ loop.index }}-host-port={{ pgbackrest_tls_port }}
 pg{{ loop.index }}-path={{ hostvars[host].pgbackrest_pg_path | default(pgbackrest_pg_path) }}
 pg{{ loop.index }}-port={{ hostvars[host].pgbackrest_pg_port | default(pgbackrest_pg_port) }}

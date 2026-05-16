@@ -30,7 +30,7 @@ pgbackrest_schedule_full: "Sun *-*-* 01:00:00"
 pgbackrest_schedule_diff: "Mon..Sat *-*-* 01:00:00"
 
 # PKI — certs role deploys to this dir as <hostname>.crt / <hostname>.key / ca.crt
-pgbackrest_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
+# (alias removed; use pigsty_pki_dir directly)
 
 # Server host — used by client mode to point repo1-host
 pgbackrest_server_host: "{{ groups['backup_server'][0] }}"
@@ -150,7 +150,7 @@ pg1-port=5432
 ## Key Decisions
 
 - **No pgbackrest OS user** — all operations run as `postgres`. The `pgbackrest.service` unit uses `User=postgres`.
-- **Certs referenced directly** from `pgbackrest_pki_dir` (`/etc/pki/pigsty`) — no copy or symlink into a pgbackrest-specific cert dir.
+- **Certs referenced directly** from `pigsty_pki_dir` (`/etc/pki/pigsty`) — no copy or symlink into a pgbackrest-specific cert dir.
 - **`archive_command` via `postgres_extra_parameters`** — the pgbackrest role sets `archive_mode` and `archive_command` by merging into `postgres_extra_parameters`, which the patroni template already renders. Patroni is reloaded to apply.
 - **S3 credentials from Ansible Vault** — rendered directly into `pgbackrest.conf` with `no_log: true`. No separate secrets file.
 - **`tls-server-auth` uses cert CN = `inventory_hostname`** — the certs role sets CN to `inventory_hostname`, so server authorizes clients by hostname.
