@@ -38,14 +38,14 @@ def _render_haproxy_config(
         haproxy_check_rise=2,
         haproxy_backend_port=6432,
         haproxy_patroni_rest_port=8008,
-        haproxy_patroni_rest_ca_file="/etc/pki/pigsty-lite/ca.crt",
+        haproxy_patroni_rest_ca_file="/etc/pki/pigsty/ca.crt",
     )
 
 
 def test_haproxy_health_checks_verify_patroni_tls():
     rendered = _render_haproxy_config()
-    assert "check-ssl verify required ca-file /etc/pki/pigsty-lite/ca.crt" in rendered
-    assert rendered.count("check-ssl verify required ca-file /etc/pki/pigsty-lite/ca.crt") == 6
+    assert "check-ssl verify required ca-file /etc/pki/pigsty/ca.crt" in rendered
+    assert rendered.count("check-ssl verify required ca-file /etc/pki/pigsty/ca.crt") == 6
 
 
 def test_haproxy_binds_client_services_to_all_client_addresses():

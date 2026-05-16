@@ -38,9 +38,9 @@ def _render_etcd_config() -> str:
         etcd_peer_port=2380,
         etcd_cluster_token="pigsty-lite-test-etcd",
         etcd_initial_cluster_state="new",
-        etcd_cert_file="/etc/pki/pigsty-lite/pgnode01.crt",
-        etcd_key_file="/etc/pki/pigsty-lite/pgnode01.key",
-        etcd_trusted_ca_file="/etc/pki/pigsty-lite/ca.crt",
+        etcd_cert_file="/etc/pki/pigsty/pgnode01.crt",
+        etcd_key_file="/etc/pki/pigsty/pgnode01.key",
+        etcd_trusted_ca_file="/etc/pki/pigsty/ca.crt",
     )
 
 

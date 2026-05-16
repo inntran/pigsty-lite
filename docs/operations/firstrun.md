@@ -64,15 +64,15 @@ Target hosts:
    ```
 
 After P0+P1, every host has PGDG enabled, baseline firewalld, sysctl tuning,
-`/etc/pki/pigsty-lite/<host>.{crt,key}` plus `ca.crt`, and every `etcd` group
+`/etc/pki/pigsty/<host>.{crt,key}` plus `ca.crt`, and every `etcd` group
 member runs a healthy mTLS-secured etcd member. Verify with:
 
 ```bash
 ansible etcd -i inventory/site.yml -m command -b -a \
   'etcdctl --endpoints=https://127.0.0.1:2379 \
-    --cacert=/etc/pki/pigsty-lite/ca.crt \
-    --cert=/etc/pki/pigsty-lite/{{ inventory_hostname }}.crt \
-    --key=/etc/pki/pigsty-lite/{{ inventory_hostname }}.key \
+    --cacert=/etc/pki/pigsty/ca.crt \
+    --cert=/etc/pki/pigsty/{{ inventory_hostname }}.crt \
+    --key=/etc/pki/pigsty/{{ inventory_hostname }}.key \
     endpoint health'
 ```
 

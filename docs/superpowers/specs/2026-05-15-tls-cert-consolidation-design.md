@@ -8,7 +8,7 @@
 
 Currently, TLS certificates are scattered across multiple paths:
 - Control node: `pki/ca/` (local filesystem)
-- Target nodes: `/etc/pki/pigsty-lite/` (default, but variable)
+- Target nodes: `/etc/pki/pigsty/` (consolidated location)
 - Various roles use different path variables: `certs_pki_dir`, `etcd_pki_dir`, `ca_dir`
 
 This fragmentation makes it harder to:
@@ -94,8 +94,8 @@ After consolidation, all nodes have:
 
 #### 5. Backward Compatibility
 
-- Old default `/etc/pki/pigsty-lite/` will not be used
-- Variable `certs_pki_dir` will become an alias to `pigsty_pki_dir` for backward compatibility
+- All new deployments use `/etc/pki/pigsty/` for certificates
+- Variable `certs_pki_dir` references `pigsty_pki_dir` for backward compatibility
 - Operators can override via `pigsty_pki_dir: /custom/path` if needed
 
 #### 6. CA Operating Manual
