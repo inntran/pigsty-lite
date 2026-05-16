@@ -1,15 +1,37 @@
 ---
+- name: Build pgbackrest firewall sources from postgres nodes
+  ansible.builtin.set_fact:
+    pgbackrest_firewall_sources: >-
+      {{ (pgbackrest_firewall_sources | default([]))
+         + [{'address': pgbackrest_firewall_source_address,
+             'family': ('ipv6' if ':' in (pgbackrest_firewall_source_address | string) else 'ipv4')}] }}
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+  vars:
+    pgbackrest_source_hostvars: "{{ hostvars[item] }}"
+    pgbackrest_firewall_source_address: >-
+      {{ pgbackrest_source_hostvars.get(
+           'patroni_advertise_address',
+           pgbackrest_source_hostvars.get(
+             'ansible_host',
+             pgbackrest_source_hostvars.get('ansible_facts', {}).get('default_ipv6', {}).get(
+               'address',
+               pgbackrest_source_hostvars.get('ansible_facts', {}).get('default_ipv4', {}).get('address')
+             )
+           )
+         ) }}
+
 - name: Open pgBackRest TLS port from postgres nodes
   ansible.posix.firewalld:
     rich_rule: >-
-      rule family='ipv4'
-      source address='{{ hostvars[item].ansible_host | default(item) }}'
+      rule family="{{ item.family }}" source address="{{ item.address }}"
       port port='{{ pgbackrest_tls_port }}' protocol='tcp'
       accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ pgbackrest_firewalld_zone }}"
-  loop: "{{ groups['postgres'] }}"
+  loop: "{{ pgbackrest_firewall_sources | unique }}"
   loop_control:
-    label: "{{ item }}"
+    label: "{{ item.address }}"
