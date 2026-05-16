@@ -1,5 +1,26 @@
 ---
-- name: PgBackRest — server (backup_server group)
+# Three plays. Order matters:
+#   1. Client install on every postgres node — puts the pgbackrest binary,
+#      cert config, and TLS server daemon in place so the server-side
+#      stanza-create (which delegates to a postgres node) can run.
+#   2. Server install on backup_server — owns the repo, runs the daemon,
+#      delegates `pgbackrest stanza-create` to the first postgres node.
+#   3. Activate WAL archiving on the postgres group — natively, NOT via
+#      delegation from the server. This lets the play see Patroni's role
+#      defaults (patroni_scope, patroni_config_file, etc.) and the postgres
+#      role's defaults when re-rendering patroni.yml. The final
+#      `pgbackrest check` runs here too, since it requires archive_command
+#      to be live.
+- name: PgBackRest — client install (postgres group)
+  hosts: postgres
+  become: true
+  vars:
+    pgbackrest_mode: client
+  roles:
+    - role: pgbackrest
+      tags: [pgbackrest, backup]
+
+- name: PgBackRest — server install + stanza (backup_server group)
   hosts: backup_server
   become: true
   vars:
@@ -8,11 +29,20 @@
     - role: pgbackrest
       tags: [pgbackrest, backup]
 
-- name: PgBackRest — client (postgres group)
+- name: PgBackRest — activate WAL archiving (postgres group)
   hosts: postgres
   become: true
-  vars:
-    pgbackrest_mode: client
-  roles:
-    - role: pgbackrest
-      tags: [pgbackrest, backup]
+  tasks:
+    - name: Load patroni role defaults for templating
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../roles/patroni/defaults/main.yml"
+
+    - name: Load pgbackrest role defaults
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../roles/pgbackrest/defaults/main.yml"
+
+    - name: Run archive activation
+      ansible.builtin.include_role:
+        name: pgbackrest
+        tasks_from: _archive.yml
+      tags: [pgbackrest, backup, archive]

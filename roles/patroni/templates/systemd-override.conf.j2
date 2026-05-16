@@ -1,4 +1,14 @@
 # {{ ansible_managed }}
+{% if inventory_hostname in groups.get('etcd', []) %}
+[Unit]
+# When etcd is colocated on this host, order patroni after it.
+# At startup systemd brings etcd up before patroni; at shutdown
+# patroni stops first so it can release its leader lease cleanly
+# before etcd disappears.
+After=etcd.service
+Requires=etcd.service
+
+{% endif %}
 [Service]
 LimitNOFILE=65536
 Restart=on-failure

@@ -32,10 +32,10 @@
   when: pgbackrest_mode == 'server'
   tags: [pgbackrest, stanza]
 
-- name: Activate WAL archiving
-  ansible.builtin.import_tasks: _archive.yml
-  when: pgbackrest_mode == 'server'
-  tags: [pgbackrest, archive]
+# Note: WAL archive activation (_archive.yml) is NOT imported here.
+# It runs as a separate third play in playbooks/_pgbackrest.yml, on
+# hosts: postgres, so the play sees patroni's role defaults natively
+# rather than via delegation from the backup_server host.
 
 - name: Install backup timers
   ansible.builtin.import_tasks: _timers.yml
