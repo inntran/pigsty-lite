@@ -4,6 +4,33 @@
     name: "{{ node_required_packages }}"
     state: present
 
+- name: Ensure pigsty shared group exists
+  ansible.builtin.group:
+    name: pigsty
+    gid: 926
+    system: true
+    state: present
+
+- name: Ensure pigsty shared system user exists
+  ansible.builtin.user:
+    name: pigsty
+    uid: 926
+    group: pigsty
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/pigsty
+    create_home: true
+    comment: "pigsty-lite shared identity"
+    state: present
+
+- name: Lock down pigsty home
+  ansible.builtin.file:
+    path: /var/lib/pigsty
+    state: directory
+    owner: pigsty
+    group: pigsty
+    mode: "0750"
+
 - name: Set hostname to inventory host
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
