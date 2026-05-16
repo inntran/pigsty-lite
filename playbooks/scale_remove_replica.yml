@@ -113,7 +113,7 @@
           Replica {{ target_host }} removed. Cluster now has
           {{ cluster_ops_member_count }} members. Next: remove
           {{ target_host }} from the inventory and re-run
-          `./configure -s -f ...` so the backup_store and monitoring
+          `./configure -s -f ...` so the backup_server and monitoring
           configs stop referencing it. The data directory on
           {{ target_host }} was intentionally left in place.
       run_once: true

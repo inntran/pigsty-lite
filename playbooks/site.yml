@@ -30,11 +30,8 @@
 - name: Import P3 provision playbook
   import_playbook: _provision.yml
   tags: [provision]
-- name: Import P4 backup client playbook
-  import_playbook: _backup_client.yml
-  tags: [backup]
-- name: Import P4 backup store playbook
-  import_playbook: _backup_store.yml
+- name: Import P4 pgbackrest playbook
+  import_playbook: _pgbackrest.yml
   tags: [backup]
 - name: Import P5 monitoring server playbook
   import_playbook: _monitoring_server.yml

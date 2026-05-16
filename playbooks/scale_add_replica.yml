@@ -91,8 +91,8 @@
 - name: Install HAProxy on the new replica
   ansible.builtin.import_playbook: _haproxy.yml
 
-- name: Install the backup client on the new replica
-  ansible.builtin.import_playbook: _backup_client.yml
+- name: Install pgBackRest on the new replica
+  ansible.builtin.import_playbook: _pgbackrest.yml
 
 - name: Install monitoring agents on the new replica
   ansible.builtin.import_playbook: _monitoring_agents.yml
@@ -126,7 +126,7 @@
       ansible.builtin.debug:
         msg: >-
           Replica {{ target_host }} added. Cluster now has
-          {{ cluster_ops_member_count }} members. The backup_store
-          authorized_keys and monitoring scrape targets pick the new
+          {{ cluster_ops_member_count }} members. The backup_server
+          and monitoring scrape targets pick the new
           node up on the next `make deploy`.
       run_once: true
