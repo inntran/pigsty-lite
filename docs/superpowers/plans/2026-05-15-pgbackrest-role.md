@@ -1,0 +1,767 @@
+# pgBackRest Role Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Create `roles/pgbackrest` — a single Ansible role replacing `roles/bad_backup_client` and `roles/bad_backup_store`, supporting three modes: `standalone`, `server`, and `client`.
+
+**Architecture:** One role, `pgbackrest_mode` variable selects which task files run. All three modes install the package and render config. `server` and `client` also run the `pgbackrest server` TLS daemon. `standalone` and `server` create the stanza, set `archive_command`, and install backup timers. Certs are referenced directly from `pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
+
+**Tech Stack:** Ansible, pgBackRest 2.55+, systemd, firewalld, SELinux (RHEL/EL10), Patroni (for `postgres_extra_parameters` injection).
+
+---
+
+## File Map
+
+| Path | Purpose |
+|------|---------|
+| `roles/pgbackrest/defaults/main.yml` | All role variables with defaults |
+| `roles/pgbackrest/meta/main.yml` | Galaxy metadata |
+| `roles/pgbackrest/handlers/main.yml` | `reload systemd`, `restart pgbackrest` |
+| `roles/pgbackrest/tasks/main.yml` | Entry point — imports tasks based on mode |
+| `roles/pgbackrest/tasks/_install.yml` | Install package, create dirs, SELinux labels |
+| `roles/pgbackrest/tasks/_config.yml` | Render `pgbackrest.conf` |
+| `roles/pgbackrest/tasks/_service.yml` | Deploy + start `pgbackrest.service` (server + client) |
+| `roles/pgbackrest/tasks/_firewall.yml` | Open TLS port from postgres nodes (server only) |
+| `roles/pgbackrest/tasks/_stanza.yml` | `stanza-create` + `check` (standalone + server) |
+| `roles/pgbackrest/tasks/_archive.yml` | Set `archive_mode`/`archive_command` via `postgres_extra_parameters`, reload Patroni (standalone + server) |
+| `roles/pgbackrest/tasks/_timers.yml` | Deploy full/diff systemd timers (standalone + server) |
+| `roles/pgbackrest/templates/pgbackrest.conf.j2` | Config template — mode-conditional |
+| `roles/pgbackrest/templates/pgbackrest.service.j2` | TLS server daemon unit |
+| `roles/pgbackrest/templates/pgbackrest-backup@.service.j2` | Oneshot backup service (instantiated with `full`/`diff`) |
+| `roles/pgbackrest/templates/pgbackrest-backup@.timer.j2` | Timer for backup service |
+| `roles/pgbackrest/README.md` | Usage docs |
+
+---
+
+### Task 1: Scaffold role skeleton
+
+**Files:**
+- Create: `roles/pgbackrest/defaults/main.yml`
+- Create: `roles/pgbackrest/meta/main.yml`
+- Create: `roles/pgbackrest/handlers/main.yml`
+- Create: `roles/pgbackrest/tasks/main.yml`
+- Create: `roles/pgbackrest/README.md`
+
+- [ ] **Step 1: Create `defaults/main.yml`**
+
+```yaml
+---
+# roles/pgbackrest/defaults/main.yml
+
+pgbackrest_mode: standalone          # standalone | server | client
+
+pgbackrest_package: pgbackrest
+pgbackrest_support_packages:
+  - python3-libselinux
+  - policycoreutils-python-utils
+
+pgbackrest_stanza: pigsty
+pgbackrest_repo_path: /var/lib/pgbackrest
+pgbackrest_log_path: /var/log/pgbackrest
+pgbackrest_config_file: /etc/pgbackrest/pgbackrest.conf
+pgbackrest_config_dir: /etc/pgbackrest
+pgbackrest_tls_port: 8432
+pgbackrest_retention_full: 4
+pgbackrest_schedule_full: "Sun *-*-* 01:00:00"
+pgbackrest_schedule_diff: "Mon..Sat *-*-* 01:00:00"
+
+# PKI — certs role deploys <hostname>.crt, <hostname>.key, ca.crt here
+pgbackrest_pki_dir: "{{ pki_dir | default('/etc/pki/pigsty') }}"
+
+# OS user that owns the repo and runs the daemon (always postgres)
+pgbackrest_user: "{{ postgres_user | default('postgres') }}"
+pgbackrest_group: "{{ postgres_group | default('postgres') }}"
+
+# PostgreSQL paths — used by standalone + server mode stanza config
+pgbackrest_pg_path: "{{ postgres_data_dir | default('/var/lib/pgsql/' ~ (postgres_version | default(18)) ~ '/data') }}"
+pgbackrest_pg_port: "{{ postgres_port | default(5432) }}"
+
+# Server host — used by client mode to locate repo1-host
+pgbackrest_server_host: "{{ groups['backup_server'][0] }}"
+
+# Firewalld
+pgbackrest_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+
+# S3 secondary repo (optional, repo2)
+pgbackrest_s3_enabled: false
+pgbackrest_s3_bucket: ~
+pgbackrest_s3_endpoint: ~
+pgbackrest_s3_region: us-east-1
+pgbackrest_s3_path: /pgbackrest
+pgbackrest_s3_key: ~            # from Ansible Vault
+pgbackrest_s3_key_secret: ~     # from Ansible Vault
+pgbackrest_s3_retention_full: "{{ pgbackrest_retention_full }}"
+```
+
+- [ ] **Step 2: Create `meta/main.yml`**
+
+```yaml
+---
+galaxy_info:
+  role_name: pgbackrest
+  author: pigsty-lite
+  description: pgBackRest backup — standalone, server, and client modes.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions: ["10"]
+dependencies: []
+```
+
+- [ ] **Step 3: Create `handlers/main.yml`**
+
+```yaml
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart pgbackrest
+  ansible.builtin.systemd:
+    name: pgbackrest
+    state: restarted
+```
+
+- [ ] **Step 4: Create `tasks/main.yml`**
+
+```yaml
+---
+- name: Install pgBackRest
+  ansible.builtin.import_tasks: _install.yml
+  tags: [pgbackrest, install]
+
+- name: Render pgBackRest configuration
+  ansible.builtin.import_tasks: _config.yml
+  tags: [pgbackrest, config]
+
+- name: Deploy and start pgBackRest TLS server daemon
+  ansible.builtin.import_tasks: _service.yml
+  when: pgbackrest_mode in ['server', 'client']
+  tags: [pgbackrest, service]
+
+- name: Open firewalld for pgBackRest TLS port
+  ansible.builtin.import_tasks: _firewall.yml
+  when: pgbackrest_mode == 'server'
+  tags: [pgbackrest, firewall]
+
+- name: Create pgBackRest stanza
+  ansible.builtin.import_tasks: _stanza.yml
+  when: pgbackrest_mode in ['standalone', 'server']
+  tags: [pgbackrest, stanza]
+
+- name: Activate WAL archiving
+  ansible.builtin.import_tasks: _archive.yml
+  when: pgbackrest_mode in ['standalone', 'server']
+  tags: [pgbackrest, archive]
+
+- name: Install backup timers
+  ansible.builtin.import_tasks: _timers.yml
+  when: pgbackrest_mode in ['standalone', 'server']
+  tags: [pgbackrest, timers]
+```
+
+- [ ] **Step 5: Create `README.md`**
+
+```markdown
+# pgbackrest
+
+Installs and configures pgBackRest. Supports three modes via `pgbackrest_mode`:
+
+- `standalone` — repo and PostgreSQL on the same host. Local repo, stanza created, timers installed.
+- `server` — dedicated repository host. Runs `pgbackrest server` daemon, owns repo, runs timers, connects to postgres nodes over TLS.
+- `client` — postgres node in multi-host setup. Runs `pgbackrest server` daemon, points to server host.
+
+## Requirements
+
+- `roles/certs` must run first (deploys PKI certs to `pki_dir`).
+- `roles/patroni` must run first on postgres nodes (provides `postgres_extra_parameters` injection point).
+- Inventory group `backup_server` must exist with exactly one host when using `server`/`client` modes.
+
+## Key Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `pgbackrest_mode` | `standalone` | `standalone`, `server`, or `client` |
+| `pgbackrest_stanza` | `pigsty` | Stanza name |
+| `pgbackrest_repo_path` | `/var/lib/pgbackrest` | Repository path |
+| `pgbackrest_retention_full` | `4` | Number of full backups to retain |
+| `pgbackrest_schedule_full` | `Sun *-*-* 01:00:00` | systemd OnCalendar for full backups |
+| `pgbackrest_schedule_diff` | `Mon..Sat *-*-* 01:00:00` | systemd OnCalendar for differential backups |
+| `pgbackrest_pki_dir` | `/etc/pki/pigsty` | Path where certs role deployed certs |
+| `pgbackrest_s3_enabled` | `false` | Enable S3 secondary repo |
+| `pgbackrest_tls_port` | `8432` | pgBackRest TLS server port |
+
+## S3 Secondary Repo
+
+Set `pgbackrest_s3_enabled: true` and supply vault-encrypted values for:
+- `pgbackrest_s3_key`
+- `pgbackrest_s3_key_secret`
+- `pgbackrest_s3_bucket`, `pgbackrest_s3_endpoint`, `pgbackrest_s3_region`, `pgbackrest_s3_path`
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add roles/pgbackrest/
+git commit -m "feat(pgbackrest): scaffold role skeleton — defaults, meta, handlers, tasks entry point, README"
+```
+
+---
+
+### Task 2: Install task
+
+**Files:**
+- Create: `roles/pgbackrest/tasks/_install.yml`
+
+- [ ] **Step 1: Create `tasks/_install.yml`**
+
+```yaml
+---
+- name: Install pgBackRest and SELinux helpers
+  ansible.builtin.dnf:
+    name: "{{ [pgbackrest_package] + pgbackrest_support_packages }}"
+    state: present
+
+- name: Ensure pgBackRest config directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+
+- name: Ensure pgBackRest log directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_log_path }}"
+    state: directory
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+
+- name: Ensure pgBackRest repo directory exists
+  ansible.builtin.file:
+    path: "{{ pgbackrest_repo_path }}"
+    state: directory
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0750"
+  when: pgbackrest_mode in ['standalone', 'server']
+
+- name: Register SELinux fcontext for repo directory
+  community.general.sefcontext:
+    target: "{{ pgbackrest_repo_path }}(/.*)?"
+    setype: var_t
+    state: present
+  register: _pgbackrest_repo_fcontext
+  when:
+    - pgbackrest_mode in ['standalone', 'server']
+    - ansible_facts.selinux.status == "enabled"
+
+- name: Relabel repo directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ pgbackrest_repo_path }}"
+  when:
+    - pgbackrest_mode in ['standalone', 'server']
+    - ansible_facts.selinux.status == "enabled"
+    - _pgbackrest_repo_fcontext.changed
+  changed_when: true
+
+- name: Register SELinux fcontext for log directory
+  community.general.sefcontext:
+    target: "{{ pgbackrest_log_path }}(/.*)?"
+    setype: postgresql_log_t
+    state: present
+  register: _pgbackrest_log_fcontext
+  when: ansible_facts.selinux.status == "enabled"
+
+- name: Relabel log directory if fcontext changed
+  ansible.builtin.command:
+    cmd: "restorecon -RF {{ pgbackrest_log_path }}"
+  when:
+    - ansible_facts.selinux.status == "enabled"
+    - _pgbackrest_log_fcontext.changed
+  changed_when: true
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add roles/pgbackrest/tasks/_install.yml
+git commit -m "feat(pgbackrest): add _install task — package, dirs, SELinux labels"
+```
+
+---
+
+### Task 3: Config template
+
+**Files:**
+- Create: `roles/pgbackrest/templates/pgbackrest.conf.j2`
+- Create: `roles/pgbackrest/tasks/_config.yml`
+
+The template uses `pgbackrest_mode` to render the correct sections. Key facts:
+- Cert files are at `{{ pgbackrest_pki_dir }}/ca.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt`, `{{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key`
+- `tls-server-auth` uses the client's cert CN = `inventory_hostname`
+- On server mode, each postgres node gets a `pgN-host` entry in the stanza section
+- On client mode, `repo1-host` points at `pgbackrest_server_host`; also runs TLS server so the server can reach back
+
+- [ ] **Step 1: Create `templates/pgbackrest.conf.j2`**
+
+```jinja2
+# {{ ansible_managed }}
+[global]
+log-level-console=info
+log-level-file=detail
+log-path={{ pgbackrest_log_path }}
+start-fast=y
+{% if pgbackrest_mode in ['standalone', 'server'] %}
+repo1-path={{ pgbackrest_repo_path }}
+repo1-retention-full={{ pgbackrest_retention_full }}
+{% if pgbackrest_s3_enabled %}
+repo2-type=s3
+repo2-s3-bucket={{ pgbackrest_s3_bucket }}
+repo2-s3-endpoint={{ pgbackrest_s3_endpoint }}
+repo2-s3-region={{ pgbackrest_s3_region }}
+repo2-path={{ pgbackrest_s3_path }}
+repo2-s3-key={{ pgbackrest_s3_key }}
+repo2-s3-key-secret={{ pgbackrest_s3_key_secret }}
+repo2-retention-full={{ pgbackrest_s3_retention_full }}
+{% endif %}
+{% endif %}
+{% if pgbackrest_mode == 'client' %}
+repo1-host={{ pgbackrest_server_host }}
+repo1-host-type=tls
+repo1-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
+repo1-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
+repo1-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+repo1-host-port={{ pgbackrest_tls_port }}
+archive-async=y
+spool-path=/var/spool/pgbackrest
+{% endif %}
+{% if pgbackrest_mode in ['server', 'client'] %}
+tls-server-address=*
+tls-server-port={{ pgbackrest_tls_port }}
+tls-server-ca-file={{ pgbackrest_pki_dir }}/ca.crt
+tls-server-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
+tls-server-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+{% endif %}
+{% if pgbackrest_mode == 'server' %}
+{% for host in groups['postgres'] %}
+tls-server-auth={{ host }}={{ pgbackrest_stanza }}
+{% endfor %}
+{% endif %}
+{% if pgbackrest_mode == 'client' %}
+tls-server-auth={{ pgbackrest_server_host }}={{ pgbackrest_stanza }}
+{% endif %}
+
+[{{ pgbackrest_stanza }}]
+{% if pgbackrest_mode == 'standalone' %}
+pg1-path={{ pgbackrest_pg_path }}
+pg1-port={{ pgbackrest_pg_port }}
+{% endif %}
+{% if pgbackrest_mode == 'server' %}
+{% for host in groups['postgres'] %}
+pg{{ loop.index }}-host={{ host }}
+pg{{ loop.index }}-host-type=tls
+pg{{ loop.index }}-host-ca-file={{ pgbackrest_pki_dir }}/ca.crt
+pg{{ loop.index }}-host-cert-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.crt
+pg{{ loop.index }}-host-key-file={{ pgbackrest_pki_dir }}/{{ inventory_hostname }}.key
+pg{{ loop.index }}-host-port={{ pgbackrest_tls_port }}
+pg{{ loop.index }}-path={{ hostvars[host].pgbackrest_pg_path | default(pgbackrest_pg_path) }}
+pg{{ loop.index }}-port={{ hostvars[host].pgbackrest_pg_port | default(pgbackrest_pg_port) }}
+{% endfor %}
+{% endif %}
+{% if pgbackrest_mode == 'client' %}
+pg1-path={{ pgbackrest_pg_path }}
+pg1-port={{ pgbackrest_pg_port }}
+{% endif %}
+```
+
+- [ ] **Step 2: Create `tasks/_config.yml`**
+
+```yaml
+---
+- name: Render pgBackRest configuration
+  ansible.builtin.template:
+    src: pgbackrest.conf.j2
+    dest: "{{ pgbackrest_config_file }}"
+    owner: "{{ pgbackrest_user }}"
+    group: "{{ pgbackrest_group }}"
+    mode: "0640"
+  no_log: "{{ pgbackrest_s3_enabled }}"
+  notify: Restart pgbackrest
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add roles/pgbackrest/templates/pgbackrest.conf.j2 roles/pgbackrest/tasks/_config.yml
+git commit -m "feat(pgbackrest): add config template and _config task"
+```
+
+---
+
+### Task 4: TLS server service
+
+**Files:**
+- Create: `roles/pgbackrest/templates/pgbackrest.service.j2`
+- Create: `roles/pgbackrest/tasks/_service.yml`
+
+The official RHEL guide uses:
+- `User=pgbackrest` on the repo host
+- `User=postgres` on pg hosts
+
+Since we always use `postgres`, `User={{ pgbackrest_user }}` resolves to `postgres` in both cases.
+
+- [ ] **Step 1: Create `templates/pgbackrest.service.j2`**
+
+```jinja2
+# {{ ansible_managed }}
+[Unit]
+Description=pgBackRest Server
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User={{ pgbackrest_user }}
+ExecStart=/usr/bin/pgbackrest server
+ExecStartPost=/bin/sleep 3
+ExecStartPost=/bin/bash -c "[ ! -z $MAINPID ]"
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+```
+
+- [ ] **Step 2: Create `tasks/_service.yml`**
+
+```yaml
+---
+- name: Deploy pgBackRest server systemd unit
+  ansible.builtin.template:
+    src: pgbackrest.service.j2
+    dest: /etc/systemd/system/pgbackrest.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers to reload systemd before starting service
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start pgBackRest server daemon
+  ansible.builtin.systemd:
+    name: pgbackrest
+    enabled: true
+    state: started
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add roles/pgbackrest/templates/pgbackrest.service.j2 roles/pgbackrest/tasks/_service.yml
+git commit -m "feat(pgbackrest): add TLS server systemd service template and _service task"
+```
+
+---
+
+### Task 5: Firewall task (server mode)
+
+**Files:**
+- Create: `roles/pgbackrest/tasks/_firewall.yml`
+
+Opens `pgbackrest_tls_port` (8432/tcp) on the server host, accepting connections from each postgres node's address.
+
+- [ ] **Step 1: Create `tasks/_firewall.yml`**
+
+```yaml
+---
+- name: Open pgBackRest TLS port from postgres nodes
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family='ipv4'
+      source address='{{ hostvars[item].ansible_host | default(item) }}'
+      port port='{{ pgbackrest_tls_port }}' protocol='tcp'
+      accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ pgbackrest_firewalld_zone }}"
+  loop: "{{ groups['postgres'] }}"
+  loop_control:
+    label: "{{ item }}"
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add roles/pgbackrest/tasks/_firewall.yml
+git commit -m "feat(pgbackrest): add _firewall task — open TLS port from postgres nodes"
+```
+
+---
+
+### Task 6: Stanza creation
+
+**Files:**
+- Create: `roles/pgbackrest/tasks/_stanza.yml`
+
+Runs on standalone and server hosts. Idempotent — ignores "already exists" errors.
+
+- [ ] **Step 1: Create `tasks/_stanza.yml`**
+
+```yaml
+---
+- name: Create pgBackRest stanza
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} stanza-create
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  register: _pgbackrest_stanza_create
+  changed_when: >-
+    'completed successfully' in (_pgbackrest_stanza_create.stdout ~ _pgbackrest_stanza_create.stderr)
+  failed_when: >-
+    _pgbackrest_stanza_create.rc != 0
+    and 'already exists' not in (_pgbackrest_stanza_create.stderr | default(''))
+
+- name: Check pgBackRest stanza configuration
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} check
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  changed_when: false
+  register: _pgbackrest_stanza_check
+  failed_when: _pgbackrest_stanza_check.rc != 0
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add roles/pgbackrest/tasks/_stanza.yml
+git commit -m "feat(pgbackrest): add _stanza task — stanza-create and check"
+```
+
+---
+
+### Task 7: WAL archive activation
+
+**Files:**
+- Create: `roles/pgbackrest/tasks/_archive.yml`
+
+Sets `archive_mode` and `archive_command` by merging into `postgres_extra_parameters` on each postgres node, then re-renders `patroni.yml` and reloads Patroni.
+
+The patroni template at `roles/patroni/templates/patroni.yml.j2:113` already iterates `postgres_extra_parameters` into the `parameters:` block. So injecting there is the right hook.
+
+On `server` mode, this task delegates to each postgres node. On `standalone`, it runs locally.
+
+- [ ] **Step 1: Create `tasks/_archive.yml`**
+
+```yaml
+---
+- name: Inject archive_mode and archive_command into postgres_extra_parameters
+  ansible.builtin.set_fact:
+    postgres_extra_parameters: >-
+      {{
+        (hostvars[item].postgres_extra_parameters | default({})) | combine({
+          'archive_mode': 'on',
+          'archive_command': "pgbackrest --stanza=" ~ pgbackrest_stanza ~ " archive-push %p"
+        })
+      }}
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Re-render patroni.yml with archive settings on each postgres node
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../roles/patroni/templates/patroni.yml.j2"
+    dest: "{{ hostvars[item].patroni_config_file | default('/etc/patroni/patroni.yml') }}"
+    owner: root
+    group: "{{ hostvars[item].postgres_group | default('postgres') }}"
+    mode: "0640"
+  delegate_to: "{{ item }}"
+  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _pgbackrest_patroni_config
+
+- name: Reload Patroni to apply archive settings
+  ansible.builtin.systemd:
+    name: patroni
+    state: reloaded
+  delegate_to: "{{ item }}"
+  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop_control:
+    label: "{{ item }}"
+  when: _pgbackrest_patroni_config.results | selectattr('item', 'equalto', item) | map(attribute='changed') | first | default(false)
+
+- name: Wait for archive_command to be active in PostgreSQL
+  ansible.builtin.command:
+    cmd: psql -U {{ hostvars[item].pgbackrest_user | default('postgres') }} -tAc "SHOW archive_command"
+  become: true
+  become_user: "{{ hostvars[item].pgbackrest_user | default('postgres') }}"
+  delegate_to: "{{ item }}"
+  loop: "{{ (pgbackrest_mode == 'server') | ternary(groups['postgres'], [inventory_hostname]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _pgbackrest_archive_cmd
+  until: "'pgbackrest' in (_pgbackrest_archive_cmd.stdout | default(''))"
+  retries: 12
+  delay: 5
+  changed_when: false
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add roles/pgbackrest/tasks/_archive.yml
+git commit -m "feat(pgbackrest): add _archive task — inject archive_command via postgres_extra_parameters"
+```
+
+---
+
+### Task 8: Backup timers
+
+**Files:**
+- Create: `roles/pgbackrest/templates/pgbackrest-backup@.service.j2`
+- Create: `roles/pgbackrest/templates/pgbackrest-backup@.timer.j2`
+- Create: `roles/pgbackrest/tasks/_timers.yml`
+
+Two timers: `pgbackrest-backup@full.timer` and `pgbackrest-backup@diff.timer`. The `%i` instance name is passed as `--type` to `pgbackrest backup`.
+
+- [ ] **Step 1: Create `templates/pgbackrest-backup@.service.j2`**
+
+```jinja2
+# {{ ansible_managed }}
+[Unit]
+Description=pgBackRest %i backup for stanza {{ pgbackrest_stanza }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{ pgbackrest_user }}
+Group={{ pgbackrest_group }}
+ExecStart=/usr/bin/pgbackrest --stanza={{ pgbackrest_stanza }} --type=%i backup
+```
+
+- [ ] **Step 2: Create `templates/pgbackrest-backup@.timer.j2`**
+
+```jinja2
+# {{ ansible_managed }}
+[Unit]
+Description=Scheduled pgBackRest %i backup for stanza {{ pgbackrest_stanza }}
+
+[Timer]
+OnCalendar={{ (timer_type == 'full') | ternary(pgbackrest_schedule_full, pgbackrest_schedule_diff) }}
+Persistent=true
+Unit=pgbackrest-backup@%i.service
+
+[Install]
+WantedBy=timers.target
+```
+
+- [ ] **Step 3: Create `tasks/_timers.yml`**
+
+```yaml
+---
+- name: Deploy pgBackRest backup oneshot service template
+  ansible.builtin.template:
+    src: pgbackrest-backup@.service.j2
+    dest: /etc/systemd/system/pgbackrest-backup@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Deploy pgBackRest backup timer units
+  ansible.builtin.template:
+    src: pgbackrest-backup@.timer.j2
+    dest: "/etc/systemd/system/pgbackrest-backup@{{ item }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - full
+    - diff
+  vars:
+    timer_type: "{{ item }}"
+  notify: Reload systemd
+
+- name: Flush handlers to reload systemd before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start backup timers
+  ansible.builtin.systemd:
+    name: "pgbackrest-backup@{{ item }}.timer"
+    enabled: true
+    state: started
+  loop:
+    - full
+    - diff
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add roles/pgbackrest/templates/pgbackrest-backup@.service.j2 roles/pgbackrest/templates/pgbackrest-backup@.timer.j2 roles/pgbackrest/tasks/_timers.yml
+git commit -m "feat(pgbackrest): add backup timer templates and _timers task"
+```
+
+---
+
+### Task 9: Delete bad roles
+
+**Files:**
+- Delete: `roles/bad_backup_client/` (entire directory)
+- Delete: `roles/bad_backup_store/` (entire directory)
+- Modify: `docs/superpowers/plans/2026-05-14-p4-backups.md` — mark superseded
+
+- [ ] **Step 1: Remove bad roles from git**
+
+```bash
+git rm -r roles/bad_backup_client roles/bad_backup_store
+```
+
+- [ ] **Step 2: Mark old plan as superseded**
+
+Add one line at the top of `docs/superpowers/plans/2026-05-14-p4-backups.md`:
+
+```markdown
+> **SUPERSEDED** by `roles/pgbackrest` — see `docs/superpowers/plans/2026-05-15-pgbackrest-role.md`.
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add docs/superpowers/plans/2026-05-14-p4-backups.md
+git commit -m "chore: remove bad_backup_client and bad_backup_store roles, superseded by pgbackrest"
+```
+
+---
+
+## Self-Review
+
+**Spec coverage:**
+- ✓ Single role with three modes (`standalone`, `server`, `client`)
+- ✓ No `pgbackrest` OS user — all tasks use `User=postgres`
+- ✓ Certs referenced directly from `pki_dir` — no copy/symlink
+- ✓ `archive_command` via `postgres_extra_parameters` injection
+- ✓ S3 secondary repo with Ansible Vault credentials
+- ✓ Systemd timers for full + diff backups with configurable schedules
+- ✓ `stanza-create` + `check` on standalone and server
+- ✓ Firewall task on server only
+- ✓ Bad roles deleted
+
+**Placeholder scan:** No TBDs, all steps include actual code.
+
+**Type consistency:**
+- `pgbackrest_user` used consistently across all templates and tasks
+- `pgbackrest_stanza` referenced consistently in config, stanza, archive, and timer tasks
+- `pgbackrest_pki_dir` used consistently in config template
+- Handler name `Reload systemd` matches `handlers/main.yml` exactly
+- Handler name `Restart pgbackrest` matches `handlers/main.yml` exactly
