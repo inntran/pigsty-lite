@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-monagt-default-1
-    image: docker.io/oraclelinux:10
+    image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -15,7 +15,7 @@ platforms:
     groups: [monitor, backup_server]
     network: pigsty-lite-monagt
   - name: pigsty-lite-monagt-default-2
-    image: docker.io/oraclelinux:10
+    image: localhost/molecule-base:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
