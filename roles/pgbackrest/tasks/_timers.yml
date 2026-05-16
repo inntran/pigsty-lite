@@ -1,0 +1,35 @@
+---
+- name: Deploy pgBackRest backup oneshot service template
+  ansible.builtin.template:
+    src: pgbackrest-backup@.service.j2
+    dest: /etc/systemd/system/pgbackrest-backup@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Deploy pgBackRest backup timer units
+  ansible.builtin.template:
+    src: pgbackrest-backup@.timer.j2
+    dest: "/etc/systemd/system/pgbackrest-backup@{{ item }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - full
+    - diff
+  vars:
+    timer_type: "{{ item }}"
+  notify: Reload systemd
+
+- name: Flush handlers to reload systemd before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start backup timers
+  ansible.builtin.systemd:
+    name: "pgbackrest-backup@{{ item }}.timer"
+    enabled: true
+    state: started
+  loop:
+    - full
+    - diff

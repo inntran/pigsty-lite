@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Scheduled pgBackRest %i backup for stanza {{ pgbackrest_stanza }}
+
+[Timer]
+OnCalendar={{ (timer_type == 'full') | ternary(pgbackrest_schedule_full, pgbackrest_schedule_diff) }}
+Persistent=true
+Unit=pgbackrest-backup@%i.service
+
+[Install]
+WantedBy=timers.target
