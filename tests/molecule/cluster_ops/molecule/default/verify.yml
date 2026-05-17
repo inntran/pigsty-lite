@@ -1,6 +1,7 @@
 ---
 - name: Verify the cluster_ops library produced correct facts
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: false
   become: true
   tasks:

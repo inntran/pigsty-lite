@@ -1,6 +1,7 @@
 ---
 - name: Verify the monitoring server stack
   hosts: monitor
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: false
   tasks:

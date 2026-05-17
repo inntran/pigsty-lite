@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: true
   pre_tasks:
     - name: Pin advertise address to container IP

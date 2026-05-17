@@ -1,6 +1,7 @@
 ---
 - name: Pin advertise address
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: true
   tasks:
     - name: Pin advertise address to container IP
@@ -9,6 +10,7 @@
 
 - name: Verify
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Check patroni service state
       ansible.builtin.systemd:

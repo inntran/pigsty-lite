@@ -1,6 +1,7 @@
 ---
 - name: Verify haproxy on every host
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   tasks:
     - name: Check HAProxy active
@@ -15,6 +16,7 @@
 
 - name: Identify the current Patroni leader
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   run_once: true
   tasks:
@@ -38,6 +40,7 @@
 
 - name: "Probe HAProxy routing (5433 = leader, 5434 = replica)"
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   tasks:
     - name: "Probe psql 5433 \u2192 must hit a primary"
@@ -76,6 +79,7 @@
 
 - name: Switchover and re-probe
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   run_once: true
   tasks:
@@ -111,6 +115,7 @@
 
 - name: 5433 follows the new leader
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   tasks:
     - name: Probe psql 5433 after switchover

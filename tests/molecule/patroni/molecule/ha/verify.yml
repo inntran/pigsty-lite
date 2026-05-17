@@ -1,6 +1,7 @@
 ---
 - name: Pin advertised address facts
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: true
   tasks:
     - name: Use podman-network IPv4 for Patroni checks
@@ -9,6 +10,7 @@
 
 - name: Verify each member
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Check patroni service state
       ansible.builtin.systemd:
@@ -37,6 +39,7 @@
 
 - name: Verify cluster from one node
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   run_once: true
   tasks:
     - name: Query cluster state until leader and replicas are visible
@@ -78,6 +81,7 @@
 
 - name: Verify replication on every member
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Read probe row on this host
       ansible.builtin.command: >

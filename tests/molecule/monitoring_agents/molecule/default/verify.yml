@@ -1,6 +1,7 @@
 ---
 - name: Verify exporters on the postgres node
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: false
   tasks:
@@ -59,6 +60,7 @@
 
 - name: Verify metrics arrived at the monitor host
   hosts: monitor
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: false
   tasks:

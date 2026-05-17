@@ -1,6 +1,7 @@
 ---
 - name: Identify the current Patroni leader
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: true
   run_once: true
@@ -21,6 +22,7 @@
 
 - name: Verify provisioning state propagates to every node
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   become_user: postgres
   gather_facts: false
@@ -55,6 +57,7 @@
 
 - name: Verify pg_hba on the leader contains the app rule
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   run_once: true
   tasks:
@@ -69,6 +72,7 @@
 
 - name: Probe psql 5433 (HAProxy not in this scenario; use leader directly)
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: true
   run_once: true

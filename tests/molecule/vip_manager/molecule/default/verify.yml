@@ -1,6 +1,7 @@
 ---
 - name: Verify the role was a no-op
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   tasks:
     - name: Gather package facts

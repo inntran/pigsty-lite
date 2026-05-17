@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: localhost
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: false
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_pki/ca"

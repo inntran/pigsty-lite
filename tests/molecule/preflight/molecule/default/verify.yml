@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Confirm preflight_passed local fact exists
       ansible.builtin.command: grep -q "preflight_passed=true" /etc/ansible/facts.d/preflight.fact

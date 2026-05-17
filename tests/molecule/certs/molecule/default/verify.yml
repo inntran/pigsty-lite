@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Host cert exists at /etc/pki/pigsty/<host>.crt
       ansible.builtin.stat:

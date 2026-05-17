@@ -1,6 +1,7 @@
 ---
 - name: Verify - every member's service is active
   hosts: etcd
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   gather_facts: true
   tasks:
     - name: Re-derive etcd advertise address
@@ -19,6 +20,7 @@
 
 - name: Verify - quorum and leader from one member
   hosts: etcd
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   run_once: true
   tasks:
     - name: List members from local endpoint

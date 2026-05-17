@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: PGDG repo present
       ansible.builtin.command: dnf repolist --enabled

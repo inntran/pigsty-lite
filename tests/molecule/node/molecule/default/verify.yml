@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Check firewalld is enabled and running
       ansible.builtin.systemd:

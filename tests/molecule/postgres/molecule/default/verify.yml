@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   tasks:
     - name: Check postgresql server binary
       ansible.builtin.stat:

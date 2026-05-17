@@ -1,6 +1,7 @@
 ---
 - name: Verify the stanza and a full backup from the backup store host
   hosts: backup_server
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: false
   tasks:

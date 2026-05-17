@@ -3,6 +3,7 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
+FAIL_FAST ?= 1
 
 include Makefile.d/lint.mk
 
@@ -28,6 +29,7 @@ help:
 	@echo "  make lint                          Run all linters"
 	@echo "  make test-image                    Build/reuse local shared Molecule base image"
 	@echo "  make test-role ROLE=<name>         Run all Molecule scenarios for a single role"
+	@echo "  make test-role ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
 	@echo "  make clean                         Remove generated artifacts"
 
 init:
@@ -47,8 +49,18 @@ test-image:
 	./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
 
 test-role: test-image
-	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
-	cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all
+	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
+	@if [ "$(FAIL_FAST)" = "0" ]; then \
+		cd tests/molecule/$(ROLE); \
+		log_file=$$(mktemp); \
+		trap 'rm -f "$$log_file"' EXIT; \
+		status=0; \
+		ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_TASK_IGNORE_ERRORS=1 MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all 2>&1 | tee "$$log_file" || status=$$?; \
+		if grep -Eq 'ignored=[1-9][0-9]*' "$$log_file"; then status=1; fi; \
+		exit $$status; \
+	else \
+		cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all; \
+	fi
 
 clean:
 	rm -rf .ansible/facts dist/ artifacts/

@@ -1,6 +1,7 @@
 ---
 - name: Verify
   hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   vars:
     haproxy_default_port: "{{ hostvars[inventory_hostname].haproxy_default_port | default(5432) }}"
