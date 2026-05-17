@@ -1,22 +1,23 @@
 ---
-# VictoriaMetrics speaks the Prometheus query API, so the datasource
-# type is `prometheus`. VictoriaLogs has a dedicated Grafana datasource
-# plugin; if the plugin is not present the collection's install step
-# can add it, but for v1 we register VL as a `loki`-compatible endpoint
-# only if the plugin exists - otherwise we register just the metrics
-# datasource and note the gap. Confirm plugin availability during
-# execution: `grafana-cli plugins list-remote | grep victoria`.
+# Datasources are provisioned via Grafana's native provisioning YAML so the
+# desired state lives in /etc/grafana/provisioning/datasources/ and Grafana
+# reconciles on startup. This avoids the REST API (and the
+# community.grafana.grafana_datasource ds_type enum, which does not allow
+# plugin-provided types like victoriametrics-metrics-datasource).
+#
+# Plugin upstream docs:
+#   https://github.com/VictoriaMetrics/victoriametrics-datasource
+#   https://github.com/VictoriaMetrics/victorialogs-datasource
 
-- name: Register the VictoriaMetrics datasource
-  community.grafana.grafana_datasource:
-    name: VictoriaMetrics
-    grafana_url: "{{ grafana_api_url }}"
-    grafana_user: "{{ grafana_admin_user }}"
-    grafana_password: "{{ grafana_admin_password }}"
-    ds_type: prometheus
-    ds_url: "{{ grafana_vmsingle_url }}"
-    is_default: true
-    state: present
+- name: Install the VictoriaMetrics Grafana datasource plugin
+  ansible.builtin.command:
+    cmd: grafana-cli plugins install victoriametrics-metrics-datasource
+  register: grafana_vm_plugin
+  changed_when: "'Installed' in grafana_vm_plugin.stdout"
+  failed_when:
+    - grafana_vm_plugin.rc != 0
+    - "'already installed' not in grafana_vm_plugin.stdout"
+  notify: Restart grafana
 
 - name: Install the VictoriaLogs Grafana datasource plugin
   ansible.builtin.command:
@@ -28,15 +29,11 @@
     - "'already installed' not in grafana_vl_plugin.stdout"
   notify: Restart grafana
 
-- name: Flush handlers so Grafana restarts with the plugin loaded
-  ansible.builtin.meta: flush_handlers
-
-- name: Register the VictoriaLogs datasource
-  community.grafana.grafana_datasource:
-    name: VictoriaLogs
-    grafana_url: "{{ grafana_api_url }}"
-    grafana_user: "{{ grafana_admin_user }}"
-    grafana_password: "{{ grafana_admin_password }}"
-    ds_type: victoriametrics-logs-datasource
-    ds_url: "{{ grafana_vlsingle_url }}"
-    state: present
+- name: Render datasource provisioning file
+  ansible.builtin.template:
+    src: datasources.yaml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/pigsty-lite-victoriametrics.yaml"
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana

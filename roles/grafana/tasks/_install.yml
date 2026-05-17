@@ -1,0 +1,13 @@
+---
+- name: Install Grafana yum repo file
+  ansible.builtin.copy:
+    src: grafana.repo
+    dest: /etc/yum.repos.d/grafana.repo
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Grafana
+  ansible.builtin.dnf:
+    name: "grafana-{{ grafana_version_pin }}"
+    state: present

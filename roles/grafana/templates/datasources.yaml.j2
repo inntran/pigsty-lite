@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+# Grafana datasource provisioning. Grafana reconciles this file on startup;
+# changes here trigger a service restart via the role's handler.
+# Plugin sources:
+#   https://github.com/VictoriaMetrics/victoriametrics-datasource
+#   https://github.com/VictoriaMetrics/victorialogs-datasource
+
+apiVersion: 1
+datasources:
+  - name: VictoriaMetrics
+    type: victoriametrics-metrics-datasource
+    access: proxy
+    url: {{ grafana_vmsingle_url }}
+    isDefault: true
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: {{ grafana_vlsingle_url }}
+    isDefault: false

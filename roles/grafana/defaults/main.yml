@@ -2,12 +2,18 @@
 # roles/grafana/defaults/main.yml
 # All variables prefixed `grafana_`. Grafana binds loopback-only and is
 # fronted by nginx_proxy at the /grafana/ sub-path.
-grafana_version: "{{ grafana_version | default('12') }}"
+
+# Package selection. Passed to dnf as `grafana-{{ grafana_version_pin }}`.
+# Wildcards allowed. Crossing a major boundary requires also editing
+# files/grafana.repo to drop or change the `exclude=` line.
+grafana_version_pin: "12.*"
+
+grafana_service_name: grafana-server
+grafana_config_dir: /etc/grafana
+grafana_data_dir: /var/lib/grafana
+grafana_logs_dir: /var/log/grafana
 
 grafana_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
-# Prefixed with pigsty_ because the upstream community grafana role's
-# deprecation guard rejects a bare `grafana_port`:
-# https://github.com/grafana/grafana-ansible-collection/blob/main/roles/grafana/tasks/preflight.yml
 grafana_default_port: 3000
 grafana_admin_user: admin
 grafana_admin_password: "{{ vault_grafana_admin_password | default('grafana-dev-admin-change-me') }}"
@@ -22,8 +28,29 @@ grafana_vmsingle_url: "http://{{ network_loopback_address | default('127.0.0.1')
 grafana_vlsingle_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ vlsingle_port | default(9428) }}"
 
 # Dashboard provisioning
-grafana_provisioning_dir: /etc/grafana/provisioning
-grafana_dashboards_dir: /var/lib/grafana/dashboards
+grafana_provisioning_dir: "{{ grafana_config_dir }}/provisioning"
+grafana_dashboards_dir: "{{ grafana_data_dir }}/dashboards"
 
 # Grafana API endpoint for the community.grafana modules (loopback).
 grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_default_port | default(3000) }}"
+
+# Rendered into /etc/grafana/grafana.ini. Operators can override at any
+# depth via standard Ansible variable precedence. The template walks this
+# dict and emits scalars first, then [section] blocks, then nested
+# [section.subsection] blocks.
+grafana_ini:
+  instance_name: "{{ ansible_facts['fqdn'] | default(inventory_hostname) }}"
+  paths:
+    logs: "{{ grafana_logs_dir }}"
+    data: "{{ grafana_data_dir }}"
+  server:
+    http_addr: "{{ grafana_listen_address }}"
+    http_port: "{{ grafana_default_port }}"
+    root_url: "{{ grafana_root_url }}"
+    serve_from_sub_path: "{{ grafana_serve_from_sub_path }}"
+    protocol: http
+  database:
+    type: sqlite3
+  security:
+    admin_user: "{{ grafana_admin_user }}"
+    admin_password: "{{ grafana_admin_password }}"

@@ -1,0 +1,34 @@
+---
+- name: Ensure Grafana config and data directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: grafana
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - { path: "{{ grafana_config_dir }}" }
+    - { path: "{{ grafana_provisioning_dir }}" }
+    - { path: "{{ grafana_provisioning_dir }}/datasources" }
+    - { path: "{{ grafana_provisioning_dir }}/dashboards" }
+    - { path: "{{ grafana_logs_dir }}", owner: grafana }
+    - { path: "{{ grafana_data_dir }}", owner: grafana }
+    - { path: "{{ grafana_dashboards_dir }}", owner: grafana }
+    - { path: "{{ grafana_data_dir }}/plugins", owner: grafana }
+
+- name: Render /etc/grafana/grafana.ini
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_config_dir }}/grafana.ini"
+    owner: root
+    group: grafana
+    mode: "0640"
+  no_log: "{{ 'false' if lookup('env', 'CI') else 'true' }}"
+  notify: Restart grafana
+
+- name: Enable and start grafana-server
+  ansible.builtin.systemd:
+    name: "{{ grafana_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
