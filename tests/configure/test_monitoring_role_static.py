@@ -59,18 +59,14 @@ def test_monitoring_server_creates_alertmanager_identity_before_data_dir():
 def test_monitoring_epel_packages_explicitly_enable_epel_repo():
     alertmanager_tasks = _load_yaml("roles/monitoring_server/tasks/_alertmanager.yml")
     alertmanager_install = next(
-        task
-        for task in alertmanager_tasks
-        if task.get("name") == "Install Alertmanager"
+        task for task in alertmanager_tasks if task.get("name") == "Install Alertmanager"
     )["ansible.builtin.dnf"]
 
     assert alertmanager_install["enablerepo"] == "{{ monitoring_server_epel_repo_id }}"
 
     exporter_tasks = _load_yaml("roles/monitoring_agents/tasks/_exporters.yml")
     node_exporter_install = next(
-        task
-        for task in exporter_tasks
-        if task.get("name") == "Install node_exporter"
+        task for task in exporter_tasks if task.get("name") == "Install node_exporter"
     )["ansible.builtin.dnf"]
     pg_exporter_install = next(
         task
