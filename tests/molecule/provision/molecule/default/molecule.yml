@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-provision-default-1
-    image: localhost/molecule-base:latest
+    image: container-registry.oracle.com/os/oraclelinux:10
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
