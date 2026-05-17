@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  build-image:
+  build-common:
     runs-on: ubuntu-latest
     outputs:
       cache-key: ${{ steps.key.outputs.key }}
@@ -15,61 +15,189 @@ jobs:
 
       - name: Compute cache key
         id: key
-        run: echo "key=molecule-image-${{ hashFiles('tests/molecule/Containerfile') }}" >> "$GITHUB_OUTPUT"
+        run: |
+          key="molecule-common-$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
 
-      - name: Restore cached image
+      - name: Restore cached common image
         id: cache
         uses: actions/cache@v5
         with:
-          path: /tmp/molecule-base.tar
+          path: /tmp/molecule-base-common.tar
           key: ${{ steps.key.outputs.key }}
 
-      - name: Build and export image
+      - name: Build common image
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          podman build -t molecule-base:latest -f tests/molecule/Containerfile .
-          podman save -o /tmp/molecule-base.tar molecule-base:latest
+          ./bin/molecule_images.sh common
+          podman save -o /tmp/molecule-base-common.tar localhost/molecule-base-common:latest
 
-  molecule:
-    needs: build-image
+  build-data:
+    needs: build-common
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compute cache key
+        id: key
+        run: |
+          common_hash=$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')
+          data_hash=$(sha256sum tests/molecule/images/data/Containerfile | awk '{print $1}')
+          echo "key=molecule-data-${common_hash}-${data_hash}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached data image
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-data.tar
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Restore cached common image
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-common.tar
+          key: ${{ needs.build-common.outputs.cache-key }}
+
+      - name: Load common into podman
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: podman load -i /tmp/molecule-base-common.tar
+
+      - name: Build data image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          ./bin/molecule_images.sh data
+          podman save -o /tmp/molecule-base-data.tar localhost/molecule-base-data:latest
+
+  build-infra:
+    needs: build-common
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compute cache key
+        id: key
+        run: |
+          common_hash=$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')
+          infra_hash=$(sha256sum tests/molecule/images/infra/Containerfile | awk '{print $1}')
+          echo "key=molecule-infra-${common_hash}-${infra_hash}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached infra image
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-infra.tar
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Restore cached common image
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-common.tar
+          key: ${{ needs.build-common.outputs.cache-key }}
+
+      - name: Load common into podman
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: podman load -i /tmp/molecule-base-common.tar
+
+      - name: Build infra image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          ./bin/molecule_images.sh infra
+          podman save -o /tmp/molecule-base-infra.tar localhost/molecule-base-infra:latest
+
+  bootstrap-scenarios:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Coverage rationale: see tests/molecule/COVERAGE.md.
-        # These five scenarios collectively exercise every role as either
-        # a converge target or via production-playbook prepare.
         include:
-          # Full SPOF stack via production playbooks: preflight, ca, repos,
-          # node, certs, etcd, postgres, patroni, cluster_ops.
-          - role: cluster_ops
+          - role: provision
             scenario: default
-          # HA stack + backup: ca, repos, node, certs, etcd, postgres,
-          # patroni, pgbackrest in 3-node HA topology.
-          - role: backup
-            scenario: ha
-          # haproxy + pgbouncer in HA.
-          - role: haproxy
-            scenario: ha
-          # nginx_proxy + monitoring_server + grafana.
-          - role: nginx_proxy
-            scenario: default
-          # End-to-end: prepare runs preflight, ca, node, etcd, postgres,
-          # patroni, pgbouncer, haproxy, pgbackrest, monitoring_server;
-          # converge applies monitoring_agents.
-          - role: monitoring_agents
+          - role: repos
             scenario: default
     steps:
       - uses: actions/checkout@v6
 
-      - name: Restore cached image
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install python tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            ansible \
+            "molecule==25.*" \
+            "molecule-plugins[podman]==25.*" \
+            cryptography \
+            pytest
+
+      - name: Install Galaxy content
+        run: |
+          ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
+          ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
+
+      - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
+        run: |
+          cd tests/molecule/${{ matrix.role }}
+          molecule test -s ${{ matrix.scenario }}
+
+  derived-scenarios:
+    needs: [build-common, build-data, build-infra]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - role: cluster_ops
+            scenario: default
+            images: data
+          - role: backup
+            scenario: ha
+            images: data,infra
+          - role: haproxy
+            scenario: ha
+            images: data
+          - role: nginx_proxy
+            scenario: default
+            images: infra
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Restore common image (always needed as parent)
         uses: actions/cache@v5
         with:
-          path: /tmp/molecule-base.tar
-          key: ${{ needs.build-image.outputs.cache-key }}
+          path: /tmp/molecule-base-common.tar
+          key: ${{ needs.build-common.outputs.cache-key }}
 
-      - name: Load image into podman
-        run: podman load -i /tmp/molecule-base.tar
+      - name: Restore data image (if needed)
+        if: contains(matrix.images, 'data')
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-data.tar
+          key: ${{ needs.build-data.outputs.cache-key }}
+
+      - name: Restore infra image (if needed)
+        if: contains(matrix.images, 'infra')
+        uses: actions/cache@v5
+        with:
+          path: /tmp/molecule-base-infra.tar
+          key: ${{ needs.build-infra.outputs.cache-key }}
+
+      - name: Load images into podman
+        run: |
+          podman load -i /tmp/molecule-base-common.tar
+          if [ -f /tmp/molecule-base-data.tar ]; then podman load -i /tmp/molecule-base-data.tar; fi
+          if [ -f /tmp/molecule-base-infra.tar ]; then podman load -i /tmp/molecule-base-infra.tar; fi
 
       - name: Set up Python
         uses: actions/setup-python@v6
