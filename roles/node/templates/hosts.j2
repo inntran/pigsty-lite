@@ -2,9 +2,9 @@
 # Entries below are derived from inventory groups: postgres, monitor, backup_server, etcd.
 
 {% if not (network_ipv6_single_stack | default(false)) %}
-127.0.0.1   localhost localhost.localdomain
+127.0.0.1   localhost localhost.localdomain {{ inventory_hostname }} {{ inventory_hostname }}.{{ cluster_domain | default('local') }}
 {% endif %}
-::1         localhost localhost.localdomain
+::1         localhost localhost.localdomain {{ inventory_hostname }} {{ inventory_hostname }}.{{ cluster_domain | default('local') }}
 
 {% set seen = [] %}
 {% for grp in ['monitor', 'backup_server', 'postgres', 'etcd'] %}

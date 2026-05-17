@@ -51,6 +51,9 @@ provisioner:
         certs_subject_alternative_names:
           - "DNS:{{ inventory_hostname }}"
           - "DNS:{{ inventory_hostname }}.test.local"
+          - "DNS:localhost"
+          - "IP:{{ ansible_facts['default_ipv4']['address'] | default('127.0.0.1') }}"
+          - "IP:127.0.0.1"
         postgres_users:
           - name: app
             password: "app-test-pw"
