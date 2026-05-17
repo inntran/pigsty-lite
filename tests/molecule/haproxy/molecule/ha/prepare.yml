@@ -29,8 +29,10 @@
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
+    node_sysctl_apply: false
   roles:
     - role: repos
+    - role: node
     - role: certs
     - role: etcd
     - role: postgres
