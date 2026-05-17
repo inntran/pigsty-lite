@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-patroni-ha-1
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-data:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -15,7 +15,7 @@ platforms:
     groups: [etcd, postgres]
     network: pigsty-lite-patroni-ha
   - name: pigsty-lite-patroni-ha-2
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-data:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -27,7 +27,7 @@ platforms:
     groups: [etcd, postgres]
     network: pigsty-lite-patroni-ha
   - name: pigsty-lite-patroni-ha-3
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-data:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
