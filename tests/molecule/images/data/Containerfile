@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1
+ARG COMMON_IMAGE=localhost/molecule-base-common:latest
+FROM ${COMMON_IMAGE}
+
+RUN dnf --enablerepo=epel install -y \
+        etcd \
+        patroni \
+        patroni-etcd \
+        postgresql18-server \
+        postgresql18-contrib \
+        postgresql18 \
+        pgbouncer \
+        haproxy \
+        vip-manager \
+        python3-psycopg3 \
+    && dnf clean all
+
+CMD ["/sbin/init"]
