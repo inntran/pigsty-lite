@@ -2,13 +2,13 @@
 ARG COMMON_IMAGE=localhost/molecule-base-common:latest
 FROM ${COMMON_IMAGE}
 
+# Grafana 12.x from rpm.grafana.com (EPEL/OL10 ship older grafana).
+COPY grafana.repo /etc/yum.repos.d/grafana.repo
+
 RUN dnf --enablerepo=epel install -y \
         alertmanager \
         nginx \
+        grafana-12.* \
     && dnf clean all
-
-# Grafana 12.x from rpm.grafana.com (EPEL/OL10 ship older grafana).
-COPY grafana.repo /etc/yum.repos.d/grafana.repo
-RUN dnf install -y 'grafana-12.*' && dnf clean all
 
 CMD ["/sbin/init"]

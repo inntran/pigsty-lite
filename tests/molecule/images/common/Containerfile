@@ -2,8 +2,31 @@
 ARG OL_IMAGE=container-registry.oracle.com/os/oraclelinux:10
 FROM ${OL_IMAGE}
 
-# --- Bootstrap system packages ---
-RUN dnf install -y \
+# --- Repos + base packages.
+#     1. Enable CRB and install EPEL + PGDG release RPMs in one transaction.
+#     2. config-manager accepts multiple --setopt at once: leave EPEL
+#        disabled (matches roles/repos terminal state), pin PGDG18,
+#        disable the other PG majors, and set priority on PGDG sections.
+#     3. Install the baseline tooling using the now-configured repos.
+#     4. pgbackrest is used by both data-side and infra-side; its libssh2
+#        dependency comes from EPEL on OL10, so enable EPEL only for that
+#        transaction and leave normal resolution unchanged. ---
+RUN dnf config-manager --set-enabled ol10_codeready_builder \
+    && dnf install -y --nogpgcheck \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+        https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && dnf config-manager --save \
+        --setopt=epel.enabled=0 \
+        --setopt=pgdg-rhel10-extras.enabled=1 \
+        --setopt=pgdg18.enabled=1 \
+        --setopt=pgdg14.enabled=0 \
+        --setopt=pgdg15.enabled=0 \
+        --setopt=pgdg16.enabled=0 \
+        --setopt=pgdg17.enabled=0 \
+        --setopt=pgdg-common.priority=10 \
+        --setopt=pgdg-rhel10-extras.priority=10 \
+        --setopt=pgdg18.priority=10 \
+    && dnf install -y \
         iproute \
         man-db \
         sudo \
@@ -16,35 +39,10 @@ RUN dnf install -y \
         tar \
         gzip \
         curl-minimal \
+    && dnf --enablerepo=epel install -y pgbackrest \
     && dnf clean all
 
-# --- Enable Oracle CodeReady Builder, install EPEL, then disable EPEL
-#     for normal resolution (matches roles/repos terminal state) ---
-RUN dnf config-manager --set-enabled ol10_codeready_builder \
-    && dnf install -y --nogpgcheck \
-        https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
-    && dnf config-manager --setopt=epel.enabled=0 --save \
-    && dnf clean all
-
-# --- Install PGDG repo, enable extras + pgdg18, disable other majors,
-#     set priority, and drop the PG default-module disabled marker so
-#     roles/repos skips that step on baked-image scenarios ---
-RUN dnf install -y --nogpgcheck \
-        https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
-    && dnf config-manager --setopt=pgdg-rhel10-extras.enabled=1 --save \
-    && dnf config-manager --setopt=pgdg18.enabled=1 --save \
-    && for v in 14 15 16 17; do \
-         dnf config-manager --setopt=pgdg${v}.enabled=0 --save; \
-       done \
-    && for s in pgdg-common pgdg-rhel10-extras pgdg18; do \
-         dnf config-manager --setopt=${s}.priority=10 --save; \
-       done \
-    && (dnf -y module disable postgresql || true) \
-    && mkdir -p /etc/dnf/modules.d \
-    && printf 'disabled by pigsty-lite common image\n' > /etc/dnf/modules.d/postgresql-disabled \
-    && dnf clean all
-
-# --- pigsty shared identity (matches roles/node) ---
+# --- pigsty shared identity, role-managed config dirs, and sudoers ---
 RUN groupadd --system --gid 926 pigsty \
     && useradd --system --uid 926 --gid 926 \
         --home-dir /var/lib/pigsty --create-home \
@@ -52,20 +50,11 @@ RUN groupadd --system --gid 926 pigsty \
         --comment 'pigsty-lite shared identity' \
         pigsty \
     && chmod 0750 /var/lib/pigsty \
-    && chown pigsty:pigsty /var/lib/pigsty
-
-# --- Pre-create role-managed config dirs (cheap; saves node-role tasks) ---
-RUN mkdir -p /etc/sysctl.d /etc/systemd/journald.conf.d
-
-# --- Sudoers (preserved from prior monolithic image) ---
-RUN printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel-nopasswd \
+    && chown pigsty:pigsty /var/lib/pigsty \
+    && mkdir -p /etc/sysctl.d /etc/systemd/journald.conf.d \
+    && printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel-nopasswd \
     && printf 'ALL ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/all-nopasswd \
     && chmod 0440 /etc/sudoers.d/wheel-nopasswd /etc/sudoers.d/all-nopasswd
-
-# --- pgbackrest is used by both data-side and infra-side. Its libssh2
-#     dependency comes from EPEL on OL10, so enable EPEL only for this
-#     transaction and leave normal resolution unchanged. ---
-RUN dnf --enablerepo=epel install -y pgbackrest && dnf clean all
 
 # --- VictoriaMetrics binaries. Versions are resolved at build time by
 #     following the GitHub /releases/latest 302 (same as the upstream

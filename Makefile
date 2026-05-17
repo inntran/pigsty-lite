@@ -29,7 +29,6 @@ help:
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
 	@echo "  make images                        Build all three molecule base images (common/data/infra)"
-	@echo "  make test-image                    Alias for 'make images' (legacy name)"
 	@echo "  make test-role ROLE=<name>         Run all Molecule scenarios for a single role"
 	@echo "  make test-role ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
 	@echo "  make clean                         Remove generated artifacts"
@@ -46,8 +45,6 @@ plan: init
 
 deploy: init
 	ansible-playbook playbooks/site.yml
-
-test-image: images
 
 test-role: images
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
