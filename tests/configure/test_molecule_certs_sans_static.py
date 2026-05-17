@@ -36,9 +36,10 @@ def test_shared_node_playbook_imports_pin_cert_sans_to_container_ip():
 def test_nginx_proxy_prepare_pins_cert_sans_to_container_ip():
     prepare = _load_yaml(ROOT / "tests/molecule/nginx_proxy/molecule/default/prepare.yml")
 
-    assert prepare[0]["pre_tasks"][0]["ansible.builtin.set_fact"][
-        "certs_subject_alternative_names"
-    ] == EXPECTED_SANS
+    assert (
+        prepare[0]["pre_tasks"][0]["ansible.builtin.set_fact"]["certs_subject_alternative_names"]
+        == EXPECTED_SANS
+    )
 
 
 def test_monitoring_scenarios_enable_repos_for_alertmanager_package():
