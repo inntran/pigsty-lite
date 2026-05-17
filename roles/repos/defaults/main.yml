@@ -6,7 +6,9 @@ repos_pgdg_extras_repo: pgdg-rhel10-extras
 repos_pgdg_postgres_version: "{{ postgres_version | default(18) }}"
 repos_pgdg_postgres_repo_versions: [14, 15, 16, 17, 18]
 repos_vendor_enabled: true
-repos_epel_enabled: false
+repos_epel_enabled: true
+repos_epel_repo_file: /etc/yum.repos.d/epel.repo
+repos_epel_repo_id: epel
 repos_pigsty_enabled: false
 repos_pigsty_packages: []
 repos_pigsty_baseurl: "https://repo.pigsty.io/yum/infra/$basearch"

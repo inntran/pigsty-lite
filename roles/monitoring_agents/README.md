@@ -5,6 +5,9 @@ everywhere, the PostgreSQL/pgBouncer/pgBackRest exporters on postgres
 hosts, and `vmagent` + `vlagent` to scrape locally and ship to the
 monitor host.
 
+Exporter package installs explicitly enable the disabled-by-default `epel`
+repository for those tasks only.
+
 ## What this role owns
 
 - `node_exporter` on every host (`network_any_address:9100`).

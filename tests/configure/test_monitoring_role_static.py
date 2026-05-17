@@ -54,3 +54,29 @@ def test_monitoring_server_creates_alertmanager_identity_before_data_dir():
     )
 
     assert group_index < user_index < data_dir_index
+
+
+def test_monitoring_epel_packages_explicitly_enable_epel_repo():
+    alertmanager_tasks = _load_yaml("roles/monitoring_server/tasks/_alertmanager.yml")
+    alertmanager_install = next(
+        task
+        for task in alertmanager_tasks
+        if task.get("name") == "Install Alertmanager"
+    )["ansible.builtin.dnf"]
+
+    assert alertmanager_install["enablerepo"] == "{{ monitoring_server_epel_repo_id }}"
+
+    exporter_tasks = _load_yaml("roles/monitoring_agents/tasks/_exporters.yml")
+    node_exporter_install = next(
+        task
+        for task in exporter_tasks
+        if task.get("name") == "Install node_exporter"
+    )["ansible.builtin.dnf"]
+    pg_exporter_install = next(
+        task
+        for task in exporter_tasks
+        if task.get("name") == "Install the PostgreSQL-side exporters"
+    )["ansible.builtin.dnf"]
+
+    assert node_exporter_install["enablerepo"] == "{{ monitoring_agents_epel_repo_id }}"
+    assert pg_exporter_install["enablerepo"] == "{{ monitoring_agents_epel_repo_id }}"

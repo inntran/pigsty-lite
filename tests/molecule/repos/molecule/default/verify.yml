@@ -18,7 +18,17 @@
           - "'pgdg15' not in repolist.stdout"
           - "'pgdg14' not in repolist.stdout"
 
-    - name: EPEL not enabled by default
+    - name: EPEL repo file is present
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/epel.repo
+      register: epel_repo_file
+
+    - name: Assert EPEL repo file present
+      ansible.builtin.assert:
+        that:
+          - epel_repo_file.stat.exists
+
+    - name: EPEL disabled for normal dependency resolution
       ansible.builtin.assert:
         that:
           - "'epel' not in repolist.stdout"

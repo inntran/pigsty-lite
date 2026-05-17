@@ -9,6 +9,7 @@ monitoring_agents_node_exporter_package: golang-github-prometheus-node-exporter
 monitoring_agents_postgres_exporter_package: postgres_exporter
 monitoring_agents_pgbouncer_exporter_package: pgbouncer_exporter
 monitoring_agents_pgbackrest_exporter_package: pgbackrest_exporter
+monitoring_agents_epel_repo_id: epel
 
 # Exporters - listen addresses
 monitoring_agents_exporter_listen: "{{ network_any_address | default('0.0.0.0') }}"

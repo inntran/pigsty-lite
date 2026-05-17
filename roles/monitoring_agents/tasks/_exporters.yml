@@ -8,6 +8,7 @@
   ansible.builtin.dnf:
     name: "{{ monitoring_agents_node_exporter_package }}"
     state: present
+    enablerepo: "{{ monitoring_agents_epel_repo_id }}"
 
 - name: Ensure the node_exporter system user exists
   ansible.builtin.user:
@@ -35,6 +36,7 @@
       - "{{ monitoring_agents_pgbouncer_exporter_package }}"
       - "{{ monitoring_agents_pgbackrest_exporter_package }}"
     state: present
+    enablerepo: "{{ monitoring_agents_epel_repo_id }}"
   when: inventory_hostname in groups['postgres']
 
 - name: Render the PostgreSQL-side exporter systemd units

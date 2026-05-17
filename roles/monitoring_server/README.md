@@ -5,6 +5,9 @@ host). Installs VictoriaMetrics single-node (`vmsingle`), VictoriaLogs
 single-node (`vlsingle`), `vmalert`, and Alertmanager. Agents on every
 node `remote_write` metrics and ship logs here.
 
+The Alertmanager package install explicitly enables the disabled-by-default
+`epel` repository for that task only.
+
 ## Inputs (from response file, via group_vars)
 
 | Variable | Meaning | Default |

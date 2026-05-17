@@ -3,6 +3,7 @@
   ansible.builtin.dnf:
     name: "{{ monitoring_server_alertmanager_package }}"
     state: present
+    enablerepo: "{{ monitoring_server_epel_repo_id }}"
 
 - name: Ensure Alertmanager group exists
   ansible.builtin.group:

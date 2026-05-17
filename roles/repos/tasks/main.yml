@@ -113,6 +113,15 @@
     disable_gpg_check: true
   when: repos_epel_enabled | bool
 
+- name: Disable EPEL for normal dependency resolution
+  community.general.ini_file:
+    path: "{{ repos_epel_repo_file }}"
+    section: "{{ repos_epel_repo_id }}"
+    option: enabled
+    value: "0"
+    mode: "0644"
+  when: repos_epel_enabled | bool
+
 - name: Render /etc/yum.repos.d/pigsty.repo
   ansible.builtin.template:
     src: pigsty.repo.j2

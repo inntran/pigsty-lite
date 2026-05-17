@@ -26,6 +26,7 @@ monitoring_server_vmalert_eval_interval: 30s
 
 # Alertmanager (own tasks - no first-party VM Galaxy role)
 monitoring_server_alertmanager_package: alertmanager
+monitoring_server_epel_repo_id: epel
 monitoring_server_alertmanager_service: alertmanager
 monitoring_server_alertmanager_user: alertmanager
 monitoring_server_alertmanager_group: alertmanager

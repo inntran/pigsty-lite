@@ -7,7 +7,7 @@ documents its variables, files, and operational contract.
 | Role | Purpose | README |
 | --- | --- | --- |
 | `preflight` | Validates target-host prerequisites before any configuration changes: OS family, SELinux mode, firewalld, and storage assumptions. | [roles/preflight/README.md](../roles/preflight/README.md) |
-| `repos` | Configures package repositories, including PGDG, optional EPEL, and repo priority behavior. | [roles/repos/README.md](../roles/repos/README.md) |
+| `repos` | Configures package repositories, including PGDG and EPEL availability while keeping EPEL disabled unless explicitly requested by package tasks. | [roles/repos/README.md](../roles/repos/README.md) |
 | `node` | Applies the shared host baseline: hostname, hosts file, sysctl, journald, and baseline firewalld setup. | [roles/node/README.md](../roles/node/README.md) |
 | `ca` | Creates or manages the control-node certificate authority used by internal TLS. | [roles/ca/README.md](../roles/ca/README.md) |
 | `certs` | Issues and installs per-host certificates signed by the pigsty-lite CA. | [roles/certs/README.md](../roles/certs/README.md) |

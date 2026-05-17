@@ -189,7 +189,7 @@ Each role does one thing.
 | Role | Targets | Responsibility |
 |---|---|---|
 | `preflight` | all | OS version, SELinux=enforcing, swap off, time sync, mounts present, block-device separation, fail fast with actionable errors |
-| `repos` | all | Install `pgdg-redhat-repo` RPM, manage repo priorities (PGDG > vendor > EPEL > pigsty); EPEL opt-in only; pigsty repo opt-in via `repos_pigsty_packages` |
+| `repos` | all | Install `pgdg-redhat-repo` RPM, manage repo priorities (PGDG > vendor > EPEL > pigsty); install EPEL by default but keep the repo disabled unless a package task explicitly enables it; pigsty repo opt-in via `repos_pigsty_packages` |
 | `node` | all | Hostname, `/etc/hosts` from inventory, firewalld baseline, sysctl tuning, limits.d, journald sizing, time sync verification |
 | `ca` | localhost | Generate self-signed CA in `pki/ca/`; distribute to all nodes in `/etc/pki/pigsty/`; idempotent; uses `community.crypto`; never regenerates if present |
 | `certs` | all | Issue per-host certs from CA (postgres-server, patroni-rest, etcd-peer, etcd-client) to `/etc/pki/pigsty/`. Renew if `notAfter < cert_renewal_window` |
@@ -724,7 +724,7 @@ No playbook, no generator. DBA responsibility.
 ## 11 — Repos and packages
 
 - **Default enabled:** PGDG (via `pgdg-redhat-repo` RPM), RHEL/Rocky/Alma vendor repos.
-- **Opt-in:** EPEL — disabled by default, enabled only if a declared package needs it.
+- **Installed but disabled:** EPEL — `epel-release` is installed by default, then the `epel` repo is disabled for normal dependency resolution. Tasks that need EPEL packages use explicit `enablerepo: epel`.
 - **Opt-in:** Pigsty's upstream YUM repo — disabled by default. `repos.pigsty.packages` lists package names; the role enables the repo and `dnf install --enablerepo=pigsty <pkg>` for each.
 - **No local repo builder.** Distros do this fine; airgap operators bring their own mirror.
 - **Repo priority:** PGDG > vendor > EPEL > pigsty, enforced via `dnf-plugins-core` priority weights.
