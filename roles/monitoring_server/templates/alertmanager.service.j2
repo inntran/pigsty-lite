@@ -6,8 +6,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=alertmanager
-Group=alertmanager
+User={{ monitoring_server_alertmanager_user }}
+Group={{ monitoring_server_alertmanager_group }}
 ExecStart=/usr/bin/alertmanager \
   --config.file={{ monitoring_server_alertmanager_config_file }} \
   --storage.path={{ monitoring_server_alertmanager_data_dir }} \

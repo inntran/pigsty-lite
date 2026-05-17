@@ -9,11 +9,13 @@
 monitoring_server_vmsingle_listen: "{{ network_any_address | default('0.0.0.0') }}:{{ vmsingle_port | default(8428) }}"
 monitoring_server_vmsingle_data_dir: /var/lib/victoria-metrics
 monitoring_server_vmsingle_retention: "{{ vmsingle_retention | default('90d') }}"
+monitoring_server_vmsingle_service_args: {}
 
 # VictoriaLogs single-node (log store)
 monitoring_server_vlsingle_listen: "{{ network_any_address | default('0.0.0.0') }}:{{ vlsingle_port | default(9428) }}"
 monitoring_server_vlsingle_data_dir: /var/lib/victoria-logs
 monitoring_server_vlsingle_retention: "{{ vlsingle_retention | default('30d') }}"
+monitoring_server_vlsingle_service_args: {}
 
 # vmalert (rule evaluation)
 monitoring_server_vmalert_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmalert_port | default(8880) }}"
@@ -25,6 +27,8 @@ monitoring_server_vmalert_eval_interval: 30s
 # Alertmanager (own tasks - no first-party VM Galaxy role)
 monitoring_server_alertmanager_package: alertmanager
 monitoring_server_alertmanager_service: alertmanager
+monitoring_server_alertmanager_user: alertmanager
+monitoring_server_alertmanager_group: alertmanager
 monitoring_server_alertmanager_config_dir: /etc/alertmanager
 monitoring_server_alertmanager_config_file: /etc/alertmanager/alertmanager.yml
 monitoring_server_alertmanager_data_dir: /var/lib/alertmanager

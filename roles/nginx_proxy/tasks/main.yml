@@ -3,9 +3,33 @@
   ansible.builtin.import_tasks: _assert.yml
   tags: [nginx_proxy, assert]
 
-- name: Install nginx
+- name: Install nginx from nginx.org
   tags: [nginx_proxy, install]
   block:
+    - name: Import nginx signing key
+      ansible.builtin.get_url:
+        url: "{{ nginx_proxy_repo_gpgkey_url }}"
+        dest: "{{ nginx_proxy_repo_gpgkey_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure nginx.org yum repository
+      ansible.builtin.yum_repository:
+        name: nginx-stable
+        description: nginx stable repo
+        baseurl: "{{ nginx_proxy_repo_baseurl }}"
+        gpgcheck: true
+        enabled: true
+        gpgkey: "file://{{ nginx_proxy_repo_gpgkey_path }}"
+        module_hotfixes: true
+        priority: 10
+
+    - name: Force dnf metadata refresh
+      ansible.builtin.command:
+        cmd: dnf clean metadata
+      changed_when: false
+
     - name: Install nginx
       ansible.builtin.dnf:
         name: "{{ nginx_proxy_package }}"

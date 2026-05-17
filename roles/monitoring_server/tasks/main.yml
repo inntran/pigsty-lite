@@ -13,7 +13,7 @@
         victoriametrics_data_dir: "{{ monitoring_server_vmsingle_data_dir }}"
         victoriametrics_retention_period_months: "{{ monitoring_server_vmsingle_retention }}"
         victoriametrics_service_args: >-
-          {{ victoriametrics_service_args
+          {{ monitoring_server_vmsingle_service_args
              | combine({'httpListenAddr': monitoring_server_vmsingle_listen}) }}
 
 - name: Install and configure VictoriaLogs single-node
@@ -26,7 +26,7 @@
         victorialogs_data_dir: "{{ monitoring_server_vlsingle_data_dir }}"
         victorialogs_retention_period_months: "{{ monitoring_server_vlsingle_retention }}"
         victorialogs_service_args: >-
-          {{ victorialogs_service_args
+          {{ monitoring_server_vlsingle_service_args
              | combine({'httpListenAddr': monitoring_server_vlsingle_listen}) }}
 
 - name: Install and configure vmalert

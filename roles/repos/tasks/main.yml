@@ -81,13 +81,36 @@
     - "pgdg{{ repos_pgdg_postgres_version }}"
   when: repos_pgdg_enabled | bool
 
-- name: Enable EPEL
+- name: Enable CodeReady Builder (CRB) repository
+  when: repos_epel_enabled | bool
+  block:
+    - name: Enable CRB via subscription-manager (RHEL)
+      ansible.builtin.command:
+        cmd: >-
+          subscription-manager repos --enable
+          codeready-builder-for-rhel-{{ ansible_facts['distribution_major_version'] }}-{{ ansible_facts['architecture'] }}-rpms
+      when: ansible_facts['distribution'] == 'RedHat'
+      changed_when: false
+
+    - name: Enable CRB via dnf config-manager (CentOS/AlmaLinux/Rocky)
+      ansible.builtin.command:
+        cmd: dnf config-manager --set-enabled crb
+      when: ansible_facts['distribution'] in ['CentOS', 'AlmaLinux', 'Rocky']
+      changed_when: false
+
+    - name: Enable CRB via dnf config-manager (OracleLinux)
+      ansible.builtin.command:
+        cmd: >-
+          dnf config-manager --set-enabled
+          ol{{ ansible_facts['distribution_major_version'] }}_codeready_builder
+      when: ansible_facts['distribution'] == 'OracleLinux'
+      changed_when: false
+
+- name: Install Fedora EPEL repo package
   ansible.builtin.dnf:
-    name: >-
-      {{ 'oracle-epel-release-el' + ansible_facts["distribution_major_version"]
-         if ansible_facts["distribution"] == 'OracleLinux'
-         else 'epel-release' }}
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
     state: present
+    disable_gpg_check: true
   when: repos_epel_enabled | bool
 
 - name: Render /etc/yum.repos.d/pigsty.repo

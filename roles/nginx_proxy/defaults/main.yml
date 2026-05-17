@@ -7,6 +7,12 @@ nginx_proxy_package: nginx
 nginx_proxy_service: nginx
 nginx_proxy_config_file: /etc/nginx/conf.d/pigsty-lite.conf
 
+# Upstream nginx.org repo. Distro nginx on EL10 lags; this pulls the
+# mainline build that nginx Inc. ships directly.
+nginx_proxy_repo_baseurl: "https://nginx.org/packages/rhel/{{ ansible_facts['distribution_major_version'] }}/$basearch/"
+nginx_proxy_repo_gpgkey_url: "https://nginx.org/keys/nginx_signing.key"
+nginx_proxy_repo_gpgkey_path: /etc/pki/rpm-gpg/RPM-GPG-KEY-nginx
+
 # TLS mode: ca_signed (P0-issued cert) | byo (operator cert) | http
 nginx_proxy_tls_mode: ca_signed
 nginx_proxy_ca_signed_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
