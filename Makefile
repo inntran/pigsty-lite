@@ -31,7 +31,7 @@ help:
 	@echo "  make clean                         Remove generated artifacts"
 
 init:
-	ansible-galaxy collection install -r requirements.yml -p ./collections
+	ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
 	ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
 configure:
