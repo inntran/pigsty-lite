@@ -48,3 +48,17 @@ content-compared.
 - `monitoring,config` — re-render configs only
 - `monitoring,firewall` — firewalld only
 - `monitoring,service` — restart services only
+
+## Pinning VictoriaMetrics / VictoriaLogs versions
+
+The upstream `victoriametrics.cluster.*` roles default to specific
+versions; pigsty-lite does not override them. To pin or upgrade in
+production, set the collection's variables in inventory:
+
+    victoriametrics_version: v1.143.0   # or "latest"
+    victorialogs_version:    v1.50.0
+    vmagent_version:         v1.143.0
+    vlagent_version:         v1.50.0
+
+Test images deliberately follow `latest` at image-build time to stay in
+lockstep with upstream; production should pin.

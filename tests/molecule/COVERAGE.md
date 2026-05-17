@@ -36,7 +36,9 @@ These are the building blocks the import-based scenarios pull in:
 
 `CI` column: ✓ = currently in `.github/workflows/molecule.yml` matrix.
 
-The CI matrix is five scenarios chosen to collectively exercise every role as
+The CI matrix is four derived-image scenarios plus the two raw bootstrap
+scenarios chosen to collectively exercise every role except
+`monitoring_agents` as
 either a converge target or via production-playbook prepare. Other scenarios
 remain in-tree and can be run locally via `make test-role ROLE=<name>` but do
 not run in CI.
@@ -47,7 +49,7 @@ not run in CI.
 | `backup / ha`             | ✓  | `pgbackrest`                  | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `haproxy / ha`            | ✓  | `haproxy`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`                                  |
 | `nginx_proxy / default`   | ✓  | `nginx_proxy`                 | `preflight`, `ca`, `repos`, `node`, `certs`, `monitoring_server`, `grafana`                                 |
-| `monitoring_agents / default` | ✓ | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `haproxy`, `pgbackrest`, `monitoring_server` |
+| `monitoring_agents / default` |    | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `haproxy`, `pgbackrest`, `monitoring_server` |
 | `preflight / default`     |    | `preflight`                   | —                                                                                                           |
 | `repos / default`         |    | `repos`                       | —                                                                                                           |
 | `node / default`          |    | `repos`, `node`               | —                                                                                                           |
@@ -82,7 +84,7 @@ assert its results.
 
 "Verified by" lists every in-tree scenario whose `verify.yml` asserts against
 that role's outputs. "Exercised in CI" notes how the role gets touched by the
-five-scenario CI matrix: either as the converge target of one of those five
+current CI matrix: either as the converge target of one of those derived-image
 scenarios, or as a supporting role run via prepare (in which case task-level
 breakage is still caught, but the role's own `verify.yml` does not run).
 
@@ -103,6 +105,41 @@ breakage is still caught, but the role's own `verify.yml` does not run).
 | `cluster_ops`      | `cluster_ops/default`                                  | ✓ converge: `cluster_ops/default`                                |
 | `grafana`          | `grafana/default`                                      | prepare of `nginx_proxy/default`                                 |
 | `monitoring_server`| `monitoring_server/default`                            | prepare of `nginx_proxy/default`, `monitoring_agents/default`    |
-| `monitoring_agents`| `monitoring_agents/default`                            | ✓ converge: `monitoring_agents/default`                          |
+| `monitoring_agents`| `monitoring_agents/default`                            | not in CI                                                        |
 | `nginx_proxy`      | `nginx_proxy/default`                                  | ✓ converge: `nginx_proxy/default`                                |
 | `vip_manager`      | `vip_manager/default`                                  | not in CI                                                        |
+
+## Bootstrap track (raw oraclelinux:10)
+
+Two scenarios run on the upstream `container-registry.oracle.com/os/oraclelinux:10`
+image, not on a baked first-party image:
+
+- `provision/default` — exercises `roles/repos` + `roles/node` + the full
+  data-plane install path from a bare OS. Catches regressions in repo
+  enablement, PGDG priority handling, the `pigsty` user/group, and
+  systemd unit installation.
+- `repos/default` — focused regression test for `roles/repos`.
+
+These run in parallel with `build-common`/`build-data`/`build-infra` in
+CI (see `.github/workflows/molecule.yml`).
+
+`monitoring_agents/default` is currently excluded from CI because its exporter
+RPM names are not available in the Oracle Linux 10 repo set used by this
+project.
+
+## VM binary versions
+
+- **Test images** (`molecule-base-common`) chase GitHub `/releases/latest`
+  at `podman build` time. Image rebuilds days apart can pull different
+  binaries; the CI cache key is the Containerfile hash, so once cached an
+  image stays put until the file changes.
+- **Production deploys** use the version pinned in the upstream
+  `victoriametrics.cluster.*` collection defaults (currently `v1.143.0` /
+  `v1.50.0`). Operators override via inventory if needed:
+
+  ```yaml
+  victoriametrics_version: v1.143.0
+  victorialogs_version:    v1.50.0
+  vmagent_version:         v1.143.0
+  vlagent_version:         v1.50.0
+  ```
