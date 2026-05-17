@@ -3,7 +3,36 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Ensure iproute is present
+    - name: Ensure bootstrap packages are present
       ansible.builtin.dnf:
-        name: iproute
+        name:
+          - iproute
+          - sudo
         state: present
+
+    - name: Ensure pigsty group exists
+      ansible.builtin.group:
+        name: pigsty
+        gid: 926
+        system: true
+
+    - name: Ensure pigsty user exists
+      ansible.builtin.user:
+        name: pigsty
+        uid: 926
+        group: pigsty
+        system: true
+        home: /var/lib/pigsty
+        shell: /sbin/nologin
+        comment: pigsty-lite shared identity
+
+    - name: Install NOPASSWD sudoers drop-ins
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ item.name }}"
+        content: "{{ item.content }}\n"
+        owner: root
+        group: root
+        mode: "0440"
+      loop:
+        - { name: wheel-nopasswd, content: "%wheel ALL=(ALL) NOPASSWD: ALL" }
+        - { name: all-nopasswd, content: "ALL ALL=(ALL) NOPASSWD: ALL" }
