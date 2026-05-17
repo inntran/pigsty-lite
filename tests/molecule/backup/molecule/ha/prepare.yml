@@ -11,8 +11,6 @@
 - name: Prepare - generate CA on control side
   hosts: localhost
   gather_facts: false
-  vars:
-    ca_dir: "{{ playbook_dir }}/_tmp_ca"
   roles:
     - role: ca
 
@@ -20,9 +18,7 @@
   hosts: all
   gather_facts: true
   vars:
-    certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
     repos_pgdg_enabled: true
-    repos_epel_enabled: true
     repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
@@ -33,10 +29,6 @@
       ansible.builtin.set_fact:
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
-        certs_subject_alternative_names:
-          - "DNS:{{ inventory_hostname }}"
-          - "DNS:{{ inventory_hostname }}.test.local"
-          - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: repos
     - role: node
@@ -46,9 +38,7 @@
   hosts: postgres
   gather_facts: true
   vars:
-    certs_ca_dir_on_control: "{{ playbook_dir }}/_tmp_ca"
     repos_pgdg_enabled: true
-    repos_epel_enabled: true
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public

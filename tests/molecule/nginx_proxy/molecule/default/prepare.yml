@@ -1,31 +1,20 @@
 ---
+- name: Prepare - generate CA on control side
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: ca
+
 - name: Prepare the monitor host stack for nginx proxy testing
   hosts: monitor
   become: true
   gather_facts: true
   vars_files:
     - ../../../../../roles/monitoring_server/defaults/main.yml
-  tasks:
-    - name: Bring up preflight
-      ansible.builtin.import_role:
-        name: preflight
-
-    - name: Bring up repos
-      ansible.builtin.import_role:
-        name: repos
-
-    - name: Bring up node
-      ansible.builtin.import_role:
-        name: node
-
-    - name: Bring up certs
-      ansible.builtin.import_role:
-        name: certs
-
-    - name: Bring up monitoring server
-      ansible.builtin.import_role:
-        name: monitoring_server
-
-    - name: Bring up Grafana
-      ansible.builtin.import_role:
-        name: grafana
+  roles:
+    - role: preflight
+    - role: repos
+    - role: node
+    - role: certs
+    - role: monitoring_server
+    - role: grafana

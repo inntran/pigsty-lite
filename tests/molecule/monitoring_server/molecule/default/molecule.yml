@@ -23,8 +23,6 @@ provisioner:
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
         node_sysctl_apply: false
-        repos_epel_enabled: true
-        repos_pigsty_enabled: false
         vmsingle_retention: 7d
         vlsingle_retention: 7d
         alertmanager_receivers: []

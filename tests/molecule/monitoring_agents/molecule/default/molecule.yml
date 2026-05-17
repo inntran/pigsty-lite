@@ -36,8 +36,6 @@ provisioner:
         pigsty_pki_dir: /etc/pki/pigsty
         node_sysctl_apply: false
         postgres_version: 18
-        repos_epel_enabled: true
-        repos_pigsty_enabled: false
     host_vars:
       pigsty-lite-monagt-default-server: {}
       pigsty-lite-monagt-default-2:

@@ -7,3 +7,14 @@ provisioner:
     defaults:
       roles_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
       collections_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
+  inventory:
+    group_vars:
+      all:
+        ca_dir: /tmp/pigsty-molecule-ca
+        certs_ca_dir_on_control: /tmp/pigsty-molecule-ca
+        # Containers' ansible_host is the container name, not an IP, so the
+        # role's default IP-SAN derivation picks an unresolvable string. Pin
+        # the IP SAN to the container's actual default IPv4 address.
+        certs_default_ip_san_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        # Alertmanager and other monitoring packages live in EPEL on EL10.
+        repos_epel_enabled: true
