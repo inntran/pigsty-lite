@@ -69,10 +69,10 @@ After consolidation, all nodes have:
 
 **Permissions:**
 
-- `ca.crt`: `0644` (world-readable, needed for TLS validation)
+- `ca.crt`: `0440` on targets, owned by `root:pigsty`
 - `ca.key`: `0600` (readable only by the ansible process or designated cert renewal user)
-- `*.crt` (host certs): `0644`
-- `*.key` (host keys): `0600`
+- `*.crt` (host certs): `0440`, owned by `root:pigsty`
+- `*.key` (host keys): `0440`, owned by `root:pigsty`
 
 #### 4. Files to Update
 

@@ -11,9 +11,9 @@
       ansible.builtin.assert:
         that:
           - certs_host_cert.stat.exists
-          - certs_host_cert.stat.mode == "0644"
+          - certs_host_cert.stat.mode == "0440"
 
-    - name: Host key exists, mode 0640
+    - name: Host key exists, mode 0440
       ansible.builtin.stat:
         path: "/etc/pki/pigsty/{{ inventory_hostname }}.key"
       register: certs_host_key
@@ -22,7 +22,7 @@
       ansible.builtin.assert:
         that:
           - certs_host_key.stat.exists
-          - certs_host_key.stat.mode == "0640"
+          - certs_host_key.stat.mode == "0440"
 
     - name: CA cert is installed on host
       ansible.builtin.stat:

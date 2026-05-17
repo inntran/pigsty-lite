@@ -1,7 +1,8 @@
 # certs
 
 Issues per-host certificates signed by the pigsty-lite CA. The CA must already
-exist on the control node (`roles/ca`).
+exist on the control node (`roles/ca`), and the target must already have the
+shared `pigsty` group/user from the `node` role.
 
 ## Flow
 
@@ -11,6 +12,11 @@ exist on the control node (`roles/ca`).
 4. Generate CSR on target; fetch back to control.
 5. Sign CSR with the CA on control node.
 6. Copy signed cert back to target.
+
+Installed target material is owned by `root:pigsty`. The CA certificate, host
+certificate, host private key, and CSR are installed with mode `0440` so
+services in the shared `pigsty` group can read TLS material without making it
+world-readable.
 
 ## Inputs
 

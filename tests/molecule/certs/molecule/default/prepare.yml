@@ -6,3 +6,11 @@
     ca_dir: "{{ playbook_dir }}/_tmp_ca"
   roles:
     - role: ca
+
+- name: Prepare - node baseline (creates pigsty group/user)
+  hosts: all
+  gather_facts: true
+  vars:
+    node_sysctl_apply: false
+  roles:
+    - role: node
