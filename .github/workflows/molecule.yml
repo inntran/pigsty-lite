@@ -36,42 +36,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Coverage rationale: see tests/molecule/COVERAGE.md.
+        # These five scenarios collectively exercise every role as either
+        # a converge target or via production-playbook prepare.
         include:
-          - role: preflight
-            scenario: default
-          - role: repos
-            scenario: default
-          - role: node
-            scenario: default
-          - role: ca
-            scenario: default
-          - role: certs
-            scenario: default
-          - role: etcd
-            scenario: spof
-          - role: etcd
-            scenario: ha
-          - role: postgres
-            scenario: default
-          - role: patroni
-            scenario: spof
-          - role: patroni
-            scenario: ha
-          - role: pgbouncer
-            scenario: default
-          - role: haproxy
-            scenario: default
-          - role: haproxy
-            scenario: ha
-          - role: provision
-            scenario: default
-          - role: provision
-            scenario: ha
-          - role: backup
-            scenario: default
-          - role: backup
-            scenario: ha
+          # Full SPOF stack via production playbooks: preflight, ca, repos,
+          # node, certs, etcd, postgres, patroni, cluster_ops.
           - role: cluster_ops
+            scenario: default
+          # HA stack + backup: ca, repos, node, certs, etcd, postgres,
+          # patroni, pgbackrest in 3-node HA topology.
+          - role: backup
+            scenario: ha
+          # haproxy + pgbouncer in HA.
+          - role: haproxy
+            scenario: ha
+          # nginx_proxy + monitoring_server + grafana.
+          - role: nginx_proxy
+            scenario: default
+          # End-to-end: prepare runs preflight, ca, node, etcd, postgres,
+          # patroni, pgbouncer, haproxy, pgbackrest, monitoring_server;
+          # converge applies monitoring_agents.
+          - role: monitoring_agents
             scenario: default
     steps:
       - uses: actions/checkout@v6
@@ -103,7 +89,7 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
