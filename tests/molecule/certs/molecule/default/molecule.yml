@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-certs-rocky10
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-common:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
