@@ -1,3 +1,7 @@
 ---
 - name: Apply the nginx_proxy role
-  ansible.builtin.import_playbook: ../../../../../playbooks/_nginx_proxy.yml
+  hosts: monitor
+  become: true
+  gather_facts: true
+  roles:
+    - role: nginx_proxy

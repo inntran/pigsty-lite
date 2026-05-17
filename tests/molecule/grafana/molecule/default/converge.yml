@@ -1,3 +1,7 @@
 ---
 - name: Apply the grafana role
-  ansible.builtin.import_playbook: ../../../../../playbooks/_grafana.yml
+  hosts: monitor
+  become: true
+  gather_facts: true
+  roles:
+    - role: grafana
