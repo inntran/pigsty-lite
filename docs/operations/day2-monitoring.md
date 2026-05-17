@@ -68,10 +68,10 @@ dashboards within 30 seconds; no Grafana restart needed.
   firewalld - `victoriametrics` (8428) and `victorialogs` (9428) must
   be open to the postgres source group. `vmagent`'s disk buffer fills
   if the monitor is unreachable; it drains when connectivity returns.
-- **Grafana 404 behind the proxy**: Grafana must have
-  `serve_from_sub_path` true and `root_url` ending in `/grafana/` -
-  both are set by the `grafana` role; a hand-edited `grafana.ini`
-  reverts on the next deploy.
+- **Grafana 404 behind the proxy**: the nginx proxy strips `/grafana/`
+  before forwarding to Grafana. The `grafana` role sets `root_url` to end in
+  `/grafana/` while keeping `serve_from_sub_path` false; a hand-edited
+  `grafana.ini` reverts on the next deploy.
 - **AVC denial from nginx**: nginx proxying to loopback upstreams needs
   the `httpd_can_network_connect` SELinux boolean - the `nginx_proxy`
   role sets it. If you see an AVC, confirm the boolean is on.

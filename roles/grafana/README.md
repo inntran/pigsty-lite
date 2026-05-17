@@ -8,7 +8,8 @@ and VictoriaLogs datasources and provisions dashboards via
 ## What this role owns
 
 - Grafana on `network_loopback_address:3000`, SQLite-backed,
-  `serve_from_sub_path` true (fronted by nginx at `/grafana/`).
+  with `root_url` ending in `/grafana/`. The nginx proxy strips the
+  `/grafana/` prefix before forwarding, so `serve_from_sub_path` stays false.
 - The VictoriaMetrics (Prometheus-type) and VictoriaLogs datasources.
 - Dashboards provisioned from `roles/grafana/files/dashboards/`.
 
