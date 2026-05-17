@@ -63,8 +63,15 @@ test-role: test-image
 	fi
 
 clean:
-	rm -rf .ansible/facts dist/ artifacts/
+	rm -rf inventory/site.yml group_vars/response.yml .ansible/
+	find tests/molecule -path '*/_tmp*' -exec rm -rf {} +
 	find . -name __pycache__ -type d -exec rm -rf {} +
+	find . -name '*.pyc' -type f -delete
+	@if command -v podman >/dev/null 2>&1; then \
+		podman images --format "{{.Repository}}:{{.Tag}}" | \
+			grep -E '^localhost/molecule-base:' | \
+			xargs -r podman image rm -f; \
+	fi
 
 switchover:
 	ansible-playbook playbooks/switchover.yml

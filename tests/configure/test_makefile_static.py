@@ -32,6 +32,24 @@ def test_test_role_fail_fast_zero_enables_task_level_continue_mode():
     assert "exit $$status" in makefile
 
 
+def test_clean_removes_only_rebuildable_generated_artifacts():
+    makefile = _makefile()
+
+    assert (
+        "rm -rf inventory/site.yml group_vars/response.yml .ansible/"
+    ) in makefile
+    assert "find tests/molecule -path '*/_tmp*' -exec rm -rf {} +" in makefile
+    assert "find . -name __pycache__ -type d -exec rm -rf {} +" in makefile
+    assert "find . -name '*.pyc' -type f -delete" in makefile
+    assert 'podman images --format "{{.Repository}}:{{.Tag}}"' in makefile
+    assert "grep -E '^localhost/molecule-base:'" in makefile
+    assert "xargs -r podman image rm -f" in makefile
+    assert "rm -rf pki/" not in makefile
+    assert "collections/" not in makefile.partition("clean:")[2]
+    assert "roles.galaxy/" not in makefile.partition("clean:")[2]
+    assert "responses/site.rsp.yml" not in makefile.partition("clean:")[2]
+
+
 def test_all_molecule_verify_plays_honor_task_level_continue_switch():
     verify_files = sorted((ROOT / "tests/molecule").glob("*/molecule/*/verify.yml"))
 
