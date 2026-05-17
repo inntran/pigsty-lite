@@ -15,6 +15,7 @@
 ## File Structure
 
 **Created files:**
+
 - `tests/molecule/images/common/Containerfile` — bootstrap + repos + pigsty user + pgbackrest + VM binaries
 - `tests/molecule/images/data/Containerfile` — data-plane packages
 - `tests/molecule/images/infra/Containerfile` — alertmanager/grafana/nginx
@@ -23,16 +24,19 @@
 - `Makefile.d/images.mk` — `images-common`, `images-data`, `images-infra`, `images`, `images-clean`
 
 **Modified files:**
+
 - `Makefile` — drop `test-image`/`molecule_image.sh` wiring; add `include Makefile.d/images.mk`; `test-role` depends on `images` instead of `test-image`; help text updated
 - `tests/molecule/<each-scenario>/molecule/<sub>/molecule.yml` — switch each platform's `image:` per the mapping table in the spec
 - `tests/molecule/<each-scenario>/molecule/<sub>/prepare.yml` — remove redundant "Ensure iproute is present" bootstrap on baked-image scenarios (keep it on raw-upstream scenarios)
 - `.github/workflows/molecule.yml` — split into `pull-base-os`, `build-common`, `build-data`, `build-infra`, `bootstrap-scenarios` (raw upstream), and `derived-scenarios` (matrix on common/data/infra) jobs with `needs:` edges
 
 **Deleted files:**
+
 - `tests/molecule/Containerfile`
 - `bin/molecule_image.sh`
 
 **Out of scope (do not touch):**
+
 - `roles/repos/**`, `roles/node/**` — no role refactors per spec non-goals
 - Anything in `roles/**` other than reading defaults
 
@@ -41,6 +45,7 @@
 ## Task 1: Scaffold the images directory and the common Containerfile
 
 **Files:**
+
 - Create: `tests/molecule/images/common/Containerfile`
 - Create: `tests/molecule/images/.gitignore`
 
@@ -200,6 +205,7 @@ git commit -m "test(molecule): add common base image (repos, pgbackrest, VM bina
 ## Task 2: Add the data Containerfile
 
 **Files:**
+
 - Create: `tests/molecule/images/data/Containerfile`
 
 - [ ] **Step 1: Write the data Containerfile**
@@ -266,6 +272,7 @@ git commit -m "test(molecule): add data base image (etcd, patroni, pg18, exporte
 ## Task 3: Add the infra Containerfile
 
 **Files:**
+
 - Create: `tests/molecule/images/infra/Containerfile`
 
 - [ ] **Step 1: Write the infra Containerfile**
@@ -319,6 +326,7 @@ git commit -m "test(molecule): add infra base image (alertmanager, grafana, ngin
 ## Task 4: Add the orchestration script `bin/molecule_images.sh`
 
 **Files:**
+
 - Create: `bin/molecule_images.sh`
 
 - [ ] **Step 1: Write the script**
@@ -445,6 +453,7 @@ git commit -m "test(molecule): add base-image build orchestrator"
 ## Task 5: Add `Makefile.d/images.mk` and wire it into the top-level Makefile
 
 **Files:**
+
 - Create: `Makefile.d/images.mk`
 - Modify: `Makefile`
 
@@ -480,26 +489,24 @@ In `Makefile`:
 
 1. Add `include Makefile.d/images.mk` directly after the existing `include Makefile.d/lint.mk` line.
 2. Replace the `test-image:` target body with a thin alias and change `test-role`'s dependency from `test-image` to `images`. Concretely:
+    Find this block:
 
-Find this block:
+    ```makefile
+    test-image:
+      ./bin/molecule_images.sh tests/molecule/Containerfile localhost/molecule-base
 
-```makefile
-test-image:
-	./bin/molecule_images.sh tests/molecule/Containerfile localhost/molecule-base
+    test-role: test-image
+    ```
 
-test-role: test-image
-```
+    Note: the existing line is `./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base`. Replace it with:
 
-Note: the existing line is `./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base`. Replace it with:
+    ```makefile
+    test-image: images
 
-```makefile
-test-image: images
-
-test-role: images
-```
+    test-role: images
+    ```
 
 3. Update the `.PHONY` line: it already lists `test-image test-role`. Leave them (now both still exist).
-
 4. Update help text: replace the `test-image` line with this line:
 
 ```
@@ -542,6 +549,7 @@ git commit -m "build(make): tiered images targets (common/data/infra)"
 These scenarios use the common image: `preflight/default`, `node/default`, `ca/default`, `certs/default`.
 
 **Files (one platform `image:` line each):**
+
 - Modify: `tests/molecule/preflight/molecule/default/molecule.yml`
 - Modify: `tests/molecule/node/molecule/default/molecule.yml`
 - Modify: `tests/molecule/ca/molecule/default/molecule.yml`
@@ -601,6 +609,7 @@ git commit -m "test(molecule): switch common-tier scenarios to molecule-base-com
 Scenarios: `cluster_ops/default`, `etcd/spof`, `etcd/ha`, `postgres/default`, `patroni/spof`, `patroni/ha`, `pgbouncer/default`, `haproxy/default`, `haproxy/ha`, `vip_manager/default`, `provision/ha`, `monitoring_agents/default`.
 
 **Files:**
+
 - Modify: `tests/molecule/cluster_ops/molecule/default/molecule.yml` + `prepare.yml`
 - Modify: `tests/molecule/etcd/molecule/{spof,ha}/molecule.yml` + `prepare.yml`
 - Modify: `tests/molecule/postgres/molecule/default/molecule.yml` + `prepare.yml`
@@ -664,6 +673,7 @@ git commit -m "test(molecule): switch data-tier scenarios to molecule-base-data"
 Scenarios: `monitoring_server/default`, `grafana/default`, `nginx_proxy/default`.
 
 **Files:**
+
 - Modify: `tests/molecule/monitoring_server/molecule/default/molecule.yml` + `prepare.yml`
 - Modify: `tests/molecule/grafana/molecule/default/molecule.yml` + `prepare.yml`
 - Modify: `tests/molecule/nginx_proxy/molecule/default/molecule.yml` + `prepare.yml`
@@ -709,6 +719,7 @@ git commit -m "test(molecule): switch infra-tier scenarios to molecule-base-infr
 `backup/default` has two platforms; `backup/ha` has four. Data-plane hosts use the data image; the host in the `backup_server` group uses the infra image.
 
 **Files:**
+
 - Modify: `tests/molecule/backup/molecule/default/molecule.yml`
 - Modify: `tests/molecule/backup/molecule/ha/molecule.yml`
 - Modify: `tests/molecule/backup/molecule/default/prepare.yml` (only if it has the iproute bootstrap)
@@ -766,6 +777,7 @@ git commit -m "test(molecule): backup scenarios use data+infra images per platfo
 These two scenarios must run on the bare image to exercise `roles/repos` and `roles/node` from scratch. Their `prepare.yml` must keep the iproute bootstrap (raw image has no iproute).
 
 **Files:**
+
 - Modify: `tests/molecule/provision/molecule/default/molecule.yml`
 - Modify: `tests/molecule/repos/molecule/default/molecule.yml`
 
@@ -833,6 +845,7 @@ git commit -m "test(molecule): bootstrap scenarios run on raw oraclelinux:10"
 ## Task 11: Delete the legacy Containerfile and `bin/molecule_image.sh`
 
 **Files:**
+
 - Delete: `tests/molecule/Containerfile`
 - Delete: `bin/molecule_image.sh`
 
@@ -875,6 +888,7 @@ git commit -m "test(molecule): remove legacy single-image build path"
 ## Task 12: Restructure the CI workflow for image build + parallel tracks
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Replace the workflow with the new job graph**
@@ -1143,6 +1157,7 @@ git commit -m "ci(molecule): parallel image build + bootstrap/derived tracks"
 The COVERAGE doc explains what the trimmed CI matrix covers. We add the bootstrap track and a short operator-facing note about pinning VM versions in production (since the test image policy diverges from prod).
 
 **Files:**
+
 - Modify: `tests/molecule/COVERAGE.md`
 - Modify: `roles/monitoring_server/README.md` (or create a short section if absent)
 
@@ -1181,6 +1196,7 @@ CI (see `.github/workflows/molecule.yml`).
   vmagent_version:         v1.143.0
   vlagent_version:         v1.50.0
   ```
+
 ```
 
 - [ ] **Step 2: Add a short operator-facing note in `roles/monitoring_server/README.md`**
