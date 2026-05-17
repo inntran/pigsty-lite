@@ -85,6 +85,7 @@ All data disks appear as `/dev/vdb` inside the VM. Cloud-init formats them as XF
 **Why first:** Locks in the operator contract and the IP/MAC/hostname constants before any code reads or writes them.
 
 **Files:**
+
 - Create: `tests/integration/README.md`
 - Create: `tests/integration/ha/topology.env`
 
@@ -207,6 +208,7 @@ commands or run the integration scripts as root directly.
 **VM does not get expected IP**
 The libvirt NAT network uses DHCP reservations keyed on MAC. Verify the domain XML with
 `virsh dumpxml pgmon01 | grep mac`. The MAC must match `topology.env`.
+
 ```
 
 - [ ] **Step 3: Commit**
@@ -221,6 +223,7 @@ git commit -m "feat(integration): add ha topology.env and operator README"
 ## Task 2: Write `bin/integration/lib/common.sh`
 
 **Files:**
+
 - Create: `bin/integration/lib/common.sh`
 
 - [ ] **Step 1: Create `bin/integration/lib/common.sh`**
@@ -291,6 +294,7 @@ git commit -m "feat(integration): add lib/common.sh with env defaults and loggin
 ## Task 3: Write `bin/integration/lib/network.sh` and `tests/integration/ha/network.xml`
 
 **Files:**
+
 - Create: `tests/integration/ha/network.xml`
 - Create: `bin/integration/lib/network.sh`
 
@@ -371,6 +375,7 @@ git commit -m "feat(integration): add libvirt NAT network definition and network
 **Why:** Each VM needs a per-role cloud-init `user-data` that formats `/dev/vdb` as XFS and mounts it at the correct path. `meta-data` provides the instance-id and hostname to cloud-init. Both files are copied into the OS overlay at `/var/lib/cloud/seed/nocloud/` via `virt-customize`, which also runs an SELinux relabel so labels are correct on first boot. No ISO, no cdrom device.
 
 **Files:**
+
 - Create: `tests/integration/ha/cloud-init/user-data.pgnode`
 - Create: `tests/integration/ha/cloud-init/user-data.pgmon`
 - Create: `bin/integration/lib/image.sh`
@@ -557,6 +562,7 @@ git commit -m "feat(integration): add cloud-init templates and image.sh disk/inj
 ## Task 5: Write `bin/integration/lib/vm.sh` — virt-install, wait-SSH, destroy
 
 **Files:**
+
 - Create: `bin/integration/lib/vm.sh`
 
 - [ ] **Step 1: Create `bin/integration/lib/vm.sh`**
@@ -646,6 +652,7 @@ git commit -m "feat(integration): add vm.sh — virt-install, wait-SSH, destroy 
 ## Task 6: Write the preflight script
 
 **Files:**
+
 - Create: `bin/integration-preflight.sh`
 
 - [ ] **Step 1: Create `bin/integration-preflight.sh`**
@@ -726,6 +733,7 @@ git commit -m "feat(integration): add preflight script"
 The harness does not template the response file at runtime. A static file is simpler and covers the integration scenario exactly.
 
 **Files:**
+
 - Create: `tests/integration/ha/responses/ha.rsp.yml`
 
 - [ ] **Step 1: Create `tests/integration/ha/responses/ha.rsp.yml`**
@@ -784,6 +792,7 @@ git commit -m "feat(integration): add static HA response file for integration sc
 ## Task 8: Write `bin/integration-up.sh` — the main orchestrator
 
 **Files:**
+
 - Create: `bin/integration-up.sh`
 
 - [ ] **Step 1: Create `bin/integration-up.sh`**
@@ -862,6 +871,7 @@ git commit -m "feat(integration): add integration-up.sh orchestrator"
 ## Task 9: Write `bin/integration-down.sh`
 
 **Files:**
+
 - Create: `bin/integration-down.sh`
 
 - [ ] **Step 1: Create `bin/integration-down.sh`**
@@ -917,6 +927,7 @@ git commit -m "feat(integration): add integration-down.sh"
 ## Task 10: Write `bin/integration-converge.sh` and `bin/integration-verify.sh`
 
 **Files:**
+
 - Create: `bin/integration-converge.sh`
 - Create: `bin/integration-verify.sh`
 
@@ -975,6 +986,7 @@ git commit -m "feat(integration): add converge and verify runner scripts"
 ## Task 11: Write the Ansible verify playbook and check tasks
 
 **Files:**
+
 - Create: `tests/integration/ha/verify.yml`
 - Create: `tests/integration/ha/verify/connectivity.yml`
 - Create: `tests/integration/ha/verify/patroni_state.yml`
@@ -1197,6 +1209,7 @@ git commit -m "feat(integration): add Ansible verify playbook and acceptance che
 ## Task 12: Add Makefile targets and .gitignore entries
 
 **Files:**
+
 - Modify: `Makefile`
 - Modify: `.gitignore` (create if missing)
 
@@ -1215,22 +1228,22 @@ Append after the last existing target:
 test-integration: test-integration-up test-integration-converge test-integration-verify test-integration-down
 
 test-integration-up:
-	@echo "=== Integration: preflight ==="
-	bash bin/integration-preflight.sh
-	@echo "=== Integration: up ==="
-	bash bin/integration-up.sh $(if $(filter 1,$(RECREATE)),--recreate,)
+ @echo "=== Integration: preflight ==="
+ bash bin/integration-preflight.sh
+ @echo "=== Integration: up ==="
+ bash bin/integration-up.sh $(if $(filter 1,$(RECREATE)),--recreate,)
 
 test-integration-down:
-	@echo "=== Integration: down ==="
-	bash bin/integration-down.sh
+ @echo "=== Integration: down ==="
+ bash bin/integration-down.sh
 
 test-integration-converge:
-	@echo "=== Integration: converge ==="
-	bash bin/integration-converge.sh
+ @echo "=== Integration: converge ==="
+ bash bin/integration-converge.sh
 
 test-integration-verify:
-	@echo "=== Integration: verify ==="
-	bash bin/integration-verify.sh
+ @echo "=== Integration: verify ==="
+ bash bin/integration-verify.sh
 ```
 
 - [ ] **Step 3: Update the help target in `Makefile`**
@@ -1238,11 +1251,11 @@ test-integration-verify:
 Add these lines to the help echo block (inside the existing `help:` recipe):
 
 ```makefile
-	@echo
-	@echo "  Integration tests (local only, requires PIGSTY_BASE_IMAGE):"
-	@echo "  make test-integration PIGSTY_BASE_IMAGE=/path/to/base.qcow2"
-	@echo "  make test-integration-up / down / converge / verify"
-	@echo "  RECREATE=1 make test-integration-up  — destroy and recreate VMs"
+ @echo
+ @echo "  Integration tests (local only, requires PIGSTY_BASE_IMAGE):"
+ @echo "  make test-integration PIGSTY_BASE_IMAGE=/path/to/base.qcow2"
+ @echo "  make test-integration-up / down / converge / verify"
+ @echo "  RECREATE=1 make test-integration-up  — destroy and recreate VMs"
 ```
 
 - [ ] **Step 4: Update `.gitignore`**

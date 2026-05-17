@@ -79,6 +79,7 @@
 ## Task 1: Verify PGDG already exposes postgresql18 and patroni
 
 **Files:**
+
 - Read-only check: `roles/repos/tasks/main.yml`, `roles/repos/defaults/main.yml`.
 
 This task confirms P0's `repos` role already arranges what P2a needs, so we don't duplicate it. No code change here, but it gates the rest of the plan.
@@ -91,12 +92,14 @@ Expected: `repos_pgdg_extras_repo: pgdg-rhel10-extras` is set and the task `Enab
 - [ ] **Step 2: Confirm patroni is in PGDG extras**
 
 Run on a Rocky 10 box (or skip if you trust the PGDG repo):
+
 ```bash
 podman run --rm rockylinux/rockylinux:10 bash -c '
   dnf -y install https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm > /dev/null 2>&1 &&
   dnf --enablerepo=pgdg-rhel10-extras list patroni patroni-etcd python3-psycopg3
 '
 ```
+
 Expected: all three packages listed, source=`pgdg-rhel10-extras` (or `pgdg-common` for python3-psycopg3). If patroni is missing, fall back to installing from EPEL by toggling `repos_epel_enabled: true` in defaults — note this in Task 4's `_install.yml`.
 
 - [ ] **Step 3: No commit.**
@@ -108,6 +111,7 @@ Verification only.
 ## Task 2: Add postgres role defaults
 
 **Files:**
+
 - Create: `roles/postgres/defaults/main.yml`
 
 - [ ] **Step 1: Write defaults**
@@ -162,6 +166,7 @@ git commit -m "feat(postgres): role defaults"
 ## Task 3: Add postgres role meta and README
 
 **Files:**
+
 - Create: `roles/postgres/meta/main.yml`
 - Create: `roles/postgres/README.md`
 
@@ -229,6 +234,7 @@ git commit -m "feat(postgres): role meta and README"
 ## Task 4: Add postgres tasks (skeleton)
 
 **Files:**
+
 - Create: `roles/postgres/tasks/main.yml`
 - Create: `roles/postgres/tasks/_assert.yml`
 - Create: `roles/postgres/tasks/_install.yml`
@@ -426,6 +432,7 @@ git commit -m "feat(postgres): install, filesystem, seport, mask-vendor tasks"
 ## Task 5: Write postgres molecule scenario (failing)
 
 **Files:**
+
 - Create: `tests/molecule/postgres/molecule/default/molecule.yml`
 - Create: `tests/molecule/postgres/molecule/default/prepare.yml`
 - Create: `tests/molecule/postgres/molecule/default/converge.yml`
@@ -584,12 +591,14 @@ git commit -m "test(postgres): default molecule scenario"
 If Task 5 step 5 turned green, skip this task entirely.
 
 **Files (likely):**
+
 - Possibly modify: `roles/postgres/tasks/_filesystem.yml` (selinux gate)
 - Possibly modify: `roles/postgres/tasks/_install.yml` (extras repo)
 
 - [ ] **Step 1: Inspect the failing task output**
 
 Common modes:
+
 - `dnf install postgresql18-server` fails: PGDG repo wasn't enabled by `prepare.yml`. Check `repos_pgdg_enabled` and that the `pgdg18` section is enabled in `/etc/yum.repos.d/pgdg-redhat-all.repo`. Fix is in the prepare playbook, not the role.
 - `community.general.sefcontext` fails because `selinux` facts aren't gathered: add `setup` task in `_assert.yml` with `gather_subset: ['selinux']`, or change the `when` to `ansible_facts.selinux is defined and ansible_facts.selinux.status == "enabled"`.
 - vendor unit not present (PGDG packaging changed): the stat/when guard already covers this — no fix needed.
@@ -597,6 +606,7 @@ Common modes:
 - [ ] **Step 2: Apply the minimal fix in the role**
 
 Example (selinux fact gate):
+
 ```yaml
 # roles/postgres/tasks/_filesystem.yml — change `when` clauses
 when:
@@ -622,6 +632,7 @@ git commit -m "fix(postgres): <specific fix>"
 ## Task 7: Add patroni firewalld custom service
 
 **Files:**
+
 - Create: `files/firewalld/services/patroni-rest.xml`
 
 - [ ] **Step 1: Write the XML**
@@ -652,6 +663,7 @@ git commit -m "feat(firewalld): patroni-rest custom service definition"
 ## Task 8: Add patroni role defaults
 
 **Files:**
+
 - Create: `roles/patroni/defaults/main.yml`
 
 - [ ] **Step 1: Write defaults**
@@ -739,6 +751,7 @@ git commit -m "feat(patroni): role defaults"
 ## Task 9: Add patroni meta and README
 
 **Files:**
+
 - Create: `roles/patroni/meta/main.yml`
 - Create: `roles/patroni/README.md`
 
@@ -817,6 +830,7 @@ git commit -m "feat(patroni): role meta and README"
 ## Task 10: Add patroni tuning profiles
 
 **Files:**
+
 - Create: `roles/patroni/files/tuning/oltp.conf`
 - Create: `roles/patroni/files/tuning/olap.conf`
 - Create: `roles/patroni/files/tuning/tiny.conf`
@@ -984,6 +998,7 @@ git commit -m "feat(patroni): tuning profiles oltp/olap/tiny"
 ## Task 11: Add patroni.yml.j2 template
 
 **Files:**
+
 - Create: `roles/patroni/templates/patroni.yml.j2`
 
 - [ ] **Step 1: Write the template**
@@ -1107,6 +1122,7 @@ tags:
 ```
 
 Notes:
+
 - `patroni_superuser_password`, `patroni_replication_password`, and
   `patroni_rewind_password` are not in `defaults/main.yml`. They MUST be
   supplied by the operator-facing layer. Task 12 wires
@@ -1133,6 +1149,7 @@ git commit -m "feat(patroni): patroni.yml.j2 template"
 ## Task 12: Wire group_vars/postgres.yml
 
 **Files:**
+
 - Modify: `group_vars/postgres.yml`
 
 - [ ] **Step 1: Replace placeholder**
@@ -1178,6 +1195,7 @@ git commit -m "feat(patroni): group_vars defaults for passwords and tuning"
 ## Task 13: Add patroni systemd drop-in
 
 **Files:**
+
 - Create: `roles/patroni/templates/systemd-override.conf.j2`
 
 - [ ] **Step 1: Write template**
@@ -1203,6 +1221,7 @@ git commit -m "feat(patroni): systemd drop-in for limits and restart policy"
 ## Task 14: Add patroni handler
 
 **Files:**
+
 - Create: `roles/patroni/handlers/main.yml`
 
 - [ ] **Step 1: Write handler**
@@ -1228,6 +1247,7 @@ git commit -m "feat(patroni): restart handler"
 ## Task 15: Add patroni tasks (skeleton)
 
 **Files:**
+
 - Create: `roles/patroni/tasks/main.yml`
 - Create: `roles/patroni/tasks/_assert.yml`
 - Create: `roles/patroni/tasks/_install.yml`
@@ -1453,6 +1473,7 @@ git commit -m "feat(patroni): install, configure, firewall, service tasks"
 ## Task 16: Wire postgres + patroni into site.yml
 
 **Files:**
+
 - Create: `playbooks/_postgres_install.yml`
 - Create: `playbooks/_postgres_bootstrap.yml`
 - Modify: `playbooks/site.yml`
@@ -1562,6 +1583,7 @@ git commit -m "feat(playbooks): wire P2a postgres + patroni into site"
 ## Task 17: Patroni single-node molecule scenario (failing)
 
 **Files:**
+
 - Create: `tests/molecule/patroni/molecule/single/molecule.yml`
 - Create: `tests/molecule/patroni/molecule/single/prepare.yml`
 - Create: `tests/molecule/patroni/molecule/single/converge.yml`
@@ -1756,20 +1778,24 @@ git commit -m "test(patroni): single-node molecule scenario"
 If Task 17 step 5 went green, skip this task.
 
 **Files:**
+
 - Likely: `roles/patroni/templates/patroni.yml.j2`
 
 - [ ] **Step 1: Inspect failure**
 
 If `journalctl -u patroni` shows YAML parse errors, render the template
 manually with:
+
 ```bash
 cd tests/molecule/patroni/molecule/single
 podman exec pigsty-lite-patroni-single cat /etc/patroni/patroni.yml | python3 -c 'import sys, yaml; yaml.safe_load(sys.stdin)'
 ```
 
 Common issues:
+
 - Tuning include indentation: a stray space in `tuning/oltp.conf` line breaks the `parameters:` block. Fix is to harden the Jinja loop in Task 11's template by stripping the line and re-indenting consistently.
 - `etcd3.hosts` needs to be a YAML list, not a JSON-looking string. The current expression `[...]` produces a string when the loop runs, which Patroni accepts as long as quoting is consistent. If Patroni rejects, replace with explicit YAML list rendering:
+
   ```yaml
   etcd3:
     hosts:
@@ -1799,6 +1825,7 @@ git commit -m "fix(patroni): <specific fix>"
 ## Task 19: Patroni HA (3-node) molecule scenario
 
 **Files:**
+
 - Create: `tests/molecule/patroni/molecule/ha/molecule.yml`
 - Create: `tests/molecule/patroni/molecule/ha/prepare.yml`
 - Create: `tests/molecule/patroni/molecule/ha/converge.yml`
@@ -2074,6 +2101,7 @@ git commit -m "test(patroni): ha 3-node molecule scenario"
 ## Task 20: Wire molecule scenarios into CI
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Extend the matrix**
@@ -2111,6 +2139,7 @@ git commit -m "ci(molecule): add postgres-default, patroni-single, patroni-ha"
 ## Task 21: Update docs/operations/firstrun.md
 
 **Files:**
+
 - Modify: `docs/operations/firstrun.md`
 
 - [ ] **Step 1: Add a P2a section after the etcd section**
@@ -2170,6 +2199,7 @@ postgres:
 
 For now, override directly in `group_vars/postgres.yml` or
 `group_vars/response.yml`.
+
 ```
 
 - [ ] **Step 2: Commit**
@@ -2184,6 +2214,7 @@ git commit -m "docs(ops): firstrun guide P2a postgres + patroni section"
 ## Task 22: Update docs/superpowers/plans pointer + README roadmap
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Update Status line**

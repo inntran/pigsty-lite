@@ -84,6 +84,7 @@ These match the spec's §4.2 and §7 directly. The implementing agent must follo
 ## Task 1: Lint configs (yamllint, ansible-lint, ruff, markdownlint)
 
 **Files:**
+
 - Create: `.yamllint`
 - Create: `.ansible-lint`
 - Create: `pyproject.toml`
@@ -167,12 +168,14 @@ MD041: false  # first-line H1 not required (specs have YAML frontmatter)
 - [ ] **Step 5: Verify lint configs load**
 
 Run:
+
 ```bash
 yamllint --version && yamllint -c .yamllint .gitignore
 ansible-lint --version
 ruff check --no-fix .
 markdownlint-cli2 --version || npx markdownlint-cli2 --version
 ```
+
 Expected: each command exits 0 (no findings yet — repo has almost no files).
 
 - [ ] **Step 6: Commit**
@@ -187,6 +190,7 @@ git commit -m "build: add lint configurations"
 ## Task 2: `ansible.cfg` and `requirements.yml`
 
 **Files:**
+
 - Create: `ansible.cfg`
 - Create: `requirements.yml`
 
@@ -265,6 +269,7 @@ git commit -m "build: pin ansible config and Galaxy collections"
 ## Task 3: `Makefile` skeleton
 
 **Files:**
+
 - Create: `Makefile`
 - Create: `Makefile.d/lint.mk`
 
@@ -278,27 +283,27 @@ git commit -m "build: pin ansible config and Galaxy collections"
 lint: lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml
 
 lint-yaml:
-	yamllint .
+ yamllint .
 
 lint-ansible:
-	ansible-lint
+ ansible-lint
 
 lint-python:
-	ruff check .
-	ruff format --check .
+ ruff check .
+ ruff format --check .
 
 lint-markdown:
-	markdownlint-cli2 "**/*.md" "#collections" "#.ansible"
+ markdownlint-cli2 "**/*.md" "#collections" "#.ansible"
 
 lint-shell:
-	@if compgen -G "bin/*" > /dev/null; then \
-		shellcheck $$(find bin -type f -not -name '*.py' -not -name '_*.py'); \
-	fi
+ @if compgen -G "bin/*" > /dev/null; then \
+  shellcheck $$(find bin -type f -not -name '*.py' -not -name '_*.py'); \
+ fi
 
 lint-xml:
-	@if compgen -G "files/firewalld/services/*.xml" > /dev/null; then \
-		xmllint --noout files/firewalld/services/*.xml; \
-	fi
+ @if compgen -G "files/firewalld/services/*.xml" > /dev/null; then \
+  xmllint --noout files/firewalld/services/*.xml; \
+ fi
 ```
 
 - [ ] **Step 2: Create `Makefile`**
@@ -315,36 +320,36 @@ include Makefile.d/lint.mk
 .PHONY: help init configure plan deploy clean test-role
 
 help:
-	@echo "pigsty-lite — operator commands"
-	@echo
-	@echo "  make init          Set up the control node (install Galaxy collections + roles)"
-	@echo "  make configure     Interactive wizard; emits inventory + response file"
-	@echo "  make plan          Run site.yml in --check --diff mode"
-	@echo "  make deploy        Run site.yml against the active inventory"
-	@echo "  make lint          Run all linters"
-	@echo "  make test-role ROLE=<name>   Run molecule for a single role"
-	@echo "  make clean         Remove generated artifacts"
+ @echo "pigsty-lite — operator commands"
+ @echo
+ @echo "  make init          Set up the control node (install Galaxy collections + roles)"
+ @echo "  make configure     Interactive wizard; emits inventory + response file"
+ @echo "  make plan          Run site.yml in --check --diff mode"
+ @echo "  make deploy        Run site.yml against the active inventory"
+ @echo "  make lint          Run all linters"
+ @echo "  make test-role ROLE=<name>   Run molecule for a single role"
+ @echo "  make clean         Remove generated artifacts"
 
 init:
-	ansible-galaxy collection install -r requirements.yml -p ./collections
-	ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
+ ansible-galaxy collection install -r requirements.yml -p ./collections
+ ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
 configure:
-	./configure
+ ./configure
 
 plan: init
-	ansible-playbook playbooks/site.yml --check --diff
+ ansible-playbook playbooks/site.yml --check --diff
 
 deploy: init
-	ansible-playbook playbooks/site.yml
+ ansible-playbook playbooks/site.yml
 
 test-role:
-	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
-	cd tests/molecule/$(ROLE) && molecule test
+ @if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
+ cd tests/molecule/$(ROLE) && molecule test
 
 clean:
-	rm -rf .ansible/facts dist/ artifacts/
-	find . -name __pycache__ -type d -exec rm -rf {} +
+ rm -rf .ansible/facts dist/ artifacts/
+ find . -name __pycache__ -type d -exec rm -rf {} +
 ```
 
 - [ ] **Step 3: Verify Makefile parses**
@@ -364,6 +369,7 @@ git commit -m "build: add Makefile and lint helpers"
 ## Task 4: Response-file JSON Schema (`bin/_response_schema.py`)
 
 **Files:**
+
 - Create: `bin/_response_schema.py`
 - Create: `tests/configure/__init__.py`
 - Create: `tests/configure/fixtures/single.rsp.yml`
@@ -768,6 +774,7 @@ git commit -m "feat(configure): response-file schema validator"
 ## Task 5: Inventory generator (`bin/_generate_inventory.py`)
 
 **Files:**
+
 - Create: `bin/_generate_inventory.py`
 - Create: `tests/configure/test_generate_inventory.py`
 
@@ -962,6 +969,7 @@ git commit -m "feat(configure): inventory generator from response file"
 ## Task 6: Response-vars generator (`bin/_generate_response_vars.py`)
 
 **Files:**
+
 - Create: `bin/_generate_response_vars.py`
 - Create: `tests/configure/test_generate_response_vars.py`
 
@@ -1143,6 +1151,7 @@ git commit -m "feat(configure): response-vars generator for group_vars/response.
 ## Task 7: `configure` CLI script
 
 **Files:**
+
 - Create: `configure` (executable Python script)
 - Create: `responses/single.rsp.yml.example`
 - Create: `responses/ha.rsp.yml.example`
@@ -1316,22 +1325,28 @@ Run: `chmod +x configure`
 - [ ] **Step 4: Verify silent mode against fixture**
 
 Run:
+
 ```bash
 ./configure -s -f tests/configure/fixtures/ha.rsp.yml
 ```
+
 Expected: prints two "Wrote ..." lines, exit 0. Inventory and `group_vars/response.yml` appear and parse:
+
 ```bash
 ansible-inventory -i inventory/site.yml --list >/dev/null
 yamllint group_vars/response.yml
 ```
+
 Both exit 0.
 
 - [ ] **Step 5: Verify `--validate` mode**
 
 Run:
+
 ```bash
 ./configure --validate tests/configure/fixtures/invalid.rsp.yml
 ```
+
 Expected: prints `INVALID: profile: 'enterprise' not in ['ha', 'single']` to stderr, exit 2.
 
 - [ ] **Step 6: Commit**
@@ -1346,6 +1361,7 @@ git commit -m "feat(configure): silent + interactive + validate modes"
 ## Task 8: Inventory examples and group_vars defaults
 
 **Files:**
+
 - Create: `inventory/examples/single.yml` (output of running `configure -s` against the single fixture)
 - Create: `inventory/examples/ha.yml`
 - Create: `group_vars/all.yml`
@@ -1357,6 +1373,7 @@ git commit -m "feat(configure): silent + interactive + validate modes"
 - [ ] **Step 1: Generate example inventories**
 
 Run:
+
 ```bash
 ./configure -s -f tests/configure/fixtures/single.rsp.yml
 cp inventory/site.yml inventory/examples/single.yml
@@ -1432,24 +1449,28 @@ postgres_client_cidrs: ["10.0.0.0/8"]
 Each of the following has identical content — a YAML doc start plus one comment so the file is valid and committable.
 
 `group_vars/postgres.yml`:
+
 ```yaml
 ---
 # postgres group defaults. Populated in P2.
 ```
 
 `group_vars/etcd.yml`:
+
 ```yaml
 ---
 # etcd group defaults. Populated in P1.
 ```
 
 `group_vars/monitor.yml`:
+
 ```yaml
 ---
 # monitor group defaults. Populated in P5.
 ```
 
 `group_vars/backup_server.yml`:
+
 ```yaml
 ---
 # backup_server group defaults. Populated in P4.
@@ -1458,10 +1479,12 @@ Each of the following has identical content — a YAML doc start plus one commen
 - [ ] **Step 4: Verify**
 
 Run:
+
 ```bash
 yamllint group_vars/ inventory/examples/
 ansible-inventory -i inventory/examples/ha.yml --list >/dev/null
 ```
+
 Expected: both exit 0.
 
 - [ ] **Step 5: Commit**
@@ -1476,6 +1499,7 @@ git commit -m "feat(inventory): example inventories and group_vars defaults"
 ## Task 9: `roles/preflight` — test first
 
 **Files:**
+
 - Create: `roles/preflight/meta/main.yml`
 - Create: `roles/preflight/defaults/main.yml`
 - Create: `roles/preflight/tasks/main.yml`
@@ -1697,6 +1721,7 @@ git commit -m "feat(preflight): host validation role with molecule scenario"
 ## Task 10: `roles/repos` — test first
 
 **Files:**
+
 - Create: `roles/repos/meta/main.yml`
 - Create: `roles/repos/defaults/main.yml`
 - Create: `roles/repos/tasks/main.yml`
@@ -1915,6 +1940,7 @@ Spec §11 calls for "Repo priority: PGDG > vendor > EPEL > pigsty, enforced via 
 So the minimal correct enforcement is: set PGDG sections to a low priority (10), leave everything else at the default 99. We do not touch vendor repo files (OS-owned, can be rewritten by `dnf update`), and we do not touch EPEL or pigsty (no benefit, more files to manage). The `dnf` priorities plugin is built into `dnf-plugins-core`, which is present on RHEL/Rocky/Alma 10 by default but we install it explicitly to be safe. Lower numbers win.
 
 **Files:**
+
 - Modify: `roles/repos/defaults/main.yml`
 - Modify: `roles/repos/tasks/main.yml`
 - Modify: `tests/molecule/repos/molecule/default/verify.yml`
@@ -1995,6 +2021,7 @@ git commit -m "fix(repos): set priority on PGDG repo per spec §11"
 ## Task 11: `roles/node` — test first
 
 **Files:**
+
 - Create: `roles/node/meta/main.yml`
 - Create: `roles/node/defaults/main.yml`
 - Create: `roles/node/handlers/main.yml`
@@ -2306,6 +2333,7 @@ git commit -m "feat(node): hostname, hosts, sysctl, journald, firewalld baseline
 ## Task 12: `roles/ca` — localhost-only CA generation
 
 **Files:**
+
 - Create: `roles/ca/meta/main.yml`
 - Create: `roles/ca/defaults/main.yml`
 - Create: `roles/ca/tasks/main.yml`
@@ -2514,6 +2542,7 @@ git commit -m "feat(ca): self-signed CA generation on control node"
 ## Task 13: `roles/certs` — per-host certs signed by the CA
 
 **Files:**
+
 - Create: `roles/certs/meta/main.yml`
 - Create: `roles/certs/defaults/main.yml`
 - Create: `roles/certs/tasks/main.yml`
@@ -2773,6 +2802,7 @@ git commit -m "feat(certs): issue per-host certs from pigsty-lite CA"
 ## Task 14: P0 playbooks and `site.yml`
 
 **Files:**
+
 - Create: `playbooks/_preflight.yml`
 - Create: `playbooks/_ca.yml`
 - Create: `playbooks/_node.yml`
@@ -2871,19 +2901,23 @@ touch files/firewalld/services/.gitkeep
 - [ ] **Step 8: Verify `--syntax-check`**
 
 Run:
+
 ```bash
 ./configure -s -f tests/configure/fixtures/ha.rsp.yml
 ansible-playbook playbooks/site.yml --syntax-check
 ```
+
 Expected: both exit 0.
 
 - [ ] **Step 9: Verify `--check --diff` mode against the generated inventory (no real hosts needed; Ansible will fail at the SSH connection step, but the syntax + playbook structure is what we're validating)**
 
 Run:
+
 ```bash
 ansible-playbook playbooks/site.yml --check --diff -e ansible_check_mode=true \
   --connection=local --limit localhost --tags ca
 ```
+
 Expected: the CA role runs in check mode and exits 0; the file system remains unchanged.
 
 - [ ] **Step 10: Commit**
@@ -2898,6 +2932,7 @@ git commit -m "feat(playbooks): site, _preflight, _ca, _node for P0"
 ## Task 15: GitHub Actions — lint workflow
 
 **Files:**
+
 - Create: `.github/workflows/lint.yml`
 
 - [ ] **Step 1: Create `lint.yml`**
@@ -2984,6 +3019,7 @@ git commit -m "ci: add lint workflow"
 ## Task 16: GitHub Actions — molecule workflow matrix
 
 **Files:**
+
 - Create: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Create `molecule.yml`**
@@ -3070,6 +3106,7 @@ git commit -m "ci: add molecule workflow matrix"
 ## Task 17: Operator docs — first-run guide
 
 **Files:**
+
 - Create: `docs/operations/firstrun.md`
 
 - [ ] **Step 1: Create the doc**
@@ -3108,13 +3145,13 @@ Target hosts (1 for `single`, 4 for `ha`):
    $EDITOR responses/site.rsp.yml
    ```
 
-2. **Validate.**
+1. **Validate.**
 
    ```bash
    ./configure --validate responses/site.rsp.yml
    ```
 
-3. **Generate inventory + variables.**
+2. **Generate inventory + variables.**
 
    ```bash
    ./configure -s -f responses/site.rsp.yml
@@ -3122,13 +3159,13 @@ Target hosts (1 for `single`, 4 for `ha`):
 
    This writes `inventory/site.yml` and `group_vars/response.yml`.
 
-4. **Dry-run.**
+3. **Dry-run.**
 
    ```bash
    make plan
    ```
 
-5. **Deploy.**
+4. **Deploy.**
 
    ```bash
    make deploy
@@ -3146,6 +3183,7 @@ plus `ca.crt`.
   `download.postgresql.org` or proxy via `proxy_env` in inventory.
 - **`certs` task hangs on CSR fetch**: control-node user lacks read access
   to `pki/ca/`. Run from the user that ran `_ca.yml`.
+
 ```
 
 - [ ] **Step 2: Commit**
@@ -3160,6 +3198,7 @@ git commit -m "docs(ops): P0 first-run operator guide"
 ## Task 18: README update — reflect implemented state
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Edit README.md to flag P0 as in progress**
@@ -3221,6 +3260,7 @@ ssh <target> 'dnf repolist enabled | grep pgdg && \
               firewall-cmd --list-services | grep ssh && \
               ls -l /etc/pki/pigsty/'
 ```
+
 Expected: PGDG repo enabled, ssh in firewalld services, three files in `/etc/pki/pigsty/` (`ca.crt`, `<host>.crt`, `<host>.key`).
 
 - [ ] **Step 5: Re-run deploy and confirm zero changes**
@@ -3228,6 +3268,7 @@ Expected: PGDG repo enabled, ssh in firewalld services, three files in `/etc/pki
 ```bash
 make deploy
 ```
+
 Expected: every task reports `ok=...; changed=0`.
 
 - [ ] **Step 6: Tag the P0 milestone**

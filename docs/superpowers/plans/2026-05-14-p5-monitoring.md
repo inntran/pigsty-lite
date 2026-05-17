@@ -120,6 +120,7 @@
 ## Task 1: monitoring coordination vars, group_vars, requirements
 
 **Files:**
+
 - Modify: `group_vars/all.yml`
 - Modify: `group_vars/monitor.yml`
 - Modify: `requirements.yml`
@@ -204,6 +205,7 @@ git commit -m "feat(monitoring): coordination vars and Grafana collections"
 ## Task 2: monitoring_server defaults, meta, README
 
 **Files:**
+
 - Create: `roles/monitoring_server/defaults/main.yml`
 - Create: `roles/monitoring_server/meta/main.yml`
 - Create: `roles/monitoring_server/README.md`
@@ -334,6 +336,7 @@ git commit -m "feat(monitoring_server): role defaults, meta, README"
 ## Task 3: monitoring_server orchestration + assert
 
 **Files:**
+
 - Create: `roles/monitoring_server/tasks/main.yml`
 - Create: `roles/monitoring_server/tasks/_assert.yml`
 
@@ -422,6 +425,7 @@ git commit -m "feat(monitoring_server): orchestration and preconditions"
 ## Task 4: monitoring_server — vmsingle and vlsingle
 
 **Files:**
+
 - Create: `roles/monitoring_server/tasks/_vmsingle.yml`
 - Create: `roles/monitoring_server/tasks/_vlsingle.yml`
 
@@ -488,6 +492,7 @@ git commit -m "feat(monitoring_server): vmsingle and vlsingle via VM collection"
 ## Task 5: monitoring_server — vmalert and Alertmanager
 
 **Files:**
+
 - Create: `roles/monitoring_server/tasks/_vmalert.yml`
 - Create: `roles/monitoring_server/tasks/_alertmanager.yml`
 - Create: `roles/monitoring_server/templates/alertmanager.yml.j2`
@@ -705,6 +710,7 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 ## Task 6: monitoring_server — firewalld
 
 **Files:**
+
 - Create: `roles/monitoring_server/files/firewalld/services/victoriametrics.xml`
 - Create: `roles/monitoring_server/files/firewalld/services/victorialogs.xml`
 - Create: `roles/monitoring_server/tasks/_firewall.yml`
@@ -814,6 +820,7 @@ git commit -m "feat(monitoring_server): firewalld services for vmsingle and vlsi
 ## Task 7: monitoring_agents defaults, meta, README
 
 **Files:**
+
 - Create: `roles/monitoring_agents/defaults/main.yml`
 - Create: `roles/monitoring_agents/meta/main.yml`
 - Create: `roles/monitoring_agents/README.md`
@@ -946,6 +953,7 @@ git commit -m "feat(monitoring_agents): role defaults, meta, README"
 ## Task 8: monitoring_agents — orchestration, assert, exporters
 
 **Files:**
+
 - Create: `roles/monitoring_agents/tasks/main.yml`
 - Create: `roles/monitoring_agents/tasks/_assert.yml`
 - Create: `roles/monitoring_agents/tasks/_exporters.yml`
@@ -1237,6 +1245,7 @@ git commit -m "feat(monitoring_agents): exporters and systemd units"
 ## Task 9: monitoring_agents — vmagent and vlagent
 
 **Files:**
+
 - Create: `roles/monitoring_agents/templates/vmagent-scrape.yml.j2`
 - Create: `roles/monitoring_agents/templates/vlagent-config.yml.j2`
 - Create: `roles/monitoring_agents/tasks/_vmagent.yml`
@@ -1401,6 +1410,7 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 ## Task 10: monitoring_agents — firewalld
 
 **Files:**
+
 - Create: `roles/monitoring_agents/files/firewalld/services/postgres-exporter.xml`
 - Create: `roles/monitoring_agents/files/firewalld/services/pgbouncer-exporter.xml`
 - Create: `roles/monitoring_agents/files/firewalld/services/pgbackrest-exporter.xml`
@@ -1523,6 +1533,7 @@ git commit -m "feat(monitoring_agents): firewalld services for exporters"
 ## Task 11: grafana defaults, meta, README
 
 **Files:**
+
 - Create: `roles/grafana/defaults/main.yml`
 - Create: `roles/grafana/meta/main.yml`
 - Create: `roles/grafana/README.md`
@@ -1628,6 +1639,7 @@ git commit -m "feat(grafana): role defaults, meta, README"
 ## Task 12: grafana — orchestration, assert, install
 
 **Files:**
+
 - Create: `roles/grafana/tasks/main.yml`
 - Create: `roles/grafana/tasks/_assert.yml`
 - Create: `roles/grafana/tasks/_install.yml`
@@ -1738,6 +1750,7 @@ git commit -m "feat(grafana): orchestration, preconditions, install"
 ## Task 13: grafana — datasources
 
 **Files:**
+
 - Create: `roles/grafana/tasks/_datasources.yml`
 
 - [ ] **Step 1: Write `_datasources.yml`**
@@ -1804,6 +1817,7 @@ git commit -m "feat(grafana): VictoriaMetrics and VictoriaLogs datasources"
 ## Task 14: grafana — dashboards
 
 **Files:**
+
 - Create: `roles/grafana/templates/dashboard-provider.yml.j2`
 - Create: `roles/grafana/files/dashboards/pigsty-lite-overview.json`
 - Create: `roles/grafana/tasks/_dashboards.yml`
@@ -1975,6 +1989,7 @@ git commit -m "feat(grafana): dashboard provisioning and overview dashboard"
 ## Task 15: nginx_proxy defaults, meta, README
 
 **Files:**
+
 - Create: `roles/nginx_proxy/defaults/main.yml`
 - Create: `roles/nginx_proxy/meta/main.yml`
 - Create: `roles/nginx_proxy/README.md`
@@ -2094,6 +2109,7 @@ git commit -m "feat(nginx_proxy): role defaults, meta, README"
 ## Task 16: nginx_proxy — orchestration, assert, install, tls
 
 **Files:**
+
 - Create: `roles/nginx_proxy/tasks/main.yml`
 - Create: `roles/nginx_proxy/tasks/_assert.yml`
 - Create: `roles/nginx_proxy/tasks/_install.yml`
@@ -2252,6 +2268,7 @@ git commit -m "feat(nginx_proxy): orchestration, preconditions, install, TLS res
 ## Task 17: nginx_proxy — config, firewall, service
 
 **Files:**
+
 - Create: `roles/nginx_proxy/templates/pigsty-lite.conf.j2`
 - Create: `roles/nginx_proxy/tasks/_config.yml`
 - Create: `roles/nginx_proxy/tasks/_firewall.yml`
@@ -2402,6 +2419,7 @@ git commit -m "feat(nginx_proxy): reverse-proxy config, firewall, service"
 ## Task 18: response schema — monitoring receivers and scrape interval
 
 **Files:**
+
 - Modify: `bin/_response_schema.py`
 - Modify: `bin/_generate_response_vars.py`
 - Modify: `tests/configure/test_schema.py`
@@ -2525,6 +2543,7 @@ git commit -m "feat(configure): validate monitoring receivers and scrape interva
 ## Task 19: playbooks and site.yml wiring
 
 **Files:**
+
 - Create: `playbooks/_monitoring_server.yml`
 - Create: `playbooks/_monitoring_agents.yml`
 - Create: `playbooks/_grafana.yml`
@@ -2659,6 +2678,7 @@ git commit -m "feat(playbooks): wire P5 monitoring stack into site"
 ## Task 20: Molecule scenario — monitoring_server/default
 
 **Files:**
+
 - Create: `tests/molecule/monitoring_server/molecule/default/molecule.yml`
 - Create: `tests/molecule/monitoring_server/molecule/default/prepare.yml`
 - Create: `tests/molecule/monitoring_server/molecule/default/converge.yml`
@@ -2800,6 +2820,7 @@ git commit -m "test(monitoring_server): default scenario verifies the metrics/lo
 ## Task 21: Molecule scenario — monitoring_agents/default
 
 **Files:**
+
 - Create: `tests/molecule/monitoring_agents/molecule/default/molecule.yml`
 - Create: `tests/molecule/monitoring_agents/molecule/default/prepare.yml`
 - Create: `tests/molecule/monitoring_agents/molecule/default/converge.yml`
@@ -3015,6 +3036,7 @@ git commit -m "test(monitoring_agents): default scenario verifies exporters and 
 ## Task 22: Molecule scenario — grafana/default
 
 **Files:**
+
 - Create: `tests/molecule/grafana/molecule/default/molecule.yml`
 - Create: `tests/molecule/grafana/molecule/default/prepare.yml`
 - Create: `tests/molecule/grafana/molecule/default/converge.yml`
@@ -3147,6 +3169,7 @@ git commit -m "test(grafana): default scenario verifies health, datasources, das
 ## Task 23: Molecule scenario — nginx_proxy/default
 
 **Files:**
+
 - Create: `tests/molecule/nginx_proxy/molecule/default/molecule.yml`
 - Create: `tests/molecule/nginx_proxy/molecule/default/prepare.yml`
 - Create: `tests/molecule/nginx_proxy/molecule/default/converge.yml`
@@ -3294,6 +3317,7 @@ git commit -m "test(nginx_proxy): default scenario verifies TLS termination and 
 ## Task 24: extend CI matrix
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Read the matrix entries**
@@ -3335,6 +3359,7 @@ git commit -m "ci(molecule): add monitoring stack scenarios"
 ## Task 25: docs — firstrun + day-2 monitoring runbook
 
 **Files:**
+
 - Modify: `docs/operations/firstrun.md`
 - Create: `docs/operations/day2-monitoring.md`
 
@@ -3371,6 +3396,7 @@ The monitoring UIs are all behind nginx on the monitor host:
 
 To add an alert rule, a receiver, or a dashboard day-2, see
 [docs/operations/day2-monitoring.md](day2-monitoring.md).
+
 ```
 
 - [ ] **Step 2: Create `docs/operations/day2-monitoring.md`**
@@ -3453,6 +3479,7 @@ dashboards within 30 seconds; no Grafana restart needed.
 - **AVC denial from nginx**: nginx proxying to loopback upstreams needs
   the `httpd_can_network_connect` SELinux boolean — the `nginx_proxy`
   role sets it. If you see an AVC, confirm the boolean is on.
+
 ```
 
 - [ ] **Step 3: Lint**
@@ -3472,6 +3499,7 @@ git commit -m "docs(ops): P5 monitoring firstrun + day-2 runbook"
 ## Task 26: README roadmap flip
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Read current roadmap rows**

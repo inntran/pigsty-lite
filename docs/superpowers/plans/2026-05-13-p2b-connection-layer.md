@@ -94,6 +94,7 @@ vip-manager's real (`enabled=true`) behavior is intentionally NOT covered by Mol
 ## Task 1: pgBouncer role defaults
 
 **Files:**
+
 - Create: `roles/pgbouncer/defaults/main.yml`
 
 - [ ] **Step 1: Write defaults**
@@ -178,6 +179,7 @@ git commit -m "feat(pgbouncer): role defaults"
 ## Task 2: pgBouncer meta and README
 
 **Files:**
+
 - Create: `roles/pgbouncer/meta/main.yml`
 - Create: `roles/pgbouncer/README.md`
 
@@ -244,6 +246,7 @@ git commit -m "feat(pgbouncer): role meta and README"
 ## Task 3: pgBouncer tasks
 
 **Files:**
+
 - Create: `roles/pgbouncer/tasks/main.yml`
 - Create: `roles/pgbouncer/tasks/_assert.yml`
 - Create: `roles/pgbouncer/tasks/_install.yml`
@@ -418,6 +421,7 @@ git commit -m "feat(pgbouncer): install, configure, service, firewall tasks"
 ## Task 4: pgBouncer templates and handlers
 
 **Files:**
+
 - Create: `roles/pgbouncer/templates/pgbouncer.ini.j2`
 - Create: `roles/pgbouncer/templates/userlist.txt.j2`
 - Create: `roles/pgbouncer/handlers/main.yml`
@@ -495,6 +499,7 @@ git commit -m "feat(pgbouncer): templates and handlers"
 ## Task 5: pgBouncer firewalld XML
 
 **Files:**
+
 - Create: `files/firewalld/services/pgbouncer.xml`
 
 - [ ] **Step 1: Write XML**
@@ -525,6 +530,7 @@ git commit -m "feat(firewalld): pgbouncer custom service (off by default)"
 ## Task 6: pgBouncer molecule scenario
 
 **Files:**
+
 - Create: `tests/molecule/pgbouncer/molecule/default/molecule.yml`
 - Create: `tests/molecule/pgbouncer/molecule/default/prepare.yml`
 - Create: `tests/molecule/pgbouncer/molecule/default/converge.yml`
@@ -696,6 +702,7 @@ git commit -m "test(pgbouncer): default molecule scenario"
 ## Task 7: HAProxy role defaults
 
 **Files:**
+
 - Create: `roles/haproxy/defaults/main.yml`
 
 - [ ] **Step 1: Write defaults**
@@ -792,6 +799,7 @@ git commit -m "feat(haproxy): role defaults"
 ## Task 7a: HAProxy VIP non-local bind sysctl
 
 **Files:**
+
 - Create: `roles/haproxy/templates/haproxy-vip-sysctl.conf.j2`
 - Create: `roles/haproxy/tasks/_sysctl.yml`
 - Modify: `roles/haproxy/tasks/main.yml`
@@ -847,6 +855,7 @@ Expected: no errors.
 ## Task 8: HAProxy meta and README
 
 **Files:**
+
 - Create: `roles/haproxy/meta/main.yml`
 - Create: `roles/haproxy/README.md`
 
@@ -928,6 +937,7 @@ git commit -m "feat(haproxy): role meta and README"
 ## Task 9: HAProxy tasks
 
 **Files:**
+
 - Create: `roles/haproxy/tasks/main.yml`
 - Create: `roles/haproxy/tasks/_assert.yml`
 - Create: `roles/haproxy/tasks/_install.yml`
@@ -1098,6 +1108,7 @@ git commit -m "feat(haproxy): install, configure, firewall, service tasks"
 ## Task 10: HAProxy template and handler
 
 **Files:**
+
 - Create: `roles/haproxy/templates/haproxy.cfg.j2`
 - Create: `roles/haproxy/handlers/main.yml`
 
@@ -1181,6 +1192,7 @@ listen pg-replica
 ```
 
 Notes:
+
 - `check port {{ haproxy_patroni_rest_port }}` means the health check runs against Patroni REST on 8008, not against the data port.
 - `check-ssl verify none` because the Patroni REST cert is signed by the pigsty-lite internal CA and HAProxy doesn't have a clean way to trust a custom CA without a `crt-list` config. The check is over TLS but doesn't validate the chain; that's acceptable for a localhost health probe that decides routing, not for client traffic. Operator-supplied CA bundles can be added in a v2 enhancement.
 - `on-marked-down shutdown-sessions` aggressively closes connections when a server transitions to DOWN. This makes failover faster from the client's perspective.
@@ -1212,6 +1224,7 @@ git commit -m "feat(haproxy): config template and handlers"
 ## Task 11: HAProxy firewalld XML
 
 **Files:**
+
 - Create: `files/firewalld/services/haproxy-postgres.xml`
 
 - [ ] **Step 1: Write XML**
@@ -1243,6 +1256,7 @@ git commit -m "feat(firewalld): haproxy-postgres custom service for 5433+5434"
 ## Task 12: HAProxy default molecule scenario
 
 **Files:**
+
 - Create: `tests/molecule/haproxy/molecule/default/molecule.yml`
 - Create: `tests/molecule/haproxy/molecule/default/prepare.yml`
 - Create: `tests/molecule/haproxy/molecule/default/converge.yml`
@@ -1454,6 +1468,7 @@ git commit -m "test(haproxy): single-node molecule scenario (5432/5433 route to 
 ## Task 13: HAProxy HA molecule scenario
 
 **Files:**
+
 - Create: `tests/molecule/haproxy/molecule/ha/molecule.yml`
 - Create: `tests/molecule/haproxy/molecule/ha/prepare.yml`
 - Create: `tests/molecule/haproxy/molecule/ha/converge.yml`
@@ -1778,6 +1793,7 @@ git commit -m "test(haproxy): 3-node molecule scenario covering switchover routi
 ## Task 14: vip-manager role defaults
 
 **Files:**
+
 - Create: `roles/vip_manager/defaults/main.yml`
 
 - [ ] **Step 1: Write defaults**
@@ -1846,6 +1862,7 @@ git commit -m "feat(vip-manager): role defaults (disabled by default)"
 ## Task 15: vip-manager meta and README
 
 **Files:**
+
 - Create: `roles/vip_manager/meta/main.yml`
 - Create: `roles/vip_manager/README.md`
 
@@ -1934,6 +1951,7 @@ git commit -m "feat(vip-manager): role meta and README"
 ## Task 16: vip-manager tasks
 
 **Files:**
+
 - Create: `roles/vip_manager/tasks/main.yml`
 - Create: `roles/vip_manager/tasks/_assert.yml`
 - Create: `roles/vip_manager/tasks/_install.yml`
@@ -2036,6 +2054,7 @@ git commit -m "feat(vip-manager): tasks (no-op when disabled)"
 ## Task 17: vip-manager template and handler
 
 **Files:**
+
 - Create: `roles/vip_manager/templates/vip-manager.yml.j2`
 - Create: `roles/vip_manager/handlers/main.yml`
 
@@ -2088,6 +2107,7 @@ git commit -m "feat(vip-manager): template and restart handler"
 ## Task 18: vip-manager molecule scenario (disabled path)
 
 **Files:**
+
 - Create: `tests/molecule/vip_manager/molecule/default/molecule.yml`
 - Create: `tests/molecule/vip_manager/molecule/default/prepare.yml`
 - Create: `tests/molecule/vip_manager/molecule/default/converge.yml`
@@ -2231,6 +2251,7 @@ git commit -m "test(vip-manager): default scenario verifies no-op when disabled"
 ## Task 19: Extend response schema + generator + examples
 
 **Files:**
+
 - Modify: `bin/_response_schema.py`
 - Modify: `bin/_generate_response_vars.py`
 - Modify: `responses/single.rsp.yml.example`
@@ -2342,6 +2363,7 @@ git commit -m "feat(configure): connection_layer + vip_manager response schema"
 ## Task 20: Wire P2b into site.yml
 
 **Files:**
+
 - Create: `playbooks/_pgbouncer.yml`
 - Create: `playbooks/_haproxy.yml`
 - Create: `playbooks/_vip_manager.yml`
@@ -2462,6 +2484,7 @@ git commit -m "feat(playbooks): wire P2b connection layer into site"
 ## Task 21: CI matrix
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Append to the matrix `include:` block**
@@ -2494,6 +2517,7 @@ git commit -m "ci(molecule): add pgbouncer, haproxy, and vip_manager scenarios"
 ## Task 22: Docs and roadmap
 
 **Files:**
+
 - Modify: `docs/operations/firstrun.md`
 - Modify: `README.md`
 

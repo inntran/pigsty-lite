@@ -64,6 +64,7 @@
 ## Task 1: lifecycle coordination vars + schema knob
 
 **Files:**
+
 - Modify: `group_vars/all.yml`
 - Modify: `bin/_response_schema.py`
 - Modify: `bin/_generate_response_vars.py`
@@ -175,6 +176,7 @@ git commit -m "feat(lifecycle): coordination vars and minor_upgrade schema knob"
 ## Task 2: cluster_ops role scaffolding
 
 **Files:**
+
 - Create: `roles/cluster_ops/defaults/main.yml`
 - Create: `roles/cluster_ops/meta/main.yml`
 - Create: `roles/cluster_ops/tasks/main.yml`
@@ -302,6 +304,7 @@ git commit -m "feat(cluster_ops): library role scaffolding"
 ## Task 3: cluster_ops — find_leader
 
 **Files:**
+
 - Create: `roles/cluster_ops/tasks/find_leader.yml`
 
 - [ ] **Step 1: Write `find_leader.yml`**
@@ -388,6 +391,7 @@ git commit -m "feat(cluster_ops): Patroni leader and topology lookup"
 ## Task 4: cluster_ops — assert_healthy
 
 **Files:**
+
 - Create: `roles/cluster_ops/tasks/assert_healthy.yml`
 
 - [ ] **Step 1: Write `assert_healthy.yml`**
@@ -475,6 +479,7 @@ git commit -m "feat(cluster_ops): cluster health assertion"
 ## Task 5: cluster_ops — assert_recent_backup
 
 **Files:**
+
 - Create: `roles/cluster_ops/tasks/assert_recent_backup.yml`
 
 - [ ] **Step 1: Write `assert_recent_backup.yml`**
@@ -561,6 +566,7 @@ git commit -m "feat(cluster_ops): recent-backup freshness gate"
 ## Task 6: cluster_ops — wait_member_converged
 
 **Files:**
+
 - Create: `roles/cluster_ops/tasks/wait_member_converged.yml`
 
 - [ ] **Step 1: Write `wait_member_converged.yml`**
@@ -632,6 +638,7 @@ git commit -m "feat(cluster_ops): member-convergence wait"
 ## Task 7: switchover playbook
 
 **Files:**
+
 - Create: `playbooks/switchover.yml`
 
 - [ ] **Step 1: Write `playbooks/switchover.yml`**
@@ -751,6 +758,7 @@ git commit -m "feat(lifecycle): controlled switchover playbook"
 ## Task 8: failover playbook
 
 **Files:**
+
 - Create: `playbooks/failover.yml`
 
 - [ ] **Step 1: Write `playbooks/failover.yml`**
@@ -866,6 +874,7 @@ git commit -m "feat(lifecycle): manual failover playbook"
 ## Task 9: minor_upgrade playbook — version checks and backup gate
 
 **Files:**
+
 - Create: `playbooks/minor_upgrade.yml`
 
 This task creates the playbook through the pre-flight gates. Task 10
@@ -970,6 +979,7 @@ git commit -m "feat(lifecycle): minor upgrade playbook — pre-flight gates"
 ## Task 10: minor_upgrade playbook — rolling upgrade body
 
 **Files:**
+
 - Modify: `playbooks/minor_upgrade.yml`
 
 - [ ] **Step 1: Append the rolling-upgrade plays to `playbooks/minor_upgrade.yml`**
@@ -1214,6 +1224,7 @@ git commit -m "feat(lifecycle): minor upgrade playbook — rolling upgrade body"
 ## Task 11: scale_add_replica playbook
 
 **Files:**
+
 - Create: `playbooks/scale_add_replica.yml`
 
 - [ ] **Step 1: Write `playbooks/scale_add_replica.yml`**
@@ -1403,6 +1414,7 @@ git commit -m "feat(lifecycle): scale-add-replica playbook"
 ## Task 12: scale_remove_replica playbook
 
 **Files:**
+
 - Create: `playbooks/scale_remove_replica.yml`
 
 - [ ] **Step 1: Write `playbooks/scale_remove_replica.yml`**
@@ -1561,6 +1573,7 @@ git commit -m "feat(lifecycle): scale-remove-replica playbook"
 ## Task 13: Makefile targets
 
 **Files:**
+
 - Modify: `Makefile`
 
 - [ ] **Step 1: Add the five lifecycle targets**
@@ -1569,35 +1582,35 @@ Edit `Makefile`. Add `switchover failover minor-upgrade scale-add-replica scale-
 
 ```makefile
 switchover:
-	ansible-playbook playbooks/switchover.yml
+ ansible-playbook playbooks/switchover.yml
 
 failover:
-	@if [ -z "$(CANDIDATE)" ]; then echo "Usage: make failover CANDIDATE=<host>"; exit 2; fi
-	ansible-playbook playbooks/failover.yml -e candidate=$(CANDIDATE)
+ @if [ -z "$(CANDIDATE)" ]; then echo "Usage: make failover CANDIDATE=<host>"; exit 2; fi
+ ansible-playbook playbooks/failover.yml -e candidate=$(CANDIDATE)
 
 minor-upgrade:
-	ansible-playbook playbooks/minor_upgrade.yml
+ ansible-playbook playbooks/minor_upgrade.yml
 
 scale-add-replica:
-	@if [ -z "$(HOST)" ]; then echo "Usage: make scale-add-replica HOST=<host>"; exit 2; fi
-	ansible-playbook playbooks/scale_add_replica.yml -e target_host=$(HOST) --limit $(HOST),postgres
+ @if [ -z "$(HOST)" ]; then echo "Usage: make scale-add-replica HOST=<host>"; exit 2; fi
+ ansible-playbook playbooks/scale_add_replica.yml -e target_host=$(HOST) --limit $(HOST),postgres
 
 scale-remove-replica:
-	@if [ -z "$(HOST)" ]; then echo "Usage: make scale-remove-replica HOST=<host>"; exit 2; fi
-	ansible-playbook playbooks/scale_remove_replica.yml -e target_host=$(HOST)
+ @if [ -z "$(HOST)" ]; then echo "Usage: make scale-remove-replica HOST=<host>"; exit 2; fi
+ ansible-playbook playbooks/scale_remove_replica.yml -e target_host=$(HOST)
 ```
 
 Then extend the `help` target — add these lines inside the `help:`
 recipe, after the `make clean` line:
 
 ```makefile
-	@echo
-	@echo "  Lifecycle operations:"
-	@echo "  make switchover                     Controlled primary switchover"
-	@echo "  make failover CANDIDATE=<host>      Manual failover to a named candidate"
-	@echo "  make minor-upgrade                  Rolling minor PostgreSQL upgrade"
-	@echo "  make scale-add-replica HOST=<host>  Add a replica (host must be in inventory)"
-	@echo "  make scale-remove-replica HOST=<host>  Decommission a replica"
+ @echo
+ @echo "  Lifecycle operations:"
+ @echo "  make switchover                     Controlled primary switchover"
+ @echo "  make failover CANDIDATE=<host>      Manual failover to a named candidate"
+ @echo "  make minor-upgrade                  Rolling minor PostgreSQL upgrade"
+ @echo "  make scale-add-replica HOST=<host>  Add a replica (host must be in inventory)"
+ @echo "  make scale-remove-replica HOST=<host>  Decommission a replica"
 ```
 
 Note: `scale-add-replica` passes `--limit $(HOST),postgres` — the new
@@ -1626,6 +1639,7 @@ git commit -m "feat(lifecycle): make targets for switchover, failover, upgrade, 
 ## Task 14: cluster_ops molecule scenario
 
 **Files:**
+
 - Create: `tests/molecule/cluster_ops/molecule/default/molecule.yml`
 - Create: `tests/molecule/cluster_ops/molecule/default/prepare.yml`
 - Create: `tests/molecule/cluster_ops/molecule/default/converge.yml`
@@ -1812,6 +1826,7 @@ git commit -m "test(cluster_ops): default scenario verifies the assertion librar
 ## Task 15: extend CI matrix
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Read the matrix entries**
@@ -1851,6 +1866,7 @@ git commit -m "ci(molecule): add cluster_ops scenario"
 ## Task 16: docs — lifecycle runbook and major-upgrade runbook
 
 **Files:**
+
 - Create: `docs/operations/lifecycle.md`
 - Create: `docs/operations/major-upgrade.md`
 - Modify: `docs/operations/firstrun.md`
@@ -1984,28 +2000,38 @@ primary key or replica identity).
 1. **Stand up a new cluster** at the target major on fresh hosts: a new
    inventory + response file with `postgres.version: <new major>`, then
    `make deploy`.
+
 2. **Create a publication** on the old primary:
+
    ```sql
    CREATE PUBLICATION pgupgrade FOR ALL TABLES;
    ```
-3. **Copy the schema** (no data) from old to new:
+
+1. **Copy the schema** (no data) from old to new:
+
    ```bash
    pg_dump -h <old-primary> -d <db> --schema-only | psql -h <new-primary> -d <db>
    ```
-4. **Create a subscription** on the new primary:
+
+2. **Create a subscription** on the new primary:
+
    ```sql
    CREATE SUBSCRIPTION pgupgrade
      CONNECTION 'host=<old-primary> dbname=<db> user=<repl-user>'
      PUBLICATION pgupgrade;
    ```
-5. **Wait for initial sync + streaming** to catch up:
+
+3. **Wait for initial sync + streaming** to catch up:
+
    ```sql
    SELECT * FROM pg_stat_subscription;
    ```
-6. **Cut over:** stop writes to the old cluster, confirm the
+
+4. **Cut over:** stop writes to the old cluster, confirm the
    subscription has drained, repoint applications (HAProxy/VIP) at the
    new cluster.
-7. **Decommission** the old cluster once you are confident.
+
+5. **Decommission** the old cluster once you are confident.
 
 Rollback before cutover is trivial — just drop the subscription. After
 cutover, rollback means reversing the replication direction, which you
@@ -2047,6 +2073,7 @@ Major-version upgrades have too many cluster-specific decision points
 (extension compatibility, downtime tolerance, logical-vs-pg_upgrade)
 to safely automate. pigsty-lite's position (spec §10.2): provide a
 precise runbook, keep the human in the loop.
+
 ```
 
 - [ ] **Step 3: Append a "Lifecycle operations" section to `firstrun.md`**
@@ -2120,6 +2147,7 @@ git commit -m "docs(ops): lifecycle and major-upgrade runbooks"
 ## Task 17: README roadmap update
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Read current roadmap rows**

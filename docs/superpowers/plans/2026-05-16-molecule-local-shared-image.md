@@ -28,6 +28,7 @@
 ### Task 1: Add local image ensure script
 
 **Files:**
+
 - Create: `bin/molecule_image.sh`
 - Test: command-line checks from repository root
 
@@ -106,6 +107,7 @@ git commit -m "feat(molecule): add local hash-based image ensure script"
 ### Task 2: Add Make target and wire Molecule role testing
 
 **Files:**
+
 - Modify: `Makefile`
 - Test: `make` target checks
 
@@ -136,18 +138,18 @@ Add/update these exact parts in `Makefile`:
 ```
 
 ```make
-	@echo "  make molecule-image Build/reuse local shared Molecule base image"
+ @echo "  make molecule-image Build/reuse local shared Molecule base image"
 ```
 
 ```make
 molecule-image:
-	./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
+ ./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
 ```
 
 ```make
 test-role: molecule-image
-	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
-	cd tests/molecule/$(ROLE) && molecule test
+ @if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name>"; exit 2; fi
+ cd tests/molecule/$(ROLE) && molecule test
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -159,6 +161,7 @@ make molecule-image
 ```
 
 Expected:
+
 - command exits `0`
 - output includes `Using image: localhost/molecule-base:`
 - `podman image exists localhost/molecule-base:latest` succeeds
@@ -181,6 +184,7 @@ git commit -m "feat(molecule): add make target for shared local image"
 ### Task 3: Standardize all scenario image references
 
 **Files:**
+
 - Modify:
   - `tests/molecule/cluster_ops/molecule/default/molecule.yml`
   - `tests/molecule/grafana/molecule/default/molecule.yml`
@@ -250,6 +254,7 @@ git commit -m "test(molecule): standardize scenario images to local shared base"
 ### Task 4: End-to-end behavior verification
 
 **Files:**
+
 - No new files required
 - Test commands only
 
@@ -303,6 +308,7 @@ test "$id1" = "$id2"; echo $?
 ```
 
 Expected:
+
 - IDs are identical when Containerfile is unchanged
 - exit code `0`
 - representative Molecule role completes successfully

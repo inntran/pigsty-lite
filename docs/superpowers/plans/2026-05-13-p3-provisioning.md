@@ -62,6 +62,7 @@
 ## Task 1: cluster-wide `postgres_osdba` + provision role defaults
 
 **Files:**
+
 - Modify: `group_vars/all.yml`
 - Create: `roles/provision/defaults/main.yml`
 
@@ -136,6 +137,7 @@ git commit -m "feat(provision): cluster-wide postgres_osdba + role defaults"
 ## Task 2: provision meta and README
 
 **Files:**
+
 - Create: `roles/provision/meta/main.yml`
 - Create: `roles/provision/README.md`
 
@@ -219,6 +221,7 @@ git commit -m "feat(provision): role meta and README"
 ## Task 3: provision tasks orchestration
 
 **Files:**
+
 - Create: `roles/provision/tasks/main.yml`
 
 - [ ] **Step 1: Write `main.yml`**
@@ -268,6 +271,7 @@ git commit -m "feat(provision): tasks orchestration"
 ## Task 4: provision leader lookup
 
 **Files:**
+
 - Create: `roles/provision/tasks/_leader.yml`
 
 - [ ] **Step 1: Write `_leader.yml`**
@@ -322,6 +326,7 @@ git commit -m "feat(provision): patroni leader lookup"
 ## Task 5: provision preconditions
 
 **Files:**
+
 - Create: `roles/provision/tasks/_assert.yml`
 
 - [ ] **Step 1: Write `_assert.yml`**
@@ -379,6 +384,7 @@ git commit -m "feat(provision): assert preconditions"
 ## Task 6: provision pg_hba management
 
 **Files:**
+
 - Create: `roles/provision/tasks/_hba.yml`
 
 - [ ] **Step 1: Write `_hba.yml`**
@@ -454,6 +460,7 @@ git commit -m "feat(provision): pg_hba management"
 ## Task 7: provision users
 
 **Files:**
+
 - Create: `roles/provision/tasks/_users.yml`
 
 - [ ] **Step 1: Write `_users.yml`**
@@ -518,6 +525,7 @@ git commit -m "feat(provision): manage PostgreSQL roles and memberships"
 ## Task 8: provision databases
 
 **Files:**
+
 - Create: `roles/provision/tasks/_databases.yml`
 
 - [ ] **Step 1: Write `_databases.yml`**
@@ -561,6 +569,7 @@ git commit -m "feat(provision): manage databases"
 ## Task 9: provision extensions
 
 **Files:**
+
 - Create: `roles/provision/tasks/_extensions.yml`
 
 - [ ] **Step 1: Write `_extensions.yml`**
@@ -628,6 +637,7 @@ git commit -m "feat(provision): manage extensions"
 ## Task 10: provision reload handler
 
 **Files:**
+
 - Create: `roles/provision/handlers/main.yml`
 
 - [ ] **Step 1: Write handler**
@@ -663,6 +673,7 @@ git commit -m "feat(provision): pg_reload_conf handler"
 ## Task 11: shrink Patroni bootstrap pg_hba
 
 **Files:**
+
 - Modify: `roles/patroni/templates/patroni.yml.j2:63-68`
 
 - [ ] **Step 1: Read the current pg_hba block**
@@ -713,6 +724,7 @@ git commit -m "feat(patroni): drop bootstrap wildcard HBA (now owned by P3 provi
 ## Task 12: response schema — postgres.users / databases / extensions
 
 **Files:**
+
 - Modify: `bin/_response_schema.py`
 - Modify: `tests/configure/test_schema.py`
 
@@ -839,6 +851,7 @@ git commit -m "feat(configure): validate postgres users, databases, extensions"
 ## Task 13: provision playbook
 
 **Files:**
+
 - Create: `playbooks/_provision.yml`
 
 - [ ] **Step 1: Write the playbook**
@@ -866,6 +879,7 @@ git commit -m "feat(playbooks): _provision.yml entry point"
 ## Task 14: wire _provision.yml into site.yml
 
 **Files:**
+
 - Modify: `playbooks/site.yml`
 - Modify: `playbooks/tags.md`
 
@@ -912,6 +926,7 @@ git commit -m "feat(playbooks): wire P3 provision into site"
 ## Task 15: Molecule scenario — provision/default (single node)
 
 **Files:**
+
 - Create: `tests/molecule/provision/molecule/default/molecule.yml`
 - Create: `tests/molecule/provision/molecule/default/prepare.yml`
 - Create: `tests/molecule/provision/molecule/default/converge.yml`
@@ -1110,6 +1125,7 @@ git commit -m "test(provision): default scenario verifies role/db/ext/hba/login"
 ## Task 16: Molecule scenario — provision/ha (3-node)
 
 **Files:**
+
 - Create: `tests/molecule/provision/molecule/ha/molecule.yml`
 - Create: `tests/molecule/provision/molecule/ha/prepare.yml`
 - Create: `tests/molecule/provision/molecule/ha/converge.yml`
@@ -1348,6 +1364,7 @@ git commit -m "test(provision): ha scenario verifies replication carries provisi
 ## Task 17: extend CI matrix
 
 **Files:**
+
 - Modify: `.github/workflows/molecule.yml`
 
 - [ ] **Step 1: Read the matrix entries**
@@ -1383,6 +1400,7 @@ git commit -m "ci(molecule): add provision default and ha scenarios"
 ## Task 18: docs — first-run + day-2 runbook
 
 **Files:**
+
 - Modify: `docs/operations/firstrun.md`
 - Create: `docs/operations/day2-provisioning.md`
 
@@ -1407,6 +1425,7 @@ ssh pgnode01 sudo grep -v '^#' /var/lib/pgsql/18/data/pg_hba.conf
 
 To add a database, user, or extension day-2, see
 [docs/operations/day2-provisioning.md](day2-provisioning.md).
+
 ```
 
 - [ ] **Step 2: Create `docs/operations/day2-provisioning.md`**
@@ -1485,6 +1504,7 @@ The `provision` role rewrites `pg_hba.conf` and signals
 - **Vault password unavailable**: `make deploy` fails at variable templating with a clear error before any task runs.
 - **Hand-edited `pg_hba.conf` reverts**: that's intentional. The role owns the file.
 - **Per-table grants**: out of scope. Issue them by hand or via a future migration tool; we won't manage them.
+
 ```
 
 - [ ] **Step 3: Lint**
@@ -1504,6 +1524,7 @@ git commit -m "docs(ops): P3 provisioning firstrun + day-2 runbook"
 ## Task 19: README roadmap flip
 
 **Files:**
+
 - Modify: `README.md:5-7,77` (status sentence and roadmap row)
 
 - [ ] **Step 1: Read current roadmap rows**
