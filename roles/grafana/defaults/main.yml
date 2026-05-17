@@ -2,15 +2,19 @@
 # roles/grafana/defaults/main.yml
 # All variables prefixed `grafana_`. Grafana binds loopback-only and is
 # fronted by nginx_proxy at the /grafana/ sub-path.
+grafana_version: "{{ grafana_version | default('12') }}"
 
 grafana_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
-grafana_port: "{{ grafana_port | default(3000) }}"
+# Prefixed with pigsty_ because the upstream community grafana role's
+# deprecation guard rejects a bare `grafana_port`:
+# https://github.com/grafana/grafana-ansible-collection/blob/main/roles/grafana/tasks/preflight.yml
+pigsty_grafana_port: 3000
 grafana_admin_user: admin
 grafana_admin_password: "{{ vault_grafana_admin_password | default('grafana-dev-admin-change-me') }}"
 
 # Served behind nginx at https://<domain>/grafana/
 grafana_root_url: "https://{{ cluster_domain }}/grafana/"
-grafana_serve_from_sub_path: true
+grafana_serve_from_sub_path: false
 
 # Datasources point at the local vmsingle (Prometheus-compatible) and
 # vlsingle, both on loopback.
@@ -22,4 +26,4 @@ grafana_provisioning_dir: /etc/grafana/provisioning
 grafana_dashboards_dir: /var/lib/grafana/dashboards
 
 # Grafana API endpoint for the community.grafana modules (loopback).
-grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
+grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ pigsty_grafana_port | default(3000) }}"

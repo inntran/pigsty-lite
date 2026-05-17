@@ -4,3 +4,5 @@
 # roles/nginx_proxy/ cover everything; this file exists as the
 # documented override point for operators who split the monitor host's
 # responsibilities or change its firewalld zone.
+
+grafana_version: 12
