@@ -32,7 +32,7 @@
         grafana_ini:
           server:
             http_addr: "{{ grafana_listen_address | default('127.0.0.1') }}"
-            http_port: "{{ pigsty_grafana_port | default(3000) }}"
+            http_port: "{{ grafana_default_port | default(3000) }}"
             root_url: "{{ grafana_root_url }}"
             serve_from_sub_path: "{{ grafana_serve_from_sub_path }}"
           database:

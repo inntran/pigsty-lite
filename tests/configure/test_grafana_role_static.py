@@ -14,7 +14,7 @@ def _load_yaml(path: str):
         return yaml.safe_load(fh)
 
 
-def test_grafana_port_default_is_not_recursive():
+def test_grafana_default_port_default_is_not_recursive():
     defaults = _load_yaml("roles/grafana/defaults/main.yml")
 
-    assert defaults["grafana_port"] == 3000
+    assert defaults["grafana_default_port"] == 3000

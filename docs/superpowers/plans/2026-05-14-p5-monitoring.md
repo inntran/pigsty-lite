@@ -85,7 +85,7 @@
 - `playbooks/site.yml` — modify to import the four playbooks after `_pgbackrest.yml`, in spec order.
 - `playbooks/tags.md` — add `monitoring` and `nginx_proxy` module tags.
 - `group_vars/monitor.yml` — currently the stub `# monitor group defaults. Populated in P5.`; populate with the comment update only (role defaults suffice — see Task 1).
-- `group_vars/all.yml` — add monitoring coordination vars: `monitoring_scrape_interval`, exporter ports, VM/VL ports are already there (`vmsingle_port: 8428`, `vlsingle_port: 9428`, `vmalert_port: 8880`, `alertmanager_port: 9093`, `grafana_port: 3000` — verified present).
+- `group_vars/all.yml` — add monitoring coordination vars: `monitoring_scrape_interval`, exporter ports, VM/VL ports are already there (`vmsingle_port: 8428`, `vlsingle_port: 9428`, `vmalert_port: 8880`, `alertmanager_port: 9093`, `grafana_default_port: 3000` — verified present).
 - `requirements.yml` — add `grafana.grafana` and `community.grafana` collections alongside the existing `victoriametrics.cluster`.
 
 **Modified files:**
@@ -127,7 +127,7 @@
 
 - [ ] **Step 1: Add monitoring coordination vars to `group_vars/all.yml`**
 
-Open `group_vars/all.yml`. The VM/VL/grafana ports are already in the `# Ports` block (`vmsingle_port`, `vlsingle_port`, `vmalert_port`, `alertmanager_port`, `grafana_port`). Add the exporter ports to that same block, after `grafana_port`:
+Open `group_vars/all.yml`. The VM/VL/grafana ports are already in the `# Ports` block (`vmsingle_port`, `vlsingle_port`, `vmalert_port`, `alertmanager_port`, `grafana_default_port`). Add the exporter ports to that same block, after `grafana_default_port`:
 
 ```yaml
 node_exporter_port: 9100
@@ -1547,7 +1547,7 @@ git commit -m "feat(monitoring_agents): firewalld services for exporters"
 # fronted by nginx_proxy at the /grafana/ sub-path.
 
 grafana_listen_address: "{{ network_loopback_address | default('127.0.0.1') }}"
-grafana_port: "{{ grafana_port | default(3000) }}"
+grafana_default_port: "{{ grafana_default_port | default(3000) }}"
 grafana_admin_user: admin
 grafana_admin_password: "{{ vault_grafana_admin_password | default('grafana-dev-admin-change-me') }}"
 
@@ -1565,7 +1565,7 @@ grafana_provisioning_dir: /etc/grafana/provisioning
 grafana_dashboards_dir: /var/lib/grafana/dashboards
 
 # Grafana API endpoint for the community.grafana modules (loopback).
-grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
+grafana_api_url: "http://{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_default_port | default(3000) }}"
 ```
 
 - [ ] **Step 2: Write `meta/main.yml`**
@@ -1712,7 +1712,7 @@ matters.
     grafana_ini:
       server:
         http_addr: "{{ grafana_listen_address }}"
-        http_port: "{{ grafana_port }}"
+        http_port: "{{ grafana_default_port }}"
         root_url: "{{ grafana_root_url }}"
         serve_from_sub_path: "{{ grafana_serve_from_sub_path }}"
       database:
@@ -2022,7 +2022,7 @@ nginx_proxy_https_port: 443
 nginx_proxy_server_name: "{{ cluster_domain }}"
 
 # Upstreams (loopback)
-nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
+nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_default_port | default(3000) }}"
 nginx_proxy_alertmanager_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ alertmanager_port | default(9093) }}"
 nginx_proxy_vmalert_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmalert_port | default(8880) }}"
 
@@ -3572,7 +3572,7 @@ No commit for this task — it is verification only.
 
 2. **Placeholder scan.** No `TBD`, `TODO`, or `implement later`. The dashboard JSON in Task 14 is a real four-panel dashboard, not a stub. The alert rules in Task 5 are two real rules. Where the spec itself flags uncertainty (exporter packaging §14, the exact VM-collection variable names), the plan gives an explicit "verify during execution" instruction with the command to run and the fallback — this is surfacing a real unknown, not a placeholder.
 
-3. **Variable / type consistency.** `monitoring_host` is defined in `group_vars/all.yml` (Task 1) and consumed by `monitoring_agents` defaults (Task 7) for the remote_write URLs. The port vars (`vmsingle_port`, `vlsingle_port`, `vmalert_port`, `alertmanager_port`, `grafana_port`) are already in `all.yml`; the exporter ports + `vmagent_port` + `vlagent_port` are added in Task 1 and consumed by `monitoring_agents` (Task 7) and `monitoring_server` (Task 2). `monitoring_scrape_interval` is defined in `all.yml` (Task 1), emitted by the generator (Task 18), consumed by `monitoring_agents` defaults (Task 7). `nginx_proxy_tls_enabled` / `nginx_proxy_cert_path` / `nginx_proxy_key_path` are set as facts in `nginx_proxy/_tls.yml` (Task 16) and consumed in `pigsty-lite.conf.j2` (Task 17) — names match. `grafana_admin_password` is defined in `grafana` defaults (Task 11) and referenced in the grafana verify (Task 22) with the same default fallback string. The collection role names (`victoriametrics.cluster.vmsingle` etc., `grafana.grafana.grafana`) are used consistently; the plan instructs the executor to confirm the collection's *variable* names against the installed `defaults/` files before writing each include, because those are the one thing I cannot verify from the spec alone.
+3. **Variable / type consistency.** `monitoring_host` is defined in `group_vars/all.yml` (Task 1) and consumed by `monitoring_agents` defaults (Task 7) for the remote_write URLs. The port vars (`vmsingle_port`, `vlsingle_port`, `vmalert_port`, `alertmanager_port`, `grafana_default_port`) are already in `all.yml`; the exporter ports + `vmagent_port` + `vlagent_port` are added in Task 1 and consumed by `monitoring_agents` (Task 7) and `monitoring_server` (Task 2). `monitoring_scrape_interval` is defined in `all.yml` (Task 1), emitted by the generator (Task 18), consumed by `monitoring_agents` defaults (Task 7). `nginx_proxy_tls_enabled` / `nginx_proxy_cert_path` / `nginx_proxy_key_path` are set as facts in `nginx_proxy/_tls.yml` (Task 16) and consumed in `pigsty-lite.conf.j2` (Task 17) — names match. `grafana_admin_password` is defined in `grafana` defaults (Task 11) and referenced in the grafana verify (Task 22) with the same default fallback string. The collection role names (`victoriametrics.cluster.vmsingle` etc., `grafana.grafana.grafana`) are used consistently; the plan instructs the executor to confirm the collection's *variable* names against the installed `defaults/` files before writing each include, because those are the one thing I cannot verify from the spec alone.
 
 4. **The VM-collection variable-name risk.** Tasks 4, 5, and 9 invoke the `victoriametrics.cluster` roles (`vmsingle`, `vlsingle`, `vmalert`, `vmagent`, `vlagent` — all confirmed present in `collections/ansible_collections/victoriametrics/cluster/roles/`). What I cannot confirm from the spec is the exact *variable* each role expects for its service arguments — I used `<role>_service_args` as a documented-convention guess. Each of those tasks carries an explicit instruction to `cat` the collection's `defaults/main.yml` first and adjust. This is the single biggest execution risk in the plan; it is contained to five `include_role` blocks and the executor has the exact verification command. If the collection's interface differs substantially, the *intent* (listen address, retention, data dir, remote_write URL, TLS CA) is fully specified and stable — only the variable plumbing changes.
 

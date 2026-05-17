@@ -22,7 +22,7 @@ nginx_proxy_https_port: 443
 nginx_proxy_server_name: "{{ cluster_domain }}"
 
 # Upstreams (loopback)
-nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_port | default(3000) }}"
+nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_default_port | default(3000) }}"
 nginx_proxy_alertmanager_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ alertmanager_port | default(9093) }}"
 nginx_proxy_vmalert_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmalert_port | default(8880) }}"
 

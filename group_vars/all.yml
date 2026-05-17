@@ -43,7 +43,7 @@ vmsingle_port: 8428
 vlsingle_port: 9428
 vmalert_port: 8880
 alertmanager_port: 9093
-pigsty_grafana_port: 3000  # Renamed from grafana_port: upstream grafana role rejects it. See roles/grafana/defaults/main.yml.
+grafana_default_port: 3000  # Renamed from grafana_port: upstream grafana role rejects it. See roles/grafana/defaults/main.yml.
 node_exporter_port: 9100
 postgres_exporter_port: 9187
 pgbouncer_exporter_port: 9127

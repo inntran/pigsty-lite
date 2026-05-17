@@ -1423,7 +1423,7 @@ vmsingle_port: 8428
 vlsingle_port: 9428
 vmalert_port: 8880
 alertmanager_port: 9093
-grafana_port: 3000
+grafana_default_port: 3000
 
 # Versions ----------------------------------------------------------
 postgres_version: 18
