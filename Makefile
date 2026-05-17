@@ -6,8 +6,9 @@ SHELL := bash
 FAIL_FAST ?= 1
 
 include Makefile.d/lint.mk
+include Makefile.d/images.mk
 
-.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint test-image test-role clean
+.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test-role clean
 
 help:
 	@echo "pigsty-lite - operator commands"
@@ -27,7 +28,8 @@ help:
 	@echo
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
-	@echo "  make test-image                    Build/reuse local shared Molecule base image"
+	@echo "  make images                        Build all three molecule base images (common/data/infra)"
+	@echo "  make test-image                    Alias for 'make images' (legacy name)"
 	@echo "  make test-role ROLE=<name>         Run all Molecule scenarios for a single role"
 	@echo "  make test-role ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
 	@echo "  make clean                         Remove generated artifacts"
@@ -45,10 +47,9 @@ plan: init
 deploy: init
 	ansible-playbook playbooks/site.yml
 
-test-image:
-	./bin/molecule_image.sh tests/molecule/Containerfile localhost/molecule-base
+test-image: images
 
-test-role: test-image
+test-role: images
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
 	@if [ "$(FAIL_FAST)" = "0" ]; then \
 		cd tests/molecule/$(ROLE); \
@@ -69,7 +70,7 @@ clean:
 	find . -name '*.pyc' -type f -delete
 	@if command -v podman >/dev/null 2>&1; then \
 		podman images --format "{{.Repository}}:{{.Tag}}" | \
-			grep -E '^localhost/molecule-base:' | \
+			grep -E '^localhost/molecule-base(-common|-data|-infra)?:' | \
 			xargs -r podman image rm -f; \
 	fi
 

@@ -42,7 +42,7 @@ def test_clean_removes_only_rebuildable_generated_artifacts():
     assert "find . -name __pycache__ -type d -exec rm -rf {} +" in makefile
     assert "find . -name '*.pyc' -type f -delete" in makefile
     assert 'podman images --format "{{.Repository}}:{{.Tag}}"' in makefile
-    assert "grep -E '^localhost/molecule-base:'" in makefile
+    assert "grep -E '^localhost/molecule-base(-common|-data|-infra)?:'" in makefile
     assert "xargs -r podman image rm -f" in makefile
     assert "rm -rf pki/" not in makefile
     assert "collections/" not in makefile.partition("clean:")[2]
