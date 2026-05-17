@@ -4,7 +4,7 @@
     name: "{{ [etcd_package] + etcd_support_packages }}"
     state: present
 
-- name: Ensure etcd user can read shared PKI via the pigsty group
+- name: Ensure etcd user is in the pigsty group to read shared PKI files
   ansible.builtin.user:
     name: etcd
     groups: pigsty
