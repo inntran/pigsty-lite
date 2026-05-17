@@ -3,7 +3,7 @@ driver:
   name: podman
 platforms:
   - name: pigsty-lite-backup-default-1
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-data:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
@@ -15,7 +15,7 @@ platforms:
     groups: [etcd, postgres]
     network: pigsty-lite-backup-default
   - name: pigsty-lite-backup-default-server
-    image: localhost/molecule-base:latest
+    image: localhost/molecule-base-infra:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
