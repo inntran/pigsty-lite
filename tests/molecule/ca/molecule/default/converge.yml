@@ -5,4 +5,4 @@
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_pki/ca"
   roles:
-    - role: ../../../../../roles/ca
+    - role: ca

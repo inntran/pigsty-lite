@@ -15,9 +15,6 @@ platforms:
     network: pigsty-lite-repos-default
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      collections_path: "../../../collections"
 verifier:
   name: ansible
 scenario:

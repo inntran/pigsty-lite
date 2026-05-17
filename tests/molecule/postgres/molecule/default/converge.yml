@@ -6,4 +6,4 @@
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
   roles:
-    - role: ../../../../../roles/postgres
+    - role: postgres

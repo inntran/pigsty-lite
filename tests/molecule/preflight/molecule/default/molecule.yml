@@ -15,10 +15,6 @@ platforms:
     network: pigsty-lite-preflight-default
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      roles_path: "../../../roles"
-      collections_path: "../../../collections"
   inventory:
     host_vars:
       pigsty-lite-preflight-rocky10:

@@ -14,7 +14,7 @@
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_ca"
   roles:
-    - role: ../../../../../roles/ca
+    - role: ca
 
 - name: "Prepare - full P0+P1+P2a + pgbouncer"
   hosts: all
@@ -37,9 +37,9 @@
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
   roles:
-    - role: ../../../../../roles/repos
-    - role: ../../../../../roles/certs
-    - role: ../../../../../roles/etcd
-    - role: ../../../../../roles/postgres
-    - role: ../../../../../roles/patroni
-    - role: ../../../../../roles/pgbouncer
+    - role: repos
+    - role: certs
+    - role: etcd
+    - role: postgres
+    - role: patroni
+    - role: pgbouncer

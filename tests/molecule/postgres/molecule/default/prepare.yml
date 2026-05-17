@@ -14,7 +14,7 @@
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_ca"
   roles:
-    - role: ../../../../../roles/ca
+    - role: ca
 
 - name: Prepare - install repos and issue host cert on the target
   hosts: all
@@ -31,5 +31,5 @@
           - "DNS:{{ inventory_hostname }}.test.local"
           - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
-    - role: ../../../../../roles/repos
-    - role: ../../../../../roles/certs
+    - role: repos
+    - role: certs

@@ -1,0 +1,9 @@
+---
+provisioner:
+  env:
+    ANSIBLE_COLLECTIONS_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
+  config_options:
+    defaults:
+      roles_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles:${MOLECULE_PROJECT_DIRECTORY}/../../../roles.galaxy"
+      collections_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"

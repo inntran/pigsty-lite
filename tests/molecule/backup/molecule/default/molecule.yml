@@ -28,10 +28,6 @@ platforms:
     network: pigsty-lite-backup-default
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      roles_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../roles"
-      collections_path: "${MOLECULE_PROJECT_DIRECTORY}/../../../collections"
   inventory:
     group_vars:
       all:

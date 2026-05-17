@@ -7,4 +7,4 @@
     repos_pgdg_enabled: true
     repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
   roles:
-    - role: ../../../../../roles/repos
+    - role: repos

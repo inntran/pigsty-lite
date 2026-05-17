@@ -2,5 +2,5 @@
 - name: Converge
   hosts: all
   roles:
-    - role: ../../../../../roles/repos
-    - role: ../../../../../roles/node
+    - role: repos
+    - role: node

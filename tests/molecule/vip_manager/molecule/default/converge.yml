@@ -6,4 +6,4 @@
   vars:
     vip_manager_enabled: false
   roles:
-    - role: ../../../../../roles/vip_manager
+    - role: vip_manager

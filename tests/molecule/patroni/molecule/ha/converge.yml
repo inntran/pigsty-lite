@@ -11,4 +11,4 @@
       ansible.builtin.set_fact:
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
-    - role: ../../../../../roles/patroni
+    - role: patroni

@@ -14,7 +14,7 @@
   vars:
     ca_dir: "{{ playbook_dir }}/_tmp_ca"
   roles:
-    - role: ../../../../../roles/ca
+    - role: ca
 
 - name: Prepare - repos, node, certs on all hosts
   hosts: all
@@ -38,9 +38,9 @@
           - "DNS:{{ inventory_hostname }}.test.local"
           - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
-    - role: ../../../../../roles/repos
-    - role: ../../../../../roles/node
-    - role: ../../../../../roles/certs
+    - role: repos
+    - role: node
+    - role: certs
 
 - name: Prepare - etcd, postgres, patroni on postgres nodes only
   hosts: postgres
@@ -59,6 +59,6 @@
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
-    - role: ../../../../../roles/etcd
-    - role: ../../../../../roles/postgres
-    - role: ../../../../../roles/patroni
+    - role: etcd
+    - role: postgres
+    - role: patroni

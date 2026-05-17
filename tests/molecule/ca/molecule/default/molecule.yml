@@ -9,7 +9,6 @@ provisioner:
   config_options:
     defaults:
       inventory: ./inventory.yml
-      collections_path: "../../../collections"
   inventory:
     host_vars:
       localhost:

@@ -40,10 +40,6 @@ platforms:
     network: pigsty-lite-provision-ha
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      roles_path: "../../../roles"
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
