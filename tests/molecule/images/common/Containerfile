@@ -1,0 +1,102 @@
+# syntax=docker/dockerfile:1
+ARG OL_IMAGE=container-registry.oracle.com/os/oraclelinux:10
+FROM ${OL_IMAGE}
+
+# --- Bootstrap system packages ---
+RUN dnf install -y \
+        iproute \
+        man-db \
+        sudo \
+        firewalld \
+        policycoreutils \
+        policycoreutils-python-utils \
+        python3-libselinux \
+        python3-cryptography \
+        dnf-plugins-core \
+        tar \
+        gzip \
+        curl-minimal \
+    && dnf clean all
+
+# --- Enable Oracle CodeReady Builder, install EPEL, then disable EPEL
+#     for normal resolution (matches roles/repos terminal state) ---
+RUN dnf config-manager --set-enabled ol10_codeready_builder \
+    && dnf install -y --nogpgcheck \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    && dnf config-manager --setopt=epel.enabled=0 --save \
+    && dnf clean all
+
+# --- Install PGDG repo, enable extras + pgdg18, disable other majors,
+#     set priority, and drop the PG default-module disabled marker so
+#     roles/repos skips that step on baked-image scenarios ---
+RUN dnf install -y --nogpgcheck \
+        https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && dnf config-manager --setopt=pgdg-rhel10-extras.enabled=1 --save \
+    && dnf config-manager --setopt=pgdg18.enabled=1 --save \
+    && for v in 14 15 16 17; do \
+         dnf config-manager --setopt=pgdg${v}.enabled=0 --save; \
+       done \
+    && for s in pgdg-common pgdg-rhel10-extras pgdg18; do \
+         dnf config-manager --setopt=${s}.priority=10 --save; \
+       done \
+    && (dnf -y module disable postgresql || true) \
+    && mkdir -p /etc/dnf/modules.d \
+    && printf 'disabled by pigsty-lite common image\n' > /etc/dnf/modules.d/postgresql-disabled \
+    && dnf clean all
+
+# --- pigsty shared identity (matches roles/node) ---
+RUN groupadd --system --gid 926 pigsty \
+    && useradd --system --uid 926 --gid 926 \
+        --home-dir /var/lib/pigsty --create-home \
+        --shell /sbin/nologin \
+        --comment 'pigsty-lite shared identity' \
+        pigsty \
+    && chmod 0750 /var/lib/pigsty \
+    && chown pigsty:pigsty /var/lib/pigsty
+
+# --- Pre-create role-managed config dirs (cheap; saves node-role tasks) ---
+RUN mkdir -p /etc/sysctl.d /etc/systemd/journald.conf.d
+
+# --- Sudoers (preserved from prior monolithic image) ---
+RUN printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel-nopasswd \
+    && printf 'ALL ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/all-nopasswd \
+    && chmod 0440 /etc/sudoers.d/wheel-nopasswd /etc/sudoers.d/all-nopasswd
+
+# --- pgbackrest is used by both data-side and infra-side. Its libssh2
+#     dependency comes from EPEL on OL10, so enable EPEL only for this
+#     transaction and leave normal resolution unchanged. ---
+RUN dnf --enablerepo=epel install -y pgbackrest && dnf clean all
+
+# --- VictoriaMetrics binaries. Versions are resolved at build time by
+#     following the GitHub /releases/latest 302 (same as the upstream
+#     role's "version: latest" path). Tarball layouts:
+#       victoria-metrics-linux-amd64-<tag>.tar.gz  -> victoria-metrics-prod
+#       victoria-logs-linux-amd64-<tag>.tar.gz     -> victoria-logs-prod
+#       vmutils-linux-amd64-<tag>.tar.gz           -> vmalert-prod, vmagent-prod
+#       vlutils-linux-amd64-<tag>.tar.gz           -> vlagent-prod
+RUN set -eux; \
+    vm=$(curl -fsSI -o /dev/null -w '%{redirect_url}' \
+            https://github.com/VictoriaMetrics/VictoriaMetrics/releases/latest \
+          | sed -n 's@.*/releases/tag/\(v[0-9][^[:space:]]*\).*@\1@p'); \
+    vl=$(curl -fsSI -o /dev/null -w '%{redirect_url}' \
+            https://github.com/VictoriaMetrics/VictoriaLogs/releases/latest \
+          | sed -n 's@.*/releases/tag/\(v[0-9][^[:space:]]*\).*@\1@p'); \
+    [ -n "$vm" ]; [ -n "$vl" ]; \
+    echo "Resolved VictoriaMetrics=$vm VictoriaLogs=$vl"; \
+    base_vm=https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download; \
+    base_vl=https://github.com/VictoriaMetrics/VictoriaLogs/releases/download; \
+    curl -fsSL "$base_vm/$vm/victoria-metrics-linux-amd64-$vm.tar.gz" \
+      | tar -xz -C /usr/local/bin victoria-metrics-prod; \
+    curl -fsSL "$base_vm/$vm/vmutils-linux-amd64-$vm.tar.gz" \
+      | tar -xz -C /usr/local/bin vmalert-prod vmagent-prod; \
+    curl -fsSL "$base_vl/$vl/victoria-logs-linux-amd64-$vl.tar.gz" \
+      | tar -xz -C /usr/local/bin victoria-logs-prod; \
+    curl -fsSL "$base_vl/$vl/vlutils-linux-amd64-$vl.tar.gz" \
+      | tar -xz -C /usr/local/bin vlagent-prod; \
+    chmod 0755 /usr/local/bin/victoria-metrics-prod \
+               /usr/local/bin/victoria-logs-prod \
+               /usr/local/bin/vmalert-prod \
+               /usr/local/bin/vmagent-prod \
+               /usr/local/bin/vlagent-prod
+
+CMD ["/sbin/init"]
