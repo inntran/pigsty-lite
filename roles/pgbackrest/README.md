@@ -9,7 +9,7 @@ There is no single-host mode. See §1.1 of the main design doc.
 
 ## Requirements
 
-- `roles/certs` must run first (deploys PKI certs to `pki_dir`).
+- `roles/certs` must run first (deploys PKI certs to `pigsty_pki_dir`).
 - `roles/patroni` must run first on postgres nodes (provides `postgres_extra_parameters` injection point).
 - Inventory group `backup_server` must exist with exactly one host.
 

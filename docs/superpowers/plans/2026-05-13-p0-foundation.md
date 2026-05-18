@@ -1407,7 +1407,7 @@ firewalld_default_zone: "public"
 postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
 etcd_data_dir: "/var/lib/etcd"
 pgbackrest_store_path: "/var/lib/pgbackrest"
-pki_dir: "/etc/pki/pigsty"
+pigsty_pki_dir: "/etc/pki/pigsty"
 
 # Ports -------------------------------------------------------------
 postgres_port: 5432

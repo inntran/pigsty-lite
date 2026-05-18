@@ -26,7 +26,6 @@ postgres_data_dir_pattern: "/var/lib/pgsql/{{ postgres_version }}/data"
 etcd_data_dir: "/var/lib/etcd"
 backup_server_path: "/var/lib/pgbackrest"
 pigsty_pki_dir: "/etc/pki/pigsty"
-pki_dir: "{{ pigsty_pki_dir }}"  # Backward compatibility
 
 # Ports -------------------------------------------------------------
 postgres_port: 5432
@@ -43,7 +42,7 @@ vmsingle_port: 8428
 vlsingle_port: 9428
 vmalert_port: 8880
 alertmanager_port: 9093
-grafana_default_port: 3000  # Renamed from grafana_port: upstream grafana role rejects it. See roles/grafana/defaults/main.yml.
+grafana_default_port: 3000
 node_exporter_port: 9100
 postgres_exporter_port: 9187
 pgbouncer_exporter_port: 9127

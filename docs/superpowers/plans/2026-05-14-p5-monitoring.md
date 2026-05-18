@@ -394,14 +394,14 @@ git commit -m "feat(monitoring_server): role defaults, meta, README"
 
 - name: Stat the monitor host certificate (from P0 certs role)
   ansible.builtin.stat:
-    path: "{{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
+    path: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
   register: monitoring_server_cert_stat
 
 - name: Warn if the monitor host certificate is missing
   ansible.builtin.debug:
     msg: >-
       WARNING: monitor host certificate not found at
-      {{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt.
+      {{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt.
       vmsingle/vlsingle still start over plain HTTP on loopback-adjacent
       binds, but nginx_proxy's TLS termination needs this cert. Run the
       P0 _node.yml playbook (certs role) first.
@@ -863,7 +863,7 @@ monitoring_agents_vlagent_listen: "{{ network_loopback_address | default('127.0.
 monitoring_agents_vlagent_remote_write_url: "https://{{ hostvars[monitoring_host].ansible_host }}:{{ vlsingle_port | default(9428) }}/insert/jsonline"
 
 # TLS: agents talk to the monitor over the P0-issued CA
-monitoring_agents_ca_file: "{{ pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
+monitoring_agents_ca_file: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/ca.crt"
 
 # Patroni REST + HAProxy stats scrape targets (postgres hosts only)
 monitoring_agents_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
@@ -2009,8 +2009,8 @@ nginx_proxy_config_file: /etc/nginx/conf.d/pigsty-lite.conf
 
 # TLS mode: ca_signed (P0-issued cert) | byo (operator cert) | http
 nginx_proxy_tls_mode: "{{ nginx_proxy_tls_mode | default('ca_signed') }}"
-nginx_proxy_ca_signed_cert: "{{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
-nginx_proxy_ca_signed_key: "{{ pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.key"
+nginx_proxy_ca_signed_cert: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.crt"
+nginx_proxy_ca_signed_key: "{{ pigsty_pki_dir | default('/etc/pki/pigsty') }}/{{ inventory_hostname }}.key"
 # Operator overrides these two when nginx_proxy_tls_mode == 'byo'
 nginx_proxy_byo_cert: ""
 nginx_proxy_byo_key: ""

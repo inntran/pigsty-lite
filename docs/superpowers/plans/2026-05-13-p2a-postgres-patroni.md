@@ -294,7 +294,7 @@ git commit -m "feat(postgres): role meta and README"
 
 - name: Verify per-host certificate exists (P0 certs role)
   ansible.builtin.stat:
-    path: "{{ pki_dir }}/{{ inventory_hostname }}.crt"
+    path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
   register: postgres_cert_stat
 
 - name: Fail if certificate missing
@@ -302,7 +302,7 @@ git commit -m "feat(postgres): role meta and README"
     that:
       - postgres_cert_stat.stat.exists
     fail_msg: >-
-      Expected per-host certificate at {{ pki_dir }}/{{ inventory_hostname }}.crt;
+      Expected per-host certificate at {{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt;
       run the P0 _node.yml playbook (certs role) first.
 ```
 
@@ -2352,7 +2352,7 @@ No commit. Verification only.
    not pretend it exists yet — P2a defers that to a configure-CLI
    change.
 
-3. **Variable / type consistency.** `pki_dir`, `cluster_name`,
+3. **Variable / type consistency.** `pigsty_pki_dir`, `cluster_name`,
    `postgres_version`, `postgres_port`, `postgres_listen_address`,
    `postgres_data_dir`, `postgres_user`, `postgres_group`,
    `network_any_address`, `firewalld_default_zone`,

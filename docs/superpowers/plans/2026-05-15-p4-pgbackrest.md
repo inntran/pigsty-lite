@@ -4,7 +4,7 @@
 
 **Goal:** Create `roles/pgbackrest` — a single Ansible role replacing `roles/bad_backup_client` and `roles/bad_backup_store`, supporting two modes: `server` (the `backup_server` host) and `client` (postgres nodes).
 
-**Architecture:** One role, `pgbackrest_mode` variable selects which task files run. Both modes install the package, render config, and run the `pgbackrest server` TLS daemon. `server` mode additionally creates the stanza, sets `archive_command` on each postgres node (delegated), and installs backup timers. Certs are referenced directly from `pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
+**Architecture:** One role, `pgbackrest_mode` variable selects which task files run. Both modes install the package, render config, and run the `pgbackrest server` TLS daemon. `server` mode additionally creates the stanza, sets `archive_command` on each postgres node (delegated), and installs backup timers. Certs are referenced directly from `pigsty_pki_dir` (`/etc/pki/pigsty`) — no copy or symlink.
 
 **No single-host mode.** Per the pigsty-lite design principles (§1.1 in `docs/superpowers/specs/2026-05-12-pigsty-lite-design.md`), the backup repo is never colocated with PostgreSQL — a backup on the same disk as the data it backs up is not a backup. Even the `single` profile uses a dedicated monitor/infra host that doubles as `backup_server`. Operators who want off-host durability on `single` enable the optional S3 secondary repo on `backup_server`.
 
@@ -196,7 +196,7 @@ There is no single-host mode. See §1.1 of the main design doc.
 
 ## Requirements
 
-- `roles/certs` must run first (deploys PKI certs to `pki_dir`).
+- `roles/certs` must run first (deploys PKI certs to `pigsty_pki_dir`).
 - `roles/patroni` must run first on postgres nodes (provides `postgres_extra_parameters` injection point).
 - Inventory group `backup_server` must exist with exactly one host.
 
@@ -930,7 +930,7 @@ Molecule scenarios for pgbackrest require libvirt and are local-only (see `docs/
 
 - ✓ Single role with two modes (`server`, `client`); no single-host mode per §1.1
 - ✓ No `pgbackrest` OS user — all tasks use `User=postgres`
-- ✓ Certs referenced directly from `pki_dir` — no copy/symlink
+- ✓ Certs referenced directly from `pigsty_pki_dir` — no copy/symlink
 - ✓ `archive_command` via `postgres_extra_parameters` injection
 - ✓ S3 secondary repo with Ansible Vault credentials
 - ✓ Systemd timers for full + diff backups with configurable schedules
