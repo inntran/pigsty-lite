@@ -1,11 +1,19 @@
 ---
-- name: Pin advertise address to container IP
+# Pin per-host facts before the pgbackrest playbook runs. set_fact values
+# persist across plays for the same host, so they reach the imported
+# playbook's plays without being re-declared there.
+- name: Pin advertise/listen addresses to container IP
   hosts: all
   gather_facts: true
   tasks:
-    - name: Pin advertise address to container IP
+    - name: Use podman-network IPv4 for Patroni advertise + Postgres listen
       ansible.builtin.set_fact:
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        postgres_listen_address: "{{ ansible_facts['default_ipv4']['address'] }},127.0.0.1"
 
-- name: Apply the pgbackrest role (server + client)
+# pgbackrest needs three plays (client install on postgres, server install
+# on backup_server, then archive activation) with different pgbackrest_mode
+# values per group. Import the production playbook so the test exercises
+# that real orchestration instead of duplicating it here.
+- name: Apply the pgbackrest playbook (server + client + archive)
   ansible.builtin.import_playbook: ../../../../../playbooks/_pgbackrest.yml

@@ -41,6 +41,16 @@ provisioner:
         pigsty_pki_dir: /etc/pki/pigsty
         node_sysctl_apply: false
         postgres_version: 18
+      etcd:
+        etcd_initial_cluster_state: new
+      postgres:
+        # group_vars/postgres.yml is not loaded by molecule, so the
+        # patroni passwords it normally supplies must be declared here
+        # for the bootstrap playbook imported by prepare.
+        patroni_superuser_password: superuser-test-pw
+        patroni_replication_password: replicator-test-pw
+        patroni_rewind_password: rewind-test-pw
+        postgres_tune_profile: tiny
     host_vars:
       pigsty-lite-monagt-default-server: {}
       pigsty-lite-monagt-default-2:

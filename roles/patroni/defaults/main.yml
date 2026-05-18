@@ -14,13 +14,15 @@ patroni_config_dir: /etc/patroni
 patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"
 patroni_log_dir: /var/log/patroni
 
-# PostgreSQL contract consumed by this role. group_vars/postgres.yml owns
-# the postgres_* values; a missing value here is a setup error, not a default.
-patroni_postgres_user: "{{ postgres_user }}"
-patroni_postgres_group: "{{ postgres_group }}"
-patroni_postgres_data_dir: "{{ postgres_data_dir }}"
-patroni_postgres_listen_address: "{{ postgres_listen_address }}"
-patroni_postgres_port: "{{ postgres_port }}"
+# PostgreSQL contract consumed by this role. group_vars/postgres.yml is the
+# source of truth in production; the postgres role's defaults provide the
+# same values for isolated runs (e.g. molecule scenarios). default() chains
+# only cover the case where neither layer is loaded.
+patroni_postgres_user: "{{ postgres_user | default('postgres') }}"
+patroni_postgres_group: "{{ postgres_group | default('postgres') }}"
+patroni_postgres_data_dir: "{{ postgres_data_dir | default('/var/lib/pgsql/' ~ postgres_version ~ '/data') }}"
+patroni_postgres_listen_address: "{{ postgres_listen_address | default(network_any_address | default('0.0.0.0')) }}"
+patroni_postgres_port: "{{ postgres_port | default(5432) }}"
 
 # TLS (reuse per-host cert from P0 certs role) - Patroni REST and PG SSL
 patroni_cert_file: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"

@@ -39,6 +39,7 @@
       ansible.builtin.set_fact:
         etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        postgres_listen_address: "{{ ansible_facts['default_ipv4']['address'] }}, {{ network_loopback_address }}"
   roles:
     - role: etcd
     - role: postgres

@@ -10,5 +10,6 @@
     - name: Use podman-network IPv4 for Patroni advertise address
       ansible.builtin.set_fact:
         patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        postgres_listen_address: "{{ ansible_facts['default_ipv4']['address'] }},127.0.0.1"
   roles:
     - role: patroni
