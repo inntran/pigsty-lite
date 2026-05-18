@@ -8,6 +8,8 @@ pki/
 artifacts/
 dist/
 .worktrees/
+group_vars/all/vault.yml
+.pigsty/
 
 # ansible
 *.retry
