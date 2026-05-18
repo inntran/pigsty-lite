@@ -1,13 +1,4 @@
 ---
-- name: Install fact-gathering tooling missing from the minimal init image
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Ensure iproute and sudo are present
-      ansible.builtin.dnf:
-        name: [iproute, sudo]
-        state: present
-
 - name: Prepare - generate CA on control side
   hosts: localhost
   gather_facts: false
