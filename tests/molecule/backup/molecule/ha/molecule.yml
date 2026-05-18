@@ -1,8 +1,9 @@
 ---
 # Testing goal: verify pgbackrest works against a 3-node Patroni cluster
 # (primary + 2 replicas) with a dedicated backup_server host. Converge
-# applies the pgbackrest role directly via `roles:` since the scenario
-# only needs to layer pgbackrest on top of a prepared HA stack.
+# imports _pgbackrest.yml because the role asserts pgbackrest_mode at
+# invocation, and only the production playbook supplies the right value
+# per host group (client on postgres, server on backup_server).
 driver:
   name: podman
 platforms:
@@ -59,6 +60,7 @@ provisioner:
   inventory:
     group_vars:
       all:
+        ansible_user: root
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty

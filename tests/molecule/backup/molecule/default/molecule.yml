@@ -36,6 +36,7 @@ provisioner:
   inventory:
     group_vars:
       all:
+        ansible_user: root
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
