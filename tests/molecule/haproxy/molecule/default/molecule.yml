@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the haproxy role renders a working config against
+# a single-node patroni primary and routes traffic to the leader port.
 driver:
   name: podman
 platforms:

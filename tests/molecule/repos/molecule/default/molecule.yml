@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the repos role enables PGDG (and optionally pigsty)
+# yum repos and that the postgres server package becomes installable.
 driver:
   name: podman
 platforms:

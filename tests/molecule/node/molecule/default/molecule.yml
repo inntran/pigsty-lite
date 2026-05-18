@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the node role applies baseline OS config (hostname,
+# /etc/hosts, sysctl, firewalld zone, pigsty user) and that repos role
+# precondition is satisfied.
 driver:
   name: podman
 platforms:

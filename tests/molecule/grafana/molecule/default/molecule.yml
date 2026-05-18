@@ -1,4 +1,8 @@
 ---
+# Testing goal: verify the grafana role provisions dashboards and
+# datasources against a running monitoring server. Prepare imports
+# preflight + ca + node + _monitoring_server.yml to stand up vmsingle
+# and vlsingle so the datasources validate.
 driver:
   name: podman
 platforms:

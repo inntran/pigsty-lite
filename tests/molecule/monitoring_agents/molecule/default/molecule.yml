@@ -1,4 +1,9 @@
 ---
+# Testing goal: verify the monitoring_agents role installs node/pg/pgbouncer/
+# pgbackrest exporters + vmagent + vlagent on a fully-stacked postgres node
+# and that the monitor host receives metrics/logs. Prepare imports the full
+# base stack (etcd + patroni + pgbouncer + haproxy + pgbackrest + monitoring
+# server) so every exporter has a real target to scrape.
 driver:
   name: podman
 platforms:

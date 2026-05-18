@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the patroni role bootstraps a single-node primary
+# (no replicas) and that the REST API reports state=running.
 driver:
   name: podman
 platforms:

@@ -1,4 +1,9 @@
 ---
+# Testing goal: verify the pgbackrest role and the _pgbackrest.yml playbook
+# bootstrap a single-node stanza, ship a WAL, and take an initial backup.
+# Converge imports the real playbook because _pgbackrest.yml has three
+# orchestration plays (client install, server install, archive activation)
+# that the scenario needs to exercise end-to-end.
 driver:
   name: podman
 platforms:

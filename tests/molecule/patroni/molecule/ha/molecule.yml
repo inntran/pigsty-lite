@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the patroni role bootstraps a 3-node HA cluster
+# with one leader and two streaming replicas, and that a probe row
+# written on the leader propagates to both replicas.
 driver:
   name: podman
 platforms:

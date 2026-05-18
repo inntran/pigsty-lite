@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the etcd role bootstraps a 3-node etcd cluster
+# with TLS, correct peer URLs, and a healthy quorum.
 driver:
   name: podman
 platforms:

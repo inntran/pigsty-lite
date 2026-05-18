@@ -1,4 +1,9 @@
 ---
+# Testing goal: verify the cluster_ops include-library (find_leader,
+# assert_healthy) returns correct facts against a live SPOF cluster.
+# Prepare imports production playbooks (preflight + ca + node + etcd +
+# postgres install + bootstrap) to stand up the cluster; converge then
+# include_roles the library's task files directly.
 driver:
   name: podman
 platforms:

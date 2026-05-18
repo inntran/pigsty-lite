@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the vip_manager role installs cleanly with
+# enabled=false (no VIP bind), so packaging and unit-file management
+# can be exercised without requiring a routable VIP in the test network.
 driver:
   name: podman
 platforms:

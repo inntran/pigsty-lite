@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the pgbouncer role configures a pooler in front of
+# a single-node patroni primary and accepts connections on the pgbouncer
+# port with TLS.
 driver:
   name: podman
 platforms:

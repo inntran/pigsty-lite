@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the postgres role installs PG packages, lays down
+# the vendor filesystem, masks the vendor systemd unit, and registers the
+# SELinux port label. No patroni / cluster bootstrap is exercised here.
 driver:
   name: podman
 platforms:

@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the ca role generates a self-signed CA cert + key
+# in a control-side directory. Single-role scenario, runs on localhost.
 driver:
   name: default
 platforms:

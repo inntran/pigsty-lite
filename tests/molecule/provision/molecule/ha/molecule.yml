@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the provision role targets only the leader in a
+# 3-node Patroni cluster (run_once + delegation logic) when creating
+# databases, users, and grants.
 driver:
   name: podman
 platforms:

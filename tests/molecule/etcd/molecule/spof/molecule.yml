@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the etcd role bootstraps a single-node etcd
+# instance with TLS and serves the client API.
 driver:
   name: podman
 platforms:

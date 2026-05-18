@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the preflight role's assertion library fails fast
+# on missing prerequisites (SELinux mode, firewalld presence, required
+# inventory groups) and passes on a clean host.
 driver:
   name: podman
 platforms:

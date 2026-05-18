@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the certs role issues per-host certificates from
+# the control-side CA and installs them with the correct ownership/mode.
 driver:
   name: podman
 platforms:

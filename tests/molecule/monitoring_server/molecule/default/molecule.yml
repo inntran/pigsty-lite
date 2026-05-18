@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the monitoring_server role brings up VictoriaMetrics,
+# VictoriaLogs, vmalert, and Alertmanager on the monitor host with TLS.
+# Prepare imports preflight + ca + node so the cert chain is in place.
 driver:
   name: podman
 platforms:

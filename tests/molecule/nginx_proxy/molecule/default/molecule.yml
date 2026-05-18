@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the nginx_proxy role terminates TLS on the monitor
+# host and reverse-proxies Grafana / vmsingle / vlsingle under one vhost.
 driver:
   name: podman
 platforms:

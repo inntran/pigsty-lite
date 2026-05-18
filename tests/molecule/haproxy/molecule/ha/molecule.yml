@@ -1,4 +1,7 @@
 ---
+# Testing goal: verify the haproxy role on every postgres node correctly
+# tracks a 3-node Patroni cluster's leader via REST health checks and
+# routes write traffic to the current primary across failover.
 driver:
   name: podman
 platforms:

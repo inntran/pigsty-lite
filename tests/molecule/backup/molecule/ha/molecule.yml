@@ -1,4 +1,8 @@
 ---
+# Testing goal: verify pgbackrest works against a 3-node Patroni cluster
+# (primary + 2 replicas) with a dedicated backup_server host. Converge
+# applies the pgbackrest role directly via `roles:` since the scenario
+# only needs to layer pgbackrest on top of a prepared HA stack.
 driver:
   name: podman
 platforms:

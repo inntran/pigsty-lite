@@ -1,4 +1,6 @@
 ---
+# Testing goal: verify the provision role creates databases, users, and
+# role grants on a running SPOF patroni primary from response-file inputs.
 driver:
   name: podman
 platforms:
