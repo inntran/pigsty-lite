@@ -8,7 +8,7 @@ FAIL_FAST ?= 1
 include Makefile.d/lint.mk
 include Makefile.d/images.mk
 
-.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test-role clean
+.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test clean
 
 help:
 	@echo "pigsty-lite - operator commands"
@@ -29,8 +29,8 @@ help:
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
 	@echo "  make images                        Build all three molecule base images (common/data/infra)"
-	@echo "  make test-role ROLE=<name>         Run all Molecule scenarios for a single role"
-	@echo "  make test-role ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
+	@echo "  make test ROLE=<name>         Run all Molecule scenarios for a single role"
+	@echo "  make test ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
 	@echo "  make clean                         Remove generated artifacts"
 
 init:
@@ -46,8 +46,8 @@ plan: init
 deploy: init
 	ansible-playbook playbooks/site.yml
 
-test-role: images
-	@if [ -z "$(ROLE)" ]; then echo "Usage: make test-role ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
+test: images
+	@if [ -z "$(ROLE)" ]; then echo "Usage: make test ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
 	@if [ "$(FAIL_FAST)" = "0" ]; then \
 		cd tests/molecule/$(ROLE); \
 		log_file=$$(mktemp); \
