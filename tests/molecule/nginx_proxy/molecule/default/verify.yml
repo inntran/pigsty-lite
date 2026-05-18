@@ -20,25 +20,26 @@
       failed_when: http_listen.stdout | length == 0
 
     - name: Capture the expected certificate fingerprint
-      ansible.builtin.command:
-        cmd: "openssl x509 -in {{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt -noout -fingerprint -sha256"
-      register: expected_cert_fp
-      changed_when: false
+      community.crypto.x509_certificate_info:
+        path: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
+      register: expected_cert_info
 
-    - name: Capture the served certificate fingerprint
-      ansible.builtin.shell: >-
-        set -o pipefail &&
-        openssl s_client -connect 127.0.0.1:443 -servername {{ cluster_domain }}
-        -showcerts </dev/null 2>/dev/null
-        | sed -ne '/BEGIN CERTIFICATE/,/END CERTIFICATE/p'
-        | openssl x509 -noout -fingerprint -sha256
-      register: served_cert_fp
-      changed_when: false
+    - name: Retrieve the served certificate
+      community.crypto.get_certificate:
+        host: 127.0.0.1
+        port: 443
+        server_name: "{{ cluster_domain }}"
+      register: served_cert
+
+    - name: Parse the served certificate for its fingerprint
+      community.crypto.x509_certificate_info:
+        content: "{{ served_cert.cert }}"
+      register: served_cert_info
 
     - name: The served certificate matches the monitor cert
       ansible.builtin.assert:
         that:
-          - served_cert_fp.stdout | trim == expected_cert_fp.stdout | trim
+          - served_cert_info.fingerprints.sha256 == expected_cert_info.fingerprints.sha256
 
     - name: HTTPS root redirects to /grafana/
       ansible.builtin.uri:
