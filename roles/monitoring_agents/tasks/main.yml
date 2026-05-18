@@ -53,12 +53,16 @@
       ansible.builtin.include_role:
         name: victoriametrics.cluster.vmagent
       vars:
+        # The upstream role replaces vmagent_service_args wholesale, so we
+        # restate every flag we want — including the stream-aggregation config
+        # path, which upstream always renders (empty by default).
         vmagent_service_args:
           httpListenAddr: "{{ monitoring_agents_vmagent_listen }}"
           "promscrape.config": /etc/vmagent/scrape.yml
           "remoteWrite.url": "{{ monitoring_agents_vmagent_remote_write_url }}"
           "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
           "remoteWrite.tmpDataPath": "{{ monitoring_agents_vmagent_buffer_dir }}"
+          "remoteWrite.streamAggr.config": "{{ vmagent_config_dir }}/aggregation.yml"
 
 - name: Install and configure vlagent
   tags: [monitoring, config]

@@ -11,10 +11,22 @@
         name: victoriametrics.cluster.vmsingle
       vars:
         victoriametrics_data_dir: "{{ monitoring_server_vmsingle_data_dir }}"
+        # Upstream only reads retention via service_args.retentionPeriod (set
+        # below); this var is kept for parity with upstream defaults and any
+        # future code path that reads it directly.
         victoriametrics_retention_period_months: "{{ monitoring_server_vmsingle_retention }}"
+        # Override of upstream victoriametrics_service_args must restate every
+        # key we want: the upstream role's default dict (including
+        # storageDataPath and retentionPeriod) is replaced wholesale, not merged.
         victoriametrics_service_args: >-
-          {{ monitoring_server_vmsingle_service_args
-             | combine({'httpListenAddr': monitoring_server_vmsingle_listen}) }}
+          {{ {
+               'storageDataPath': monitoring_server_vmsingle_data_dir,
+               'retentionPeriod': monitoring_server_vmsingle_retention,
+               'httpListenAddr': monitoring_server_vmsingle_listen,
+               'selfScrapeInterval': '30s',
+               'maxConcurrentInserts': 32,
+               'search.maxUniqueTimeseries': '900000',
+             } | combine(monitoring_server_vmsingle_service_args) }}
 
 - name: Install and configure VictoriaLogs single-node
   tags: [monitoring, config]
@@ -24,10 +36,16 @@
         name: victoriametrics.cluster.vlsingle
       vars:
         victorialogs_data_dir: "{{ monitoring_server_vlsingle_data_dir }}"
+        # Kept for parity with upstream defaults; upstream only reads retention
+        # via service_args.retentionPeriod (set below).
         victorialogs_retention_period_months: "{{ monitoring_server_vlsingle_retention }}"
+        # See the vmsingle override above for why we restate every key.
         victorialogs_service_args: >-
-          {{ monitoring_server_vlsingle_service_args
-             | combine({'httpListenAddr': monitoring_server_vlsingle_listen}) }}
+          {{ {
+               'storageDataPath': monitoring_server_vlsingle_data_dir,
+               'retentionPeriod': monitoring_server_vlsingle_retention,
+               'httpListenAddr': monitoring_server_vlsingle_listen,
+             } | combine(monitoring_server_vlsingle_service_args) }}
 
 - name: Install and configure vmalert
   tags: [monitoring, config]
@@ -70,7 +88,10 @@
       ansible.builtin.include_role:
         name: victoriametrics.cluster.vmalert
       vars:
-        vmalert_service_args:
+        # Upstream reads vic_vm_alert_service_args (not vmalert_service_args)
+        # via its systemd template. The whole dict is replaced, not merged, so
+        # we restate every flag we want.
+        vic_vm_alert_service_args:
           httpListenAddr: "{{ monitoring_server_vmalert_listen }}"
           "datasource.url": "{{ monitoring_server_vmalert_datasource_url }}"
           "notifier.url": "{{ monitoring_server_vmalert_notifier_url }}"
