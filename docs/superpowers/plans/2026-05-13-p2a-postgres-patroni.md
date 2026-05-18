@@ -145,7 +145,7 @@ postgres_vendor_systemd_unit: "postgresql-{{ postgres_version }}.service"
 postgres_mask_vendor_unit: true
 
 # Network (Patroni reads these via group_vars)
-postgres_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+postgres_listen_address: "{{ ansible_default_ipv4.address | default(network_loopback_address) }}"
 postgres_port: "{{ postgres_port | default(5432) }}"
 ```
 
