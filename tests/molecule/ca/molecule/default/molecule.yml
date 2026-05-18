@@ -12,6 +12,9 @@ provisioner:
     defaults:
       inventory: ./inventory.yml
   inventory:
+    group_vars:
+      all:
+        network_ip_version: ipv4
     host_vars:
       localhost:
         ansible_connection: local

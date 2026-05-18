@@ -22,6 +22,7 @@ provisioner:
   inventory:
     group_vars:
       all:
+        network_ip_version: ipv4
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty

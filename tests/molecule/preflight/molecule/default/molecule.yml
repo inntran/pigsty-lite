@@ -19,6 +19,9 @@ platforms:
 provisioner:
   name: ansible
   inventory:
+    group_vars:
+      all:
+        network_ip_version: ipv4
     host_vars:
       pigsty-lite-preflight-rocky10:
         selinux_required_mode: "Permissive"

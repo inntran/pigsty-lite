@@ -21,6 +21,7 @@ provisioner:
   inventory:
     group_vars:
       all:
+        network_ip_version: ipv4
         firewalld_default_zone: public
         node_set_hostname: false
         node_sysctl_apply: false

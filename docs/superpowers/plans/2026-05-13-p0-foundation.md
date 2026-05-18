@@ -2242,15 +2242,6 @@ The role MUST start by creating the `pigsty` shared identity (UID/GID 926, syste
     name: "{{ inventory_hostname }}"
   when: node_set_hostname | bool
 
-- name: Render /etc/hosts from inventory
-  ansible.builtin.template:
-    src: hosts.j2
-    dest: /etc/hosts
-    owner: root
-    group: root
-    mode: "0644"
-  when: node_manage_etc_hosts | bool
-
 - name: Apply sysctl tuning
   ansible.builtin.template:
     src: 90-pigsty-lite.conf.j2
@@ -2302,7 +2293,7 @@ The role MUST start by creating the `pigsty` shared identity (UID/GID 926, syste
 ```markdown
 # node
 
-Baseline node OS configuration: hostname, /etc/hosts from inventory, sysctl
+Baseline node OS configuration: hostname, sysctl
 tuning, journald sizing, firewalld baseline (ssh open).
 
 ## Inputs (selected)

@@ -60,6 +60,7 @@ provisioner:
   inventory:
     group_vars:
       all:
+        network_ip_version: ipv4
         ansible_user: root
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
