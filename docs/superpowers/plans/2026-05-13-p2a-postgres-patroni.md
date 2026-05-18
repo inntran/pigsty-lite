@@ -334,7 +334,7 @@ git commit -m "feat(postgres): role meta and README"
     state: directory
     owner: "{{ postgres_user }}"
     group: "{{ postgres_group }}"
-    mode: "0755"
+    mode: "0700"
 
 - name: Ensure version dir exists
   ansible.builtin.file:
@@ -342,7 +342,7 @@ git commit -m "feat(postgres): role meta and README"
     state: directory
     owner: "{{ postgres_user }}"
     group: "{{ postgres_group }}"
-    mode: "0755"
+    mode: "0700"
 
 - name: Ensure data dir exists (empty, owned by postgres)
   ansible.builtin.file:
