@@ -88,6 +88,7 @@ when you add a variable so the next reader knows why it isn't a role default.
 ### Inventory host vars — `inventory/<profile>.yml`
 
 Identity, not configuration. Each host gets:
+
 - `ansible_host` — its real IP. Used everywhere as the canonical address.
 - `postgres_role` — `primary` or `replica`. The patroni role's `_assert.yml`
   fails the play if exactly one primary isn't declared.
