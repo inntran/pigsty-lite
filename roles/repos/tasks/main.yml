@@ -13,6 +13,7 @@
     option: enabled
     value: "1"
     mode: "0644"
+    no_extra_spaces: true
   when: repos_pgdg_enabled | bool
 
 - name: Enable selected PGDG PostgreSQL major repo
@@ -22,6 +23,7 @@
     option: enabled
     value: "1"
     mode: "0644"
+    no_extra_spaces: true
   when: repos_pgdg_enabled | bool
 
 - name: Disable unused PGDG PostgreSQL major repos
@@ -31,6 +33,7 @@
     option: enabled
     value: "0"
     mode: "0644"
+    no_extra_spaces: true
   loop: "{{ repos_pgdg_postgres_repo_versions }}"
   when:
     - repos_pgdg_enabled | bool
@@ -120,6 +123,7 @@
     option: enabled
     value: "0"
     mode: "0644"
+    no_extra_spaces: true
   when: repos_epel_enabled | bool
 
 - name: Render /etc/yum.repos.d/pigsty.repo
