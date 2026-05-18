@@ -43,7 +43,6 @@ Files created or modified in P0, with responsibility per file. Listed in depende
 | `roles/node/` | Hostname from inventory, `/etc/hosts` rendered from inventory, sysctl tuning, journald sizing, firewalld baseline (ssh open, default zone), unattended-upgrades disabled |
 | `roles/ca/` | Localhost-only role: generate self-signed CA in `pki/ca/` via `community.crypto`. Idempotent. |
 | `roles/certs/` | Per-host certs: generate local private key, build CSR with SANs, sign on control node, distribute to `/etc/pki/pigsty/<host>.{crt,key}`. Renew if `notAfter < cert_renewal_window` |
-| `files/firewalld/services/` | Empty dir in P0 (custom XMLs added in later sub-plans). Committed `.gitkeep` |
 | `tests/molecule/preflight/` | Molecule scenario for `preflight` role (podman driver) |
 | `tests/molecule/repos/` | Molecule scenario for `repos` role (podman driver) |
 | `tests/molecule/node/` | Molecule scenario for `node` role (podman driver) |
@@ -301,8 +300,8 @@ lint-shell:
  fi
 
 lint-xml:
- @if compgen -G "files/firewalld/services/*.xml" > /dev/null; then \
-  xmllint --noout files/firewalld/services/*.xml; \
+ @if compgen -G "files/*.xml" > /dev/null; then \
+  xmllint --noout files/*.xml; \
  fi
 ```
 
@@ -2808,7 +2807,6 @@ git commit -m "feat(certs): issue per-host certs from pigsty-lite CA"
 - Create: `playbooks/preflight.yml`
 - Create: `playbooks/site.yml`
 - Create: `playbooks/tags.md`
-- Create: `files/firewalld/services/.gitkeep`
 
 - [ ] **Step 1: Create `playbooks/_preflight.yml`**
 
@@ -2890,14 +2888,7 @@ git commit -m "feat(certs): issue per-host certs from pigsty-lite CA"
 - `--tags ca` — only (re)generate the CA on localhost.
 ```
 
-- [ ] **Step 7: Create the firewalld services dir placeholder**
-
-```bash
-mkdir -p files/firewalld/services
-touch files/firewalld/services/.gitkeep
-```
-
-- [ ] **Step 8: Verify `--syntax-check`**
+- [ ] **Step 7: Verify `--syntax-check`**
 
 Run:
 
@@ -2908,7 +2899,7 @@ ansible-playbook playbooks/site.yml --syntax-check
 
 Expected: both exit 0.
 
-- [ ] **Step 9: Verify `--check --diff` mode against the generated inventory (no real hosts needed; Ansible will fail at the SSH connection step, but the syntax + playbook structure is what we're validating)**
+- [ ] **Step 8: Verify `--check --diff` mode against the generated inventory (no real hosts needed; Ansible will fail at the SSH connection step, but the syntax + playbook structure is what we're validating)**
 
 Run:
 
@@ -2919,10 +2910,9 @@ ansible-playbook playbooks/site.yml --check --diff -e ansible_check_mode=true \
 
 Expected: the CA role runs in check mode and exits 0; the file system remains unchanged.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add playbooks/ files/firewalld/services/.gitkeep
 git commit -m "feat(playbooks): site, _preflight, _ca, _node for P0"
 ```
 
@@ -2997,8 +2987,8 @@ jobs:
 
       - name: xmllint firewalld services
         run: |
-          if compgen -G "files/firewalld/services/*.xml" > /dev/null; then
-            xmllint --noout files/firewalld/services/*.xml
+          if compgen -G "files/*.xml" > /dev/null; then
+            xmllint --noout files/*.xml
           fi
 ```
 

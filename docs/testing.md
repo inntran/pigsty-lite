@@ -35,7 +35,7 @@ if [ -n "$files" ]; then shellcheck $files; fi
 ```
 
 ```bash
-if compgen -G "files/firewalld/services/*.xml" > /dev/null; then xmllint --noout files/firewalld/services/*.xml; fi
+if compgen -G "files/firewalld/*.xml" > /dev/null; then xmllint --noout files/firewalld/*.xml; fi
 ```
 
 ## Full lint

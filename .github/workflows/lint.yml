@@ -59,6 +59,8 @@ jobs:
 
       - name: xmllint firewalld services
         run: |
-          if compgen -G "files/firewalld/services/*.xml" > /dev/null; then
-            xmllint --noout files/firewalld/services/*.xml
+          shopt -s globstar nullglob
+          files=(roles/**/files/*.xml)
+          if (( ${#files[@]} )); then
+            xmllint --noout "${files[@]}"
           fi

@@ -58,8 +58,8 @@
 
 **New firewalld services:**
 
-- `files/firewalld/services/haproxy-postgres.xml` — ports 5433/tcp and 5434/tcp.
-- `files/firewalld/services/pgbouncer.xml` — port 6432/tcp.
+- `files/haproxy-postgres.xml` — ports 5433/tcp and 5434/tcp.
+- `files/pgbouncer.xml` — port 6432/tcp.
 
 **New playbook + wiring:**
 
@@ -388,7 +388,7 @@ git commit -m "feat(pgbouncer): role meta and README"
 ---
 - name: Install pgbouncer firewalld service definition
   ansible.builtin.copy:
-    src: "{{ playbook_dir | dirname }}/files/firewalld/services/pgbouncer.xml"
+    src: "{{ playbook_dir | dirname }}/files/pgbouncer.xml"
     dest: /etc/firewalld/services/pgbouncer.xml
     owner: root
     group: root
@@ -500,7 +500,7 @@ git commit -m "feat(pgbouncer): templates and handlers"
 
 **Files:**
 
-- Create: `files/firewalld/services/pgbouncer.xml`
+- Create: `files/pgbouncer.xml`
 
 - [ ] **Step 1: Write XML**
 
@@ -515,13 +515,13 @@ git commit -m "feat(pgbouncer): templates and handlers"
 
 - [ ] **Step 2: Lint XML**
 
-Run: `xmllint --noout files/firewalld/services/pgbouncer.xml`
+Run: `xmllint --noout files/pgbouncer.xml`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add files/firewalld/services/pgbouncer.xml
+git add files/pgbouncer.xml
 git commit -m "feat(firewalld): pgbouncer custom service (off by default)"
 ```
 
@@ -1045,7 +1045,7 @@ git commit -m "feat(haproxy): role meta and README"
 ---
 - name: Install haproxy-postgres firewalld service definition
   ansible.builtin.copy:
-    src: "{{ playbook_dir | dirname }}/files/firewalld/services/haproxy-postgres.xml"
+    src: "{{ playbook_dir | dirname }}/files/haproxy-postgres.xml"
     dest: /etc/firewalld/services/haproxy-postgres.xml
     owner: root
     group: root
@@ -1225,7 +1225,7 @@ git commit -m "feat(haproxy): config template and handlers"
 
 **Files:**
 
-- Create: `files/firewalld/services/haproxy-postgres.xml`
+- Create: `files/haproxy-postgres.xml`
 
 - [ ] **Step 1: Write XML**
 
@@ -1241,13 +1241,13 @@ git commit -m "feat(haproxy): config template and handlers"
 
 - [ ] **Step 2: Lint**
 
-Run: `xmllint --noout files/firewalld/services/haproxy-postgres.xml`
+Run: `xmllint --noout files/haproxy-postgres.xml`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add files/firewalld/services/haproxy-postgres.xml
+git add files/haproxy-postgres.xml
 git commit -m "feat(firewalld): haproxy-postgres custom service for 5433+5434"
 ```
 

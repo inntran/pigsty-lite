@@ -22,6 +22,6 @@ lint-shell:
 	if [ -n "$$files" ]; then shellcheck $$files; fi
 
 lint-xml:
-	@if compgen -G "files/firewalld/services/*.xml" > /dev/null; then \
-		xmllint --noout files/firewalld/services/*.xml; \
+	@if compgen -G "files/*.xml" > /dev/null; then \
+		xmllint --noout files/*.xml; \
 	fi

@@ -26,8 +26,8 @@
 - `roles/monitoring_server/handlers/main.yml` — `Reload systemd for monitoring_server`, `Restart alertmanager`, `Reload firewalld`.
 - `roles/monitoring_server/templates/alertmanager.yml.j2` — Alertmanager config rendered from `alertmanager_receivers`.
 - `roles/monitoring_server/templates/alertmanager.service.j2` — systemd unit.
-- `roles/monitoring_server/files/firewalld/services/victoriametrics.xml` — port 8428.
-- `roles/monitoring_server/files/firewalld/services/victorialogs.xml` — port 9428.
+- `roles/monitoring_server/files/victoriametrics.xml` — port 8428.
+- `roles/monitoring_server/files/victorialogs.xml` — port 9428.
 - `roles/monitoring_server/README.md`.
 
 **New files (in `roles/monitoring_agents/`):**
@@ -42,9 +42,9 @@
 - `roles/monitoring_agents/tasks/_firewall.yml` — install + open `postgres-exporter` (9187), `pgbouncer-exporter` (9127), `pgbackrest-exporter` (9854) custom services to the `monitor` source group; open the built-in `prometheus-node-exporter` service (9100) to `monitor`. node_exporter is all-hosts; the three PG exporters only on postgres hosts.
 - `roles/monitoring_agents/handlers/main.yml` — `Reload systemd for monitoring_agents`, `Reload firewalld`, per-exporter restart handlers.
 - `roles/monitoring_agents/templates/` — one `*.service.j2` per exporter (`node-exporter.service.j2`, `postgres-exporter.service.j2`, `pgbouncer-exporter.service.j2`, `pgbackrest-exporter.service.j2`), plus `vmagent-scrape.yml.j2` (the scrape config passed to the collection's vmagent role) and `vlagent-config.yml.j2`.
-- `roles/monitoring_agents/files/firewalld/services/postgres-exporter.xml` — 9187.
-- `roles/monitoring_agents/files/firewalld/services/pgbouncer-exporter.xml` — 9127.
-- `roles/monitoring_agents/files/firewalld/services/pgbackrest-exporter.xml` — 9854.
+- `roles/monitoring_agents/files/postgres-exporter.xml` — 9187.
+- `roles/monitoring_agents/files/pgbouncer-exporter.xml` — 9127.
+- `roles/monitoring_agents/files/pgbackrest-exporter.xml` — 9854.
 - `roles/monitoring_agents/README.md`.
 
 **New files (in `roles/grafana/`):**
@@ -711,11 +711,11 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 
 **Files:**
 
-- Create: `roles/monitoring_server/files/firewalld/services/victoriametrics.xml`
-- Create: `roles/monitoring_server/files/firewalld/services/victorialogs.xml`
+- Create: `roles/monitoring_server/files/victoriametrics.xml`
+- Create: `roles/monitoring_server/files/victorialogs.xml`
 - Create: `roles/monitoring_server/tasks/_firewall.yml`
 
-- [ ] **Step 1: Write `files/firewalld/services/victoriametrics.xml`**
+- [ ] **Step 1: Write `files/victoriametrics.xml`**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -726,7 +726,7 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 </service>
 ```
 
-- [ ] **Step 2: Write `files/firewalld/services/victorialogs.xml`**
+- [ ] **Step 2: Write `files/victorialogs.xml`**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -749,7 +749,7 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 
 - name: Install victoriametrics firewalld service definition
   ansible.builtin.copy:
-    src: firewalld/services/victoriametrics.xml
+    src: victoriametrics.xml
     dest: /etc/firewalld/services/victoriametrics.xml
     owner: root
     group: root
@@ -758,7 +758,7 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 
 - name: Install victorialogs firewalld service definition
   ansible.builtin.copy:
-    src: firewalld/services/victorialogs.xml
+    src: victorialogs.xml
     dest: /etc/firewalld/services/victorialogs.xml
     owner: root
     group: root
@@ -805,7 +805,7 @@ git commit -m "feat(monitoring_server): vmalert rules and Alertmanager"
 
 - [ ] **Step 4: Lint**
 
-Run: `yamllint roles/monitoring_server/tasks/_firewall.yml && xmllint --noout roles/monitoring_server/files/firewalld/services/victoriametrics.xml roles/monitoring_server/files/firewalld/services/victorialogs.xml`
+Run: `yamllint roles/monitoring_server/tasks/_firewall.yml && xmllint --noout roles/monitoring_server/files/victoriametrics.xml roles/monitoring_server/files/victorialogs.xml`
 Expected: no errors.
 
 - [ ] **Step 5: Commit**
@@ -1411,12 +1411,12 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 
 **Files:**
 
-- Create: `roles/monitoring_agents/files/firewalld/services/postgres-exporter.xml`
-- Create: `roles/monitoring_agents/files/firewalld/services/pgbouncer-exporter.xml`
-- Create: `roles/monitoring_agents/files/firewalld/services/pgbackrest-exporter.xml`
+- Create: `roles/monitoring_agents/files/postgres-exporter.xml`
+- Create: `roles/monitoring_agents/files/pgbouncer-exporter.xml`
+- Create: `roles/monitoring_agents/files/pgbackrest-exporter.xml`
 - Create: `roles/monitoring_agents/tasks/_firewall.yml`
 
-- [ ] **Step 1: Write `files/firewalld/services/postgres-exporter.xml`**
+- [ ] **Step 1: Write `files/postgres-exporter.xml`**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -1427,7 +1427,7 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 </service>
 ```
 
-- [ ] **Step 2: Write `files/firewalld/services/pgbouncer-exporter.xml`**
+- [ ] **Step 2: Write `files/pgbouncer-exporter.xml`**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -1438,7 +1438,7 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 </service>
 ```
 
-- [ ] **Step 3: Write `files/firewalld/services/pgbackrest-exporter.xml`**
+- [ ] **Step 3: Write `files/pgbackrest-exporter.xml`**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -1484,7 +1484,7 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 
 - name: Install the PG-side exporter firewalld service definitions
   ansible.builtin.copy:
-    src: "firewalld/services/{{ item }}.xml"
+    src: "{{ item }}.xml"
     dest: "/etc/firewalld/services/{{ item }}.xml"
     owner: root
     group: root
@@ -1518,7 +1518,7 @@ git commit -m "feat(monitoring_agents): vmagent and vlagent via VM collection"
 
 - [ ] **Step 5: Lint**
 
-Run: `yamllint roles/monitoring_agents/tasks/_firewall.yml && xmllint --noout roles/monitoring_agents/files/firewalld/services/postgres-exporter.xml roles/monitoring_agents/files/firewalld/services/pgbouncer-exporter.xml roles/monitoring_agents/files/firewalld/services/pgbackrest-exporter.xml`
+Run: `yamllint roles/monitoring_agents/tasks/_firewall.yml && xmllint --noout roles/monitoring_agents/files/postgres-exporter.xml roles/monitoring_agents/files/pgbouncer-exporter.xml roles/monitoring_agents/files/pgbackrest-exporter.xml`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**

@@ -19,7 +19,7 @@
 
 - name: Install monitoring-server firewalld service definitions
   ansible.builtin.copy:
-    src: "firewalld/services/{{ item }}.xml"
+    src: "{{ item }}.xml"
     dest: "/etc/firewalld/services/{{ item }}.xml"
     owner: root
     group: root

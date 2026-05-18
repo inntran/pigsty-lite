@@ -290,7 +290,6 @@ pigsty-lite/
 ├── roles/                            # one directory per role; see section 4
 │
 ├── files/
-│   ├── firewalld/services/           # custom service XMLs (see §6)
 │   ├── grafana-dashboards/
 │   ├── alerts/                       # vmalert rule groups (operator-extensible)
 │   └── alertmanager/
@@ -398,7 +397,7 @@ Use built-in firewalld services where they exist and are actually opened: `ssh`,
 Ship custom XML only where firewalld lacks a definition AND we actually open the port:
 
 ```
-files/firewalld/services/
+/etc/firewalld/services/
 ├── patroni-rest.xml          # 8008
 ├── pgbouncer.xml             # 6432 (off by default)
 ├── haproxy-postgres.xml      # 5433 + 5434

@@ -71,7 +71,7 @@
 
 - name: Install haproxy-postgres firewalld service definition
   ansible.builtin.copy:
-    src: "firewalld/services/haproxy-postgres.xml"
+    src: "haproxy-postgres.xml"
     dest: /etc/firewalld/services/haproxy-postgres.xml
     owner: root
     group: root

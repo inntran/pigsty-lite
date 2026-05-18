@@ -44,7 +44,7 @@
 
 **New firewalld service:**
 
-- `files/firewalld/services/patroni-rest.xml` — port 8008/tcp.
+- `files/patroni-rest.xml` — port 8008/tcp.
 
 **New playbook + wiring:**
 
@@ -633,7 +633,7 @@ git commit -m "fix(postgres): <specific fix>"
 
 **Files:**
 
-- Create: `files/firewalld/services/patroni-rest.xml`
+- Create: `files/patroni-rest.xml`
 
 - [ ] **Step 1: Write the XML**
 
@@ -648,13 +648,13 @@ git commit -m "fix(postgres): <specific fix>"
 
 - [ ] **Step 2: Lint**
 
-Run: `xmllint --noout files/firewalld/services/patroni-rest.xml`
+Run: `xmllint --noout files/patroni-rest.xml`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add files/firewalld/services/patroni-rest.xml
+git add files/patroni-rest.xml
 git commit -m "feat(firewalld): patroni-rest custom service definition"
 ```
 
@@ -1391,7 +1391,7 @@ git commit -m "feat(patroni): restart handler"
 ---
 - name: Install custom patroni-rest firewalld service
   ansible.builtin.copy:
-    src: "{{ playbook_dir | dirname }}/files/firewalld/services/patroni-rest.xml"
+    src: "{{ playbook_dir | dirname }}/files/patroni-rest.xml"
     dest: /etc/firewalld/services/patroni-rest.xml
     owner: root
     group: root

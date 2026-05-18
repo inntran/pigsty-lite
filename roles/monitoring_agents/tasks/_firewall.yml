@@ -29,7 +29,7 @@
 
 - name: Install the PG-side exporter firewalld service definitions
   ansible.builtin.copy:
-    src: "firewalld/services/{{ item }}.xml"
+    src: "{{ item }}.xml"
     dest: "/etc/firewalld/services/{{ item }}.xml"
     owner: root
     group: root
