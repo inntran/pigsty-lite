@@ -55,23 +55,30 @@
   delay: 5
   changed_when: false
 
-# `pgbackrest check` requires archive.info to exist on the repo, which is
-# only created on the first successful WAL push. Force a WAL switch so the
-# first segment ships immediately, rather than waiting for archive_timeout
-# or organic WAL pressure. run_once on the primary: WAL switches are a
-# cluster-wide operation; one call suffices.
+# `pgbackrest check` requires archive.info on the repo, which only lands
+# after the first successful WAL push. Force a WAL switch so the first
+# segment ships immediately rather than waiting on archive_timeout. The
+# switch must run on the primary -- pg_switch_wal() errors on a replica
+# with "recovery is in progress". Ask Patroni's REST for the leader.
+- name: Get current Patroni leader for WAL switch
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host | default(inventory_hostname) }}:{{ patroni_rest_port | default(8008) }}/cluster"
+    ca_path: "{{ pigsty_pki_dir }}/ca.crt"
+    return_content: true
+  run_once: true
+  register: _pgbackrest_cluster
+
 - name: Force initial WAL switch so archive.info is created
   ansible.builtin.command:
     cmd: psql -U {{ pgbackrest_user | default('postgres') }} -tAc "SELECT pg_switch_wal()"
   become: true
   become_user: "{{ pgbackrest_user | default('postgres') }}"
-  delegate_to: "{{ groups['postgres'] | select('match', '.*') | first }}"
+  delegate_to: >-
+    {{ (_pgbackrest_cluster.json.members
+        | selectattr('role', 'equalto', 'leader')
+        | list | first).name }}
   run_once: true
-  register: _pgbackrest_wal_switch
   changed_when: false
-  # pg_switch_wal is a no-op if no WAL has been written since the last
-  # switch; either way, we want to ensure the archiver has a segment to
-  # ship before pgbackrest check runs.
 
 - name: Wait for archive.info to land on the repo
   ansible.builtin.stat:
