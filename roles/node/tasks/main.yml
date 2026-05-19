@@ -39,10 +39,6 @@
 - name: Ensure every inventory host is name-resolvable
   when: node_manage_etc_hosts | bool
   block:
-    - name: Debug inventory hosts group
-      ansible.builtin.debug:
-        var: groups['all']
-
     - name: Probe inventory hostname resolution
       ansible.builtin.command: "getent hosts {{ item }}"
       register: node_dns_probe_short
@@ -50,20 +46,12 @@
       failed_when: false
       loop: "{{ groups['all'] }}"
 
-    - name: Debug inventory hostname resolution probe results
-      ansible.builtin.debug:
-        var: node_dns_probe_short
-
     - name: Probe inventory FQDN resolution
       ansible.builtin.command: "getent hosts {{ item }}.{{ cluster_domain | default('local') }}"
       register: node_dns_probe_fqdn
       changed_when: false
       failed_when: false
       loop: "{{ groups['all'] }}"
-
-    - name: Debug inventory FQDN resolution probe results
-      ansible.builtin.debug:
-        var: node_dns_probe_fqdn
 
     - name: Determine whether DNS already resolves every inventory host
       ansible.builtin.set_fact:
