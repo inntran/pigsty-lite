@@ -4,6 +4,12 @@ pigsty-lite stores all sensitive values in an ansible-vault encrypted
 file at `group_vars/all/vault.yml`. The vault passphrase lives in
 `.pigsty/vault-pass` on the control node. Both paths are gitignored.
 
+`ansible.cfg` reads the passphrase via a small wrapper script
+(`bin/_vault_pass.sh`) so a missing passphrase file is non-fatal —
+fresh clones, ansible-lint, and CI runs without a vault all load
+ansible.cfg cleanly. The wrapper only matters when there's no vault yet;
+once `./configure` bootstraps one, the real passphrase flows through.
+
 ## Lifecycle
 
 The `./configure` script bootstraps and maintains the vault:
