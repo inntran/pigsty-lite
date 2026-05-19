@@ -5,18 +5,19 @@ combine this with bin._vault for persistence. Separating the policy
 (which keys exist, machine-vs-human) from the I/O makes both pieces
 trivially testable.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from bin._vault import generate_password
 
 
 @dataclass(frozen=True)
 class Secret:
-    key: str          # Variable name in vault.yml (e.g. vault_patroni_superuser_password)
-    prompt: str       # Human-facing prompt label for interactive secrets
+    key: str  # Variable name in vault.yml (e.g. vault_patroni_superuser_password)
+    prompt: str  # Human-facing prompt label for interactive secrets
     length: int = 24  # Length for auto-generated secrets
 
 

@@ -4,6 +4,7 @@ The vault file is a YAML mapping of {key: value} encrypted as a single
 ansible-vault blob. We never hold plaintext on disk; reads decrypt to
 memory, writes encrypt from memory.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -34,8 +35,10 @@ def vault_read(path: Path, passphrase_file: Path) -> dict[str, Any]:
     """Decrypt path with the passphrase file and parse as YAML mapping."""
     result = subprocess.run(
         [
-            "ansible-vault", "view",
-            "--vault-id", f"{_VAULT_ID_LABEL}@{passphrase_file}",
+            "ansible-vault",
+            "view",
+            "--vault-id",
+            f"{_VAULT_ID_LABEL}@{passphrase_file}",
             str(path),
         ],
         check=True,
@@ -53,19 +56,21 @@ def vault_write(path: Path, data: dict[str, Any], passphrase_file: Path) -> None
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yml", delete=False, dir=path.parent
-    ) as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False, dir=path.parent) as tmp:
         yaml.safe_dump(data, tmp, sort_keys=True, default_flow_style=False)
         tmp_path = Path(tmp.name)
 
     try:
         subprocess.run(
             [
-                "ansible-vault", "encrypt",
-                "--vault-id", f"{_VAULT_ID_LABEL}@{passphrase_file}",
-                "--encrypt-vault-id", _VAULT_ID_LABEL,
-                "--output", str(path),
+                "ansible-vault",
+                "encrypt",
+                "--vault-id",
+                f"{_VAULT_ID_LABEL}@{passphrase_file}",
+                "--encrypt-vault-id",
+                _VAULT_ID_LABEL,
+                "--output",
+                str(path),
                 str(tmp_path),
             ],
             check=True,

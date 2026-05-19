@@ -1,4 +1,5 @@
 """Unit tests for bin/_vault.py."""
+
 from __future__ import annotations
 
 import sys

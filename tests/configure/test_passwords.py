@@ -1,4 +1,5 @@
 """Unit tests for bin/_passwords.py orchestration."""
+
 from __future__ import annotations
 
 import sys
