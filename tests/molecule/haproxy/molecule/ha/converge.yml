@@ -1,15 +1,28 @@
 ---
-- name: Converge - apply haproxy role on every host
+- name: Converge - apply haproxy and vip-manager roles on every host
   hosts: postgres
   become: true
   gather_facts: true
-  pre_tasks:
-    - name: Pin advertise address to container IP
-      ansible.builtin.set_fact:
-        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   vars:
     network_any_address: 0.0.0.0
     network_loopback_address: 127.0.0.1
     firewalld_default_zone: public
+    # Park the cluster VIP at .100 of whatever podman network this
+    # scenario got. Same /prefix as the host's own interface.
+    vip_manager_enabled: true
+    vip_manager_interface: "{{ ansible_facts.default_ipv4.interface }}"
+    vip_manager_vip_cidr: >-
+      {{ ansible_facts.default_ipv4.address.rsplit('.', 1)[0] }}.100/{{ ansible_facts.default_ipv4.prefix }}
+    # Override default that reads hostvars[h].ansible_host -- not set in
+    # molecule's podman inventory. Use each etcd peer's gathered IPv4.
+    vip_manager_dcs_endpoints: >-
+      [{% for h in groups['etcd'] -%}
+        "https://{{ hostvars[h].ansible_facts.default_ipv4.address }}:{{ etcd_client_port | default(2379) }}"
+      {%- if not loop.last %},{% endif %}{%- endfor %}]
+  pre_tasks:
+    - name: Pin advertise address to container IP
+      ansible.builtin.set_fact:
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
   roles:
     - role: haproxy
+    - role: vip_manager

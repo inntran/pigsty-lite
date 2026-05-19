@@ -133,3 +133,30 @@
       ansible.builtin.assert:
         that:
           - post_probe_5433.stdout.strip() in ['f', 'false']
+
+- name: VIP (vip-manager) routes to the current leader via haproxy 5433
+  hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  run_once: true
+  tasks:
+    - name: Compute VIP address (strip /prefix)
+      ansible.builtin.set_fact:
+        cluster_vip: "{{ (ansible_facts.default_ipv4.address.rsplit('.', 1)[0]) }}.100"
+
+    - name: Probe psql 5433 via VIP - must hit a primary
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host={{ cluster_vip }} port=5433 dbname=postgres user=postgres password=superuser-test-pw sslmode=disable"
+        -tAc "select pg_is_in_recovery()"
+      register: vip_probe_5433
+      changed_when: false
+      retries: 30
+      delay: 2
+      until: vip_probe_5433.rc == 0 and vip_probe_5433.stdout.strip() in ['f', 'false']
+
+    - name: Assert VIP routes to a primary
+      ansible.builtin.assert:
+        that:
+          - vip_probe_5433.stdout.strip() in ['f', 'false']
+        fail_msg: "VIP {{ cluster_vip }}:5433 did not reach a primary. Got: {{ vip_probe_5433.stdout }}"

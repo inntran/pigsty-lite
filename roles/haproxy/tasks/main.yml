@@ -51,7 +51,7 @@
 
 - name: Apply sysctl file for vip-manager HAProxy binds
   ansible.builtin.command:
-    cmd: sysctl --system
+    cmd: sysctl -p /etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf
   changed_when: haproxy_vip_sysctl_file.changed
   when:
     - vip_manager_enabled | default(false) | bool

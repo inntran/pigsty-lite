@@ -29,6 +29,15 @@
     state: present
   tags: [vip_manager, install]
 
+- name: Ensure vip-manager config directory exists
+  ansible.builtin.file:
+    path: "{{ vip_manager_config_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: [vip_manager, config]
+
 - name: Render vip-manager.yml
   ansible.builtin.template:
     src: vip-manager.yml.j2

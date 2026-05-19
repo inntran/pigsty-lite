@@ -11,10 +11,10 @@ vip_manager_package: vip-manager
 vip_manager_service_name: vip-manager
 
 # Config
-vip_manager_config_file: /etc/vip-manager.yml
+vip_manager_config_file: /etc/vip-manager/vip-manager.yml
 
 # DCS
-vip_manager_dcs_type: etcd3
+vip_manager_dcs_type: etcd
 vip_manager_dcs_protocol: https
 vip_manager_dcs_endpoints: >-
   [{% for h in groups['etcd'] -%}
@@ -25,8 +25,9 @@ vip_manager_dcs_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
 vip_manager_dcs_key: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
 
 # Cluster identity (matches patroni_scope from P2a)
-vip_manager_scope: "{{ cluster_name | default('pigsty-lite') }}"
-vip_manager_trigger_key: "/service/{{ vip_manager_scope }}/leader"
+vip_manager_scope: "{{ patroni_scope | default(cluster_name | default('pigsty-lite')) }}"
+vip_manager_namespace: "{{ patroni_namespace | default('/' ~ vip_manager_scope ~ '/') }}"
+vip_manager_trigger_key: "{{ vip_manager_namespace }}{{ vip_manager_scope }}/leader"
 vip_manager_trigger_value: "{{ inventory_hostname }}"
 
 # Networking
