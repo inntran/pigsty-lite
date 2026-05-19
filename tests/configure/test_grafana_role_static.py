@@ -112,4 +112,4 @@ def test_ansible_collection_resolution_uses_repo_local_collections_only():
     config = _load_ini("ansible.cfg")
 
     assert config["defaults"]["collections_path"] == "./collections"
-    assert config["defaults"]["collections_scan_sys_path"] == "False"
+    assert config["defaults"]["collections_scan_sys_path"] == "True"

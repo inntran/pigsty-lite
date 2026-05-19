@@ -19,7 +19,7 @@ def _makefile() -> str:
 def test_test_role_documents_local_fail_fast_switch():
     makefile = _makefile()
 
-    assert "make test-role ROLE=<name> FAIL_FAST=0" in makefile
+    assert "make test ROLE=<name> FAIL_FAST=0" in makefile
 
 
 def test_test_role_fail_fast_zero_enables_task_level_continue_mode():

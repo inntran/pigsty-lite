@@ -16,6 +16,7 @@ def _render_hosts(*, ipv6_single_stack: bool) -> str:
     return template.render(
         cluster_domain="example.internal",
         groups={
+            "all": ["pgmon01", "pgnode01"],
             "monitor": ["pgmon01"],
             "backup_server": ["pgmon01"],
             "postgres": ["pgnode01"],
@@ -25,7 +26,7 @@ def _render_hosts(*, ipv6_single_stack: bool) -> str:
             "pgmon01": {"ansible_host": "2001:db8:10::10"},
             "pgnode01": {"ansible_host": "2001:db8:10::11"},
         },
-        network_ipv6_single_stack=ipv6_single_stack,
+        network_ip_version="ipv6" if ipv6_single_stack else "dual",
     )
 
 
