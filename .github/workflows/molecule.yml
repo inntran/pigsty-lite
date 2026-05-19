@@ -128,6 +128,7 @@ jobs:
             pytest
 
       - name: Cache Galaxy content
+        id: galaxy-cache
         uses: actions/cache@v5
         with:
           path: |
@@ -136,8 +137,9 @@ jobs:
           key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
+        if: steps.galaxy-cache.outputs.cache-hit != 'true'
         run: |
-          ansible-galaxy collection install -r requirements.yml --upgrade
+          ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       # Ubuntu 24.04 ships a path-based AppArmor profile for unix_chkpwd.
@@ -181,6 +183,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull common image
+        if: contains(matrix.images, 'common')
         env:
           REF: ${{ needs.resolve-images.outputs.common-ref }}
         run: |
@@ -223,6 +226,7 @@ jobs:
             pytest
 
       - name: Cache Galaxy content
+        id: galaxy-cache
         uses: actions/cache@v5
         with:
           path: |
@@ -231,8 +235,9 @@ jobs:
           key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
+        if: steps.galaxy-cache.outputs.cache-hit != 'true'
         run: |
-          ansible-galaxy collection install -r requirements.yml --upgrade
+          ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       # See bootstrap-scenarios for context on this workaround.

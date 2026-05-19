@@ -37,6 +37,7 @@ jobs:
           uv pip install --system yamllint ansible-lint ruff ansible pyyaml pytest
 
       - name: Cache Galaxy content
+        id: galaxy-cache
         uses: actions/cache@v5
         with:
           path: |
@@ -45,6 +46,7 @@ jobs:
           key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
+        if: steps.galaxy-cache.outputs.cache-hit != 'true'
         run: |
           ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
