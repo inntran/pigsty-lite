@@ -4,8 +4,11 @@ FROM ${COMMON_IMAGE}
 
 # Grafana 12.x from rpm.grafana.com (EPEL/OL10 ship older grafana).
 COPY grafana.repo /etc/yum.repos.d/grafana.repo
+# nginx from nginx.org to match what the nginx_proxy role installs.
+COPY nginx.repo /etc/yum.repos.d/nginx.repo
 
-RUN dnf --enablerepo=epel install -y \
+RUN rpm --import https://nginx.org/keys/nginx_signing.key \
+    && dnf --enablerepo=epel install -y \
         alertmanager \
         nginx \
         grafana-12.* \
