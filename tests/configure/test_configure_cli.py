@@ -45,7 +45,7 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
     answers = iter(["pg-dev", "example.internal"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
-    rc = module.cmd_interactive(argparse.Namespace(profile="spof"))
+    rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
 
     assert rc == 0
     raw = (tmp_path / "responses" / "site.rsp.yml").read_text()

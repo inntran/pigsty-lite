@@ -27,12 +27,15 @@ def vault_exists(path: Path) -> bool:
     return Path(path).is_file()
 
 
+_VAULT_ID_LABEL = "pigsty"
+
+
 def vault_read(path: Path, passphrase_file: Path) -> dict[str, Any]:
     """Decrypt path with the passphrase file and parse as YAML mapping."""
     result = subprocess.run(
         [
             "ansible-vault", "view",
-            "--vault-password-file", str(passphrase_file),
+            "--vault-id", f"{_VAULT_ID_LABEL}@{passphrase_file}",
             str(path),
         ],
         check=True,
@@ -60,7 +63,8 @@ def vault_write(path: Path, data: dict[str, Any], passphrase_file: Path) -> None
         subprocess.run(
             [
                 "ansible-vault", "encrypt",
-                "--vault-password-file", str(passphrase_file),
+                "--vault-id", f"{_VAULT_ID_LABEL}@{passphrase_file}",
+                "--encrypt-vault-id", _VAULT_ID_LABEL,
                 "--output", str(path),
                 str(tmp_path),
             ],
