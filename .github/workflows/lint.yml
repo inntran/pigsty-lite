@@ -33,7 +33,7 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: Install markdownlint

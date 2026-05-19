@@ -459,7 +459,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
@@ -1610,7 +1609,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
@@ -1878,7 +1876,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:

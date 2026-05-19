@@ -185,7 +185,7 @@ collections:
 
 - [ ] **Step 4: Install the new collections locally**
 
-Run: `ansible-galaxy collection install -r requirements.yml -p ./collections`
+Run: `ansible-galaxy collection install -r requirements.yml`
 Expected: `grafana.grafana` and `community.grafana` install; `victoriametrics.cluster` reports already present.
 
 - [ ] **Step 5: Lint**
@@ -2705,7 +2705,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
@@ -2861,7 +2860,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
@@ -3063,7 +3061,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:
@@ -3196,7 +3193,6 @@ provisioner:
   name: ansible
   config_options:
     defaults:
-      collections_path: "../../../collections"
   inventory:
     group_vars:
       all:

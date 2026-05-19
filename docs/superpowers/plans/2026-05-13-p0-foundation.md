@@ -212,7 +212,6 @@ timeout = 30
 deprecation_warnings = True
 command_warnings = False
 nocows = 1
-collections_path = ./collections
 
 [ssh_connection]
 pipelining = True
@@ -248,7 +247,7 @@ collections:
 
 - [ ] **Step 3: Install collections to verify pins resolve**
 
-Run: `ansible-galaxy collection install -r requirements.yml -p ./collections`
+Run: `ansible-galaxy collection install -r requirements.yml`
 Expected: each collection installs without error.
 
 - [ ] **Step 4: Verify ansible.cfg is recognized**
@@ -330,7 +329,7 @@ help:
  @echo "  make clean         Remove generated artifacts"
 
 init:
- ansible-galaxy collection install -r requirements.yml -p ./collections
+ ansible-galaxy collection install -r requirements.yml
  ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
 configure:
@@ -2952,7 +2951,7 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: Install markdownlint
@@ -3063,12 +3062,11 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections
+          ansible-galaxy collection install -r requirements.yml
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
-          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
         run: |
           cd tests/molecule/${{ matrix.role }}
           molecule test -s ${{ matrix.scenario }}

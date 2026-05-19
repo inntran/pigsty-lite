@@ -1041,12 +1041,11 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
+          ansible-galaxy collection install -r requirements.yml --upgrade
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
-          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
         run: |
           cd tests/molecule/${{ matrix.role }}
           molecule test -s ${{ matrix.scenario }}
@@ -1124,12 +1123,11 @@ jobs:
 
       - name: Install Galaxy content
         run: |
-          ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
+          ansible-galaxy collection install -r requirements.yml --upgrade
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
-          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
         run: |
           cd tests/molecule/${{ matrix.role }}
           molecule test -s ${{ matrix.scenario }}

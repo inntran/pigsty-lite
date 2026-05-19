@@ -108,8 +108,16 @@ def test_requirements_drops_grafana_grafana_collection():
     assert "community.grafana" in collection_names
 
 
-def test_ansible_collection_resolution_uses_repo_local_collections_only():
-    config = _load_ini("ansible.cfg")
+def test_ansible_cfg_does_not_pin_collections_path():
+    """ansible.cfg must not pin collections_path or scan_sys_path.
 
-    assert config["defaults"]["collections_path"] == "./collections"
-    assert config["defaults"]["collections_scan_sys_path"] == "True"
+    A repo-local collections_path is shadowed by site-packages at runtime
+    (ansible/ansible#82438 and ansible-lint#1771/#4851), so we rely on the
+    Ansible defaults: collections install to ~/.ansible/collections, which
+    is searched ahead of site-packages.
+    """
+    config = _load_ini("ansible.cfg")
+    defaults = config["defaults"]
+    assert "collections_path" not in defaults
+    assert "collections_paths" not in defaults
+    assert "collections_scan_sys_path" not in defaults
