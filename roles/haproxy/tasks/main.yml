@@ -101,6 +101,29 @@
     zone: "{{ haproxy_firewalld_zone }}"
   tags: [haproxy, firewall]
 
+# Each haproxy instance dials its backend (pgbouncer 6432 by default,
+# postgres 5432 when haproxy_backend_target=postgres) on every postgres
+# peer. The backend role only opens its port to loopback in the default
+# topology, so without this rule haproxy can health-check peer B on 8008
+# (already opened by patroni) but the data plane to B:6432 silently dies.
+# patroni_advertise_address is the exact string haproxy.cfg renders into
+# 'server' lines, so it's also what arrives as the source IP. Detect
+# family by ':' to handle IPv4, IPv6, and dual-stack peers.
+- name: Open haproxy backend port from postgres peer hosts
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in hostvars[item].patroni_advertise_address else 'ipv4' }}"
+      source address="{{ hostvars[item].patroni_advertise_address }}"
+      port port="{{ haproxy_backend_port }}" protocol="tcp" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ haproxy_firewalld_zone }}"
+  loop: "{{ groups['postgres'] | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  tags: [haproxy, firewall]
+
 - name: Enable and start haproxy
   ansible.builtin.systemd:
     name: "{{ haproxy_service_name }}"
