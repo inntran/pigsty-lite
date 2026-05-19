@@ -2,7 +2,7 @@
 
 .PHONY: lint lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml
 
-lint: lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml
+lint: lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml test-configure
 
 lint-yaml:
 	yamllint .

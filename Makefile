@@ -8,7 +8,9 @@ FAIL_FAST ?= 1
 include Makefile.d/lint.mk
 include Makefile.d/images.mk
 
-.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test clean
+.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test test-configure clean
+
+PYTEST ?= .venv/bin/pytest
 
 help:
 	@echo "pigsty-lite - operator commands"
@@ -29,8 +31,11 @@ help:
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
 	@echo "  make images                        Build all three molecule base images (common/data/infra)"
-	@echo "  make test ROLE=<name>         Run all Molecule scenarios for a single role"
+	@echo "  make test                          Run configure unit tests (pytest)"
+	@echo "  make test ROLE=<name>              Run all Molecule scenarios for a single role"
+	@echo "  make test ROLE=all                 Run configure tests, then all Molecule roles"
 	@echo "  make test ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
+	@echo "  make test-configure                Run configure unit tests (pytest)"
 	@echo "  make clean                         Remove generated artifacts"
 
 init:
@@ -46,18 +51,34 @@ plan: init
 deploy: init
 	ansible-playbook playbooks/site.yml
 
-test: images
-	@if [ -z "$(ROLE)" ]; then echo "Usage: make test ROLE=<name> [FAIL_FAST=0]"; exit 2; fi
-	@if [ "$(FAIL_FAST)" = "0" ]; then \
-		cd tests/molecule/$(ROLE); \
-		log_file=$$(mktemp); \
-		trap 'rm -f "$$log_file"' EXIT; \
+test-configure:
+	$(PYTEST) tests/configure -v
+
+test:
+	@if [ -z "$(ROLE)" ]; then \
+		$(MAKE) test-configure; \
+	elif [ "$(ROLE)" = "all" ]; then \
+		$(MAKE) test-configure || exit $$?; \
+		$(MAKE) images || exit $$?; \
 		status=0; \
-		ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_TASK_IGNORE_ERRORS=1 MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all 2>&1 | tee "$$log_file" || status=$$?; \
-		if grep -Eq 'ignored=[1-9][0-9]*' "$$log_file"; then status=1; fi; \
+		for role in $$(find tests/molecule -mindepth 4 -maxdepth 4 -name molecule.yml -printf '%h\n' | awk -F/ '{print $$3}' | sort -u); do \
+			echo "==> molecule role: $$role"; \
+			$(MAKE) test ROLE=$$role FAIL_FAST=$(FAIL_FAST) || status=$$?; \
+		done; \
 		exit $$status; \
 	else \
-		cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all; \
+		$(MAKE) images || exit $$?; \
+		if [ "$(FAIL_FAST)" = "0" ]; then \
+			cd tests/molecule/$(ROLE); \
+			log_file=$$(mktemp); \
+			trap 'rm -f "$$log_file"' EXIT; \
+			status=0; \
+			ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_TASK_IGNORE_ERRORS=1 MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all 2>&1 | tee "$$log_file" || status=$$?; \
+			if grep -Eq 'ignored=[1-9][0-9]*' "$$log_file"; then status=1; fi; \
+			exit $$status; \
+		else \
+			cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all; \
+		fi; \
 	fi
 
 clean:
