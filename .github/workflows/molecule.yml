@@ -144,6 +144,16 @@ jobs:
           ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
 
+      # Ubuntu 24.04 ships a path-based AppArmor profile for unix_chkpwd.
+      # Path profiles apply across container boundaries, so the container's
+      # /usr/sbin/unix_chkpwd inherits the host profile and is denied
+      # dac_read_search/dac_override on its own /etc/shadow, breaking sudo's
+      # PAM stack with: "Authentication service cannot retrieve authentication
+      # info". Unloading the host profile removes the cross-namespace
+      # confinement; the runner is ephemeral so this has no lasting effect.
+      - name: Unload host unix-chkpwd AppArmor profile
+        run: sudo apparmor_parser -R /etc/apparmor.d/unix-chkpwd || true
+
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/collections
@@ -219,6 +229,10 @@ jobs:
         run: |
           ansible-galaxy collection install -r requirements.yml -p ./collections --upgrade
           ansible-galaxy role install -r requirements.yml -p ./roles.galaxy
+
+      # See bootstrap-scenarios for context on this workaround.
+      - name: Unload host unix-chkpwd AppArmor profile
+        run: sudo apparmor_parser -R /etc/apparmor.d/unix-chkpwd || true
 
       - name: molecule ${{ matrix.role }} (${{ matrix.scenario }})
         env:
