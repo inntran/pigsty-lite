@@ -28,7 +28,8 @@ def test_haproxy_role_enables_nonlocal_bind_for_vip_manager():
         for task in template_tasks
     )
     assert any(
-        task.get("ansible.builtin.command", {}).get("cmd") == "sysctl --system"
+        task.get("ansible.builtin.command", {}).get("cmd")
+        == "sysctl -p /etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf"
         for task in main_tasks
     )
 
