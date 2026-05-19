@@ -35,7 +35,9 @@ haproxy_stats_listen_address: "{{ network_loopback_address | default('127.0.0.1'
 
 # Stats
 haproxy_stats_user: pigsty
-haproxy_stats_password: "{{ vault_haproxy_stats_password | default('haproxy-dev-stats-change-me') }}"
+haproxy_stats_password: >-
+  {{ vault_haproxy_stats_password
+     | mandatory('vault_haproxy_stats_password not set; run ./configure to bootstrap the vault') }}
 haproxy_stats_refresh_seconds: 10
 
 # Health-check tuning. The three RTO profiles control how aggressively

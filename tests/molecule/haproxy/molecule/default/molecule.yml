@@ -27,6 +27,7 @@ provisioner:
         pigsty_pki_dir: /etc/pki/pigsty
         postgres_version: 18
         postgres_port: 5432
+        haproxy_stats_password: haproxy-stats-test-pw
       etcd:
         etcd_initial_cluster_state: new
       postgres:

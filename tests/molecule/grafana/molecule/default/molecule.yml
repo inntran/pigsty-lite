@@ -31,6 +31,7 @@ provisioner:
         vmsingle_retention: 7d
         vlsingle_retention: 7d
         alertmanager_receivers: []
+        grafana_admin_password: grafana-test-pw
     host_vars:
       pigsty-lite-grafana-default-1: {}
 verifier:
