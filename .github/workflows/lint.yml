@@ -22,14 +22,27 @@ jobs:
           python-version: "3.12"
 
       - name: Set up Node
+
         uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
 
       - name: Install python tooling
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install yamllint ansible-lint ruff ansible pyyaml pytest
+          uv pip install --system yamllint ansible-lint ruff ansible pyyaml pytest
+
+      - name: Cache Galaxy content
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.ansible/collections
+            roles.galaxy
+          key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
         run: |

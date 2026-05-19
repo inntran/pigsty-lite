@@ -5,110 +5,95 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}/molecule-base
+
 jobs:
-  build-common:
+  resolve-images:
     runs-on: ubuntu-latest
     outputs:
-      cache-key: ${{ steps.key.outputs.key }}
+      common-tag: ${{ steps.tags.outputs.common }}
+      data-tag: ${{ steps.tags.outputs.data }}
+      infra-tag: ${{ steps.tags.outputs.infra }}
+      common-ref: ${{ steps.tags.outputs.common-ref }}
+      data-ref: ${{ steps.tags.outputs.data-ref }}
+      infra-ref: ${{ steps.tags.outputs.infra-ref }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Compute cache key
-        id: key
+      - name: Compute image tags from Containerfile hashes
+        id: tags
         run: |
-          key="molecule-common-$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')"
-          echo "key=$key" >> "$GITHUB_OUTPUT"
+          common=$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}' | cut -c1-16)
+          data=$(sha256sum tests/molecule/images/data/Containerfile   | awk '{print $1}' | cut -c1-16)
+          infra=$(sha256sum tests/molecule/images/infra/Containerfile  | awk '{print $1}' | cut -c1-16)
+          # data/infra depend on common's content too
+          data_tag="${common}-${data}"
+          infra_tag="${common}-${infra}"
+          prefix="${IMAGE_PREFIX,,}"
+          echo "common=${common}" >> "$GITHUB_OUTPUT"
+          echo "data=${data_tag}" >> "$GITHUB_OUTPUT"
+          echo "infra=${infra_tag}" >> "$GITHUB_OUTPUT"
+          echo "common-ref=${prefix}-common:${common}" >> "$GITHUB_OUTPUT"
+          echo "data-ref=${prefix}-data:${data_tag}" >> "$GITHUB_OUTPUT"
+          echo "infra-ref=${prefix}-infra:${infra_tag}" >> "$GITHUB_OUTPUT"
 
-      - name: Restore cached common image
-        id: cache
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-common.tar
-          key: ${{ steps.key.outputs.key }}
-
-      - name: Build common image
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          ./bin/molecule_images.sh common
-          podman save -o /tmp/molecule-base-common.tar localhost/molecule-base-common:latest
-
-  build-data:
-    needs: build-common
+  build-images:
+    needs: resolve-images
     runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.key.outputs.key }}
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v6
 
-      - name: Compute cache key
-        id: key
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build/push common if missing
+        env:
+          REF: ${{ needs.resolve-images.outputs.common-ref }}
         run: |
-          common_hash=$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')
-          data_hash=$(sha256sum tests/molecule/images/data/Containerfile | awk '{print $1}')
-          echo "key=molecule-data-${common_hash}-${data_hash}" >> "$GITHUB_OUTPUT"
+          if podman manifest inspect "$REF" >/dev/null 2>&1; then
+            echo "[skip] $REF already present"
+            exit 0
+          fi
+          podman build -f tests/molecule/images/common/Containerfile \
+            -t "$REF" tests/molecule/images/common
+          podman push "$REF"
 
-      - name: Restore cached data image
-        id: cache
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-data.tar
-          key: ${{ steps.key.outputs.key }}
-
-      - name: Restore cached common image
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-common.tar
-          key: ${{ needs.build-common.outputs.cache-key }}
-
-      - name: Load common into podman
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: podman load -i /tmp/molecule-base-common.tar
-
-      - name: Build data image
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Build/push data if missing
+        env:
+          REF: ${{ needs.resolve-images.outputs.data-ref }}
+          COMMON_REF: ${{ needs.resolve-images.outputs.common-ref }}
         run: |
-          ./bin/molecule_images.sh data
-          podman save -o /tmp/molecule-base-data.tar localhost/molecule-base-data:latest
+          if podman manifest inspect "$REF" >/dev/null 2>&1; then
+            echo "[skip] $REF already present"
+            exit 0
+          fi
+          podman pull "$COMMON_REF"
+          podman build -f tests/molecule/images/data/Containerfile \
+            --build-arg "COMMON_IMAGE=$COMMON_REF" \
+            -t "$REF" tests/molecule/images/data
+          podman push "$REF"
 
-  build-infra:
-    needs: build-common
-    runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.key.outputs.key }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Compute cache key
-        id: key
+      - name: Build/push infra if missing
+        env:
+          REF: ${{ needs.resolve-images.outputs.infra-ref }}
+          COMMON_REF: ${{ needs.resolve-images.outputs.common-ref }}
         run: |
-          common_hash=$(sha256sum tests/molecule/images/common/Containerfile | awk '{print $1}')
-          infra_hash=$(sha256sum tests/molecule/images/infra/Containerfile | awk '{print $1}')
-          echo "key=molecule-infra-${common_hash}-${infra_hash}" >> "$GITHUB_OUTPUT"
-
-      - name: Restore cached infra image
-        id: cache
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-infra.tar
-          key: ${{ steps.key.outputs.key }}
-
-      - name: Restore cached common image
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-common.tar
-          key: ${{ needs.build-common.outputs.cache-key }}
-
-      - name: Load common into podman
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: podman load -i /tmp/molecule-base-common.tar
-
-      - name: Build infra image
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          ./bin/molecule_images.sh infra
-          podman save -o /tmp/molecule-base-infra.tar localhost/molecule-base-infra:latest
+          if podman manifest inspect "$REF" >/dev/null 2>&1; then
+            echo "[skip] $REF already present"
+            exit 0
+          fi
+          podman pull "$COMMON_REF"
+          podman build -f tests/molecule/images/infra/Containerfile \
+            --build-arg "COMMON_IMAGE=$COMMON_REF" \
+            -t "$REF" tests/molecule/images/infra
+          podman push "$REF"
 
   bootstrap-scenarios:
     runs-on: ubuntu-latest
@@ -127,17 +112,28 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
 
       - name: Install python tooling
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install \
+          uv pip install --system \
             ansible \
             "molecule==25.*" \
             "molecule-plugins[podman]==25.*" \
             cryptography \
             pytest
+
+      - name: Cache Galaxy content
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.ansible/collections
+            roles.galaxy
+          key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
         run: |
@@ -160,7 +156,7 @@ jobs:
           molecule test -s ${{ matrix.scenario }}
 
   derived-scenarios:
-    needs: [build-common, build-data, build-infra]
+    needs: [resolve-images, build-images]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -181,47 +177,58 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Restore common image (always needed as parent)
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-common.tar
-          key: ${{ needs.build-common.outputs.cache-key }}
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Restore data image (if needed)
-        if: contains(matrix.images, 'data')
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-data.tar
-          key: ${{ needs.build-data.outputs.cache-key }}
-
-      - name: Restore infra image (if needed)
-        if: contains(matrix.images, 'infra')
-        uses: actions/cache@v5
-        with:
-          path: /tmp/molecule-base-infra.tar
-          key: ${{ needs.build-infra.outputs.cache-key }}
-
-      - name: Load images into podman
+      - name: Pull common image
+        env:
+          REF: ${{ needs.resolve-images.outputs.common-ref }}
         run: |
-          podman load -i /tmp/molecule-base-common.tar
-          if [ -f /tmp/molecule-base-data.tar ]; then podman load -i /tmp/molecule-base-data.tar; fi
-          if [ -f /tmp/molecule-base-infra.tar ]; then podman load -i /tmp/molecule-base-infra.tar; fi
+          podman pull "$REF"
+          podman tag "$REF" localhost/molecule-base-common:latest
+
+      - name: Pull data image
+        if: contains(matrix.images, 'data')
+        env:
+          REF: ${{ needs.resolve-images.outputs.data-ref }}
+        run: |
+          podman pull "$REF"
+          podman tag "$REF" localhost/molecule-base-data:latest
+
+      - name: Pull infra image
+        if: contains(matrix.images, 'infra')
+        env:
+          REF: ${{ needs.resolve-images.outputs.infra-ref }}
+        run: |
+          podman pull "$REF"
+          podman tag "$REF" localhost/molecule-base-infra:latest
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
 
       - name: Install python tooling
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install \
+          uv pip install --system \
             ansible \
             "molecule==25.*" \
             "molecule-plugins[podman]==25.*" \
             cryptography \
             pytest
+
+      - name: Cache Galaxy content
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.ansible/collections
+            roles.galaxy
+          key: galaxy-${{ runner.os }}-${{ hashFiles('requirements.yml') }}
 
       - name: Install Galaxy content
         run: |
