@@ -74,15 +74,9 @@ bootstrap:
     # leader and join replicas. Operators add wildcard auth via the
     # response file's postgres.hba_rules.
 
-  users:
-    {{ patroni_superuser }}:
-      password: {{ patroni_superuser_password | to_json }}
-      options:
-        - SUPERUSER
-    {{ patroni_replication_user }}:
-      password: {{ patroni_replication_password | to_json }}
-      options:
-        - REPLICATION
+  # Patroni >= 4.0.0 removed the `bootstrap.users` block; superuser,
+  # replication, and rewind roles are created from
+  # `postgresql.authentication.*` below at initdb time.
 
 postgresql:
   listen: {{ patroni_postgres_listen_address }}:{{ patroni_postgres_port }}
