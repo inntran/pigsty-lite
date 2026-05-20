@@ -70,6 +70,7 @@ def generate(response: dict[str, Any]) -> str:
         "cluster_profile": response["profile"],
         "cluster_name": response["cluster"]["name"],
         "cluster_domain": response["cluster"]["domain"],
+        "ansible_user": response.get("access", {}).get("ansible_user", "dba"),
         "network_ip_version": ip_version,
         "network_ipv6_single_stack": ipv6_single_stack,
         "network_loopback_address": "::1" if ipv6_single_stack else "127.0.0.1",

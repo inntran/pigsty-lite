@@ -107,3 +107,17 @@ def test_generated_file_has_banner():
     raw = generate(_load("spof.rsp.yml"))
     assert raw.lstrip().startswith("#")
     assert "GENERATED" in raw
+
+
+def test_ansible_user_defaults_to_dba_when_access_absent():
+    data = _load("ha.rsp.yml")
+    data.pop("access", None)
+    out = yaml.safe_load(generate(data))
+    assert out["ansible_user"] == "dba"
+
+
+def test_ansible_user_reflects_access_section():
+    data = _load("ha.rsp.yml")
+    data["access"] = {"ansible_user": "ansible-svc"}
+    out = yaml.safe_load(generate(data))
+    assert out["ansible_user"] == "ansible-svc"
