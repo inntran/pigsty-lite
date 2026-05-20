@@ -42,7 +42,7 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
     monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal"])
+    answers = iter(["pg-dev", "example.internal", "dba"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -66,7 +66,7 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
     monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal"])
+    answers = iter(["pg-dev", "example.internal", "dba"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -74,3 +74,49 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
     assert rc == 0
     assert not (tmp_path / "inventory" / "site.yml").exists()
     assert not (tmp_path / "group_vars" / "response.yml").exists()
+
+
+def test_interactive_prompts_for_remote_user(monkeypatch, tmp_path):
+    """The 4th prompt sets access.ansible_user in the written response file."""
+    module = _load_configure_module()
+    (tmp_path / "responses").mkdir()
+    (tmp_path / "responses" / "spof.rsp.yml.example").write_text(
+        (ROOT / "responses" / "spof.rsp.yml.example").read_text()
+    )
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
+    monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
+    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(sys, "stdin", _TtyStdin())
+    answers = iter(["pg-dev", "example.internal", "ansible-svc"])
+    monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
+
+    rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
+
+    assert rc == 0
+    data = yaml.safe_load((tmp_path / "responses" / "site.rsp.yml").read_text())
+    assert data["access"]["ansible_user"] == "ansible-svc"
+
+
+def test_interactive_remote_user_defaults_to_dba(monkeypatch, tmp_path):
+    """Empty input on the remote-user prompt keeps the dba default."""
+    module = _load_configure_module()
+    (tmp_path / "responses").mkdir()
+    (tmp_path / "responses" / "spof.rsp.yml.example").write_text(
+        (ROOT / "responses" / "spof.rsp.yml.example").read_text()
+    )
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
+    monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
+    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(sys, "stdin", _TtyStdin())
+    answers = iter(["pg-dev", "example.internal", ""])
+    monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
+
+    rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
+
+    assert rc == 0
+    data = yaml.safe_load((tmp_path / "responses" / "site.rsp.yml").read_text())
+    assert data["access"]["ansible_user"] == "dba"

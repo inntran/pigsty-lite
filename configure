@@ -179,6 +179,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     profile = args.profile or input("Profile (spof|ha) [ha]: ").strip() or "ha"
     cluster_name = input("Cluster name [pg-prod]: ").strip() or "pg-prod"
     cluster_domain = input("Cluster domain [example.internal]: ").strip() or "example.internal"
+    remote_user = input("Remote user [dba]: ").strip() or "dba"
 
     example_name = f"{profile}.rsp.yml.example"
     example_path = ROOT / "responses" / example_name
@@ -189,6 +190,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     data["profile"] = profile
     data["cluster"]["name"] = cluster_name
     data["cluster"]["domain"] = cluster_domain
+    data["access"] = {"ansible_user": remote_user}
 
     try:
         validate(data)
@@ -213,6 +215,23 @@ def cmd_interactive(args: argparse.Namespace) -> int:
         "(make plan/deploy regenerate inventory/site.yml and"
         " group_vars/response.yml from the response file automatically)"
     )
+    print()
+    contract_lines = [
+        "BEFORE you run `make plan` / `make deploy`:",
+        "",
+        f"The remote user '{remote_user}' must already have, on",
+        "EVERY target host:",
+        "  1. Passwordless SSH login (SSH key authentication)",
+        "  2. NOPASSWD sudo",
+        "",
+        "pigsty-lite does not set this up. make plan will fail",
+        "with a connection or sudo error if it is not in place.",
+    ]
+    border = "+" + "-" * 62 + "+"
+    print(border)
+    for text in contract_lines:
+        print("|  " + text.ljust(60) + "|")
+    print(border)
     return 0
 
 
