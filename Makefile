@@ -4,6 +4,13 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 FAIL_FAST ?= 1
+PROFILE ?= 0
+
+ifeq ($(PROFILE),1)
+MOLECULE_PROFILE_ENV := ANSIBLE_CALLBACKS_ENABLED=profile_tasks,profile_roles,timer
+else
+MOLECULE_PROFILE_ENV :=
+endif
 
 include Makefile.d/lint.mk
 include Makefile.d/images.mk
@@ -35,6 +42,7 @@ help:
 	@echo "  make test ROLE=<name>              Run all Molecule scenarios for a single role"
 	@echo "  make test ROLE=all                 Run configure tests, then all Molecule roles"
 	@echo "  make test ROLE=<name> FAIL_FAST=0  Keep running verify tasks after failures"
+	@echo "  make test ROLE=<name> PROFILE=1    Enable profile_tasks/profile_roles/timer callbacks"
 	@echo "  make test-configure                Run configure unit tests (pytest)"
 	@echo "  make clean                         Remove generated artifacts"
 
@@ -73,11 +81,11 @@ test:
 			log_file=$$(mktemp); \
 			trap 'rm -f "$$log_file"' EXIT; \
 			status=0; \
-			ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_TASK_IGNORE_ERRORS=1 MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all 2>&1 | tee "$$log_file" || status=$$?; \
+			$(MOLECULE_PROFILE_ENV) ANSIBLE_LOCAL_TMP=/tmp/pigsty-lite-ansible/tmp MOLECULE_TASK_IGNORE_ERRORS=1 MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all 2>&1 | tee "$$log_file" || status=$$?; \
 			if grep -Eq 'ignored=[1-9][0-9]*' "$$log_file"; then status=1; fi; \
 			exit $$status; \
 		else \
-			cd tests/molecule/$(ROLE) && ANSIBLE_HOME=/tmp/pigsty-lite-ansible MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all; \
+			cd tests/molecule/$(ROLE) && $(MOLECULE_PROFILE_ENV) ANSIBLE_LOCAL_TMP=/tmp/pigsty-lite-ansible/tmp MOLECULE_GLOB='molecule/*/molecule.yml' molecule test --all; \
 		fi; \
 	fi
 
