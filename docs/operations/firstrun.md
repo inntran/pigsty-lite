@@ -21,7 +21,17 @@ Target hosts:
 - RHEL 10, Rocky 10, or Alma 10
 - SELinux in `enforcing` mode
 - firewalld installed
-- SSH access from the control node with `become` privileges
+- A login user on every target host for Ansible to connect as. This is
+  `access.ansible_user` in the response file (default `dba`). It must have:
+  - **Passwordless SSH login** from the control node (SSH key authentication).
+  - **NOPASSWD sudo**, e.g. a file `/etc/sudoers.d/dba` containing:
+
+    ```
+    dba ALL=(ALL) NOPASSWD: ALL
+    ```
+
+  pigsty-lite does not create this user or configure SSH/sudo. If it is not in
+  place, `make plan` fails with a connection or `become` error.
 
 ## Steps
 
