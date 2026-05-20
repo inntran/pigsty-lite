@@ -25,7 +25,6 @@ def test_epel_is_installed_by_default_but_repo_is_disabled():
     tasks = _load_yaml("roles/repos/tasks/main.yml")
 
     assert defaults["repos_epel_enabled"] is True
-    assert defaults["repos_epel_repo_file"] == "/etc/yum.repos.d/epel.repo"
     assert defaults["repos_epel_repo_id"] == "epel"
 
     disable_tasks = [
@@ -35,8 +34,7 @@ def test_epel_is_installed_by_default_but_repo_is_disabled():
     ]
     assert disable_tasks
 
-    task = disable_tasks[0]["community.general.ini_file"]
-    assert task["path"] == "{{ repos_epel_repo_file }}"
-    assert task["section"] == "{{ repos_epel_repo_id }}"
-    assert task["option"] == "enabled"
-    assert task["value"] == "0"
+    # The task disables EPEL via `dnf config-manager --set-disabled`.
+    cmd = disable_tasks[0]["ansible.builtin.command"]["cmd"]
+    assert "config-manager --set-disabled" in cmd
+    assert "{{ repos_epel_repo_id }}" in cmd

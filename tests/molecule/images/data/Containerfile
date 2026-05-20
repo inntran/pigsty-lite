@@ -13,6 +13,6 @@ RUN dnf --enablerepo=epel install -y \
         haproxy \
         vip-manager \
         python3-psycopg3 \
-    && dnf clean all
+    && dnf --enablerepo=epel makecache
 
 CMD ["/sbin/init"]

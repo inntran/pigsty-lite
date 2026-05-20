@@ -40,7 +40,8 @@ RUN dnf config-manager --set-enabled ol10_codeready_builder \
         gzip \
         curl-minimal \
     && dnf --enablerepo=epel install -y pgbackrest \
-    && dnf clean all
+    && echo 'metadata_expire=never' >> /etc/dnf/dnf.conf \
+    && dnf --enablerepo=epel makecache
 
 # --- pigsty shared identity, role-managed config dirs, and sudoers ---
 RUN groupadd --system --gid 926 pigsty \

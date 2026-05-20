@@ -16,8 +16,9 @@
 {% set explicit = hv.ansible_host | default('') %}
 {% set explicit_is_v6 = explicit and ':' in explicit %}
 {% set explicit_is_v4 = explicit and ':' not in explicit %}
-{% set v4_candidates = hv.ansible_all_ipv4_addresses | default([]) | reject('match', '^127\\.') | list %}
-{% set v6_candidates = hv.ansible_all_ipv6_addresses | default([]) | reject('match', '^(fe80:|::1$)') | list %}
+{% set hv_facts = hv.ansible_facts | default({}) %}
+{% set v4_candidates = hv_facts.all_ipv4_addresses | default([]) | reject('match', '^127\\.') | list %}
+{% set v6_candidates = hv_facts.all_ipv6_addresses | default([]) | reject('match', '^(fe80:|::1$)') | list %}
 {% set v4 = explicit if explicit_is_v4 else (v4_candidates[0] if v4_candidates else '') %}
 {% set v6 = explicit if explicit_is_v6 else (v6_candidates[0] if v6_candidates else '') %}
 {% if want_v4 and v4 %}

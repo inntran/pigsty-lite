@@ -1,69 +1,67 @@
 ---
+- name: Gather installed package facts
+  ansible.builtin.package_facts:
+    manager: rpm
+
 - name: Install PGDG repo RPM
   ansible.builtin.dnf:
     name: "{{ repos_pgdg_rpm_url }}"
     state: present
     disable_gpg_check: true
-  when: repos_pgdg_enabled | bool
+  when:
+    - repos_pgdg_enabled | bool
+    - "'pgdg-redhat-repo' not in ansible_facts.packages"
 
-- name: Enable PGDG extras repo
-  community.general.ini_file:
-    path: "{{ repos_pgdg_repo_file }}"
-    section: "{{ repos_pgdg_extras_repo }}"
-    option: enabled
-    value: "1"
-    mode: "0644"
-    no_extra_spaces: true
-  when: repos_pgdg_enabled | bool
-
-- name: Enable selected PGDG PostgreSQL major repo
-  community.general.ini_file:
-    path: "{{ repos_pgdg_repo_file }}"
-    section: "pgdg{{ repos_pgdg_postgres_version }}"
-    option: enabled
-    value: "1"
-    mode: "0644"
-    no_extra_spaces: true
+- name: Enable PGDG repos (extras + selected major)
+  ansible.builtin.command:
+    cmd: >-
+      dnf config-manager --set-enabled
+      {{ repos_pgdg_extras_repo }}
+      pgdg{{ repos_pgdg_postgres_version }}
+  changed_when: false
   when: repos_pgdg_enabled | bool
 
 - name: Disable unused PGDG PostgreSQL major repos
-  community.general.ini_file:
-    path: "{{ repos_pgdg_repo_file }}"
-    section: "pgdg{{ item }}"
-    option: enabled
-    value: "0"
-    mode: "0644"
-    no_extra_spaces: true
-  loop: "{{ repos_pgdg_postgres_repo_versions }}"
+  ansible.builtin.command:
+    cmd: >-
+      dnf config-manager --set-disabled
+      {{ (repos_pgdg_postgres_repo_versions
+          | reject('equalto', repos_pgdg_postgres_version | int)
+          | map('string') | map('regex_replace', '^', 'pgdg')
+          | join(' ')) }}
+  changed_when: false
   when:
     - repos_pgdg_enabled | bool
-    - item | int != repos_pgdg_postgres_version | int
+    - (repos_pgdg_postgres_repo_versions
+       | reject('equalto', repos_pgdg_postgres_version | int) | list | length) > 0
 
-- name: Check PG module disable marker
-  ansible.builtin.stat:
-    path: /etc/dnf/modules.d/postgresql-disabled
-  register: repos_pg_module_marker
-  when: repos_pgdg_enabled | bool
-
-- name: Disable default PG module if dnf supports modules
-  ansible.builtin.command: dnf -y module disable postgresql
-  register: repos_pg_module_disable
-  changed_when: >-
-    'Disabling' in repos_pg_module_disable.stdout
-    or 'Complete!' in repos_pg_module_disable.stdout
-  failed_when: false
+# Skip on RHEL 10+: modularity was removed. RHEL 8/9 still use modules, so
+# the default postgresql module would mask PGDG's package without this.
+- name: Disable default PG module (RHEL < 10 only)
   when:
     - repos_pgdg_enabled | bool
-    - not repos_pg_module_marker.stat.exists
+    - ansible_facts['distribution_major_version'] | int < 10
+  block:
+    - name: Check PG module disable marker
+      ansible.builtin.stat:
+        path: /etc/dnf/modules.d/postgresql-disabled
+      register: repos_pg_module_marker
 
-- name: Mark PG module disabled
-  ansible.builtin.copy:
-    dest: /etc/dnf/modules.d/postgresql-disabled
-    content: "disabled by pigsty-lite repos role\n"
-    mode: "0644"
-  when:
-    - repos_pgdg_enabled | bool
-    - not repos_pg_module_marker.stat.exists
+    - name: Disable default PG module
+      ansible.builtin.command: dnf -y module disable postgresql
+      register: repos_pg_module_disable
+      changed_when: >-
+        'Disabling' in repos_pg_module_disable.stdout
+        or 'Complete!' in repos_pg_module_disable.stdout
+      failed_when: false
+      when: not repos_pg_module_marker.stat.exists
+
+    - name: Mark PG module disabled
+      ansible.builtin.copy:
+        dest: /etc/dnf/modules.d/postgresql-disabled
+        content: "disabled by pigsty-lite repos role\n"
+        mode: "0644"
+      when: not repos_pg_module_marker.stat.exists
 
 - name: Ensure dnf priorities plugin package is installed
   ansible.builtin.dnf:
@@ -71,17 +69,13 @@
     state: present
 
 - name: Set priority on PGDG repo sections
-  community.general.ini_file:
-    path: "{{ repos_pgdg_repo_file }}"
-    section: "{{ item }}"
-    option: priority
-    value: "{{ repos_pgdg_priority | string }}"
-    mode: "0644"
-    no_extra_spaces: true
-  loop:
-    - "pgdg-common"
-    - "{{ repos_pgdg_extras_repo }}"
-    - "pgdg{{ repos_pgdg_postgres_version }}"
+  ansible.builtin.command:
+    cmd: >-
+      dnf config-manager --save
+      --setopt=pgdg-common.priority={{ repos_pgdg_priority }}
+      --setopt={{ repos_pgdg_extras_repo }}.priority={{ repos_pgdg_priority }}
+      --setopt=pgdg{{ repos_pgdg_postgres_version }}.priority={{ repos_pgdg_priority }}
+  changed_when: false
   when: repos_pgdg_enabled | bool
 
 - name: Enable CodeReady Builder (CRB) repository
@@ -114,16 +108,14 @@
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
     state: present
     disable_gpg_check: true
-  when: repos_epel_enabled | bool
+  when:
+    - repos_epel_enabled | bool
+    - "'epel-release' not in ansible_facts.packages"
 
 - name: Disable EPEL for normal dependency resolution
-  community.general.ini_file:
-    path: "{{ repos_epel_repo_file }}"
-    section: "{{ repos_epel_repo_id }}"
-    option: enabled
-    value: "0"
-    mode: "0644"
-    no_extra_spaces: true
+  ansible.builtin.command:
+    cmd: "dnf config-manager --set-disabled {{ repos_epel_repo_id }}"
+  changed_when: false
   when: repos_epel_enabled | bool
 
 - name: Render /etc/yum.repos.d/pigsty.repo

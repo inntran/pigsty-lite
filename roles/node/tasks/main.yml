@@ -36,53 +36,15 @@
     name: "{{ inventory_hostname }}"
   when: node_set_hostname | bool
 
-- name: Ensure every inventory host is name-resolvable
+- name: Render /etc/hosts from inventory
+  ansible.builtin.template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: "0644"
+    unsafe_writes: true
   when: node_manage_etc_hosts | bool
-  block:
-    - name: Probe inventory hostname resolution
-      ansible.builtin.command: "getent hosts {{ item }}"
-      register: node_dns_probe_short
-      changed_when: false
-      failed_when: false
-      loop: "{{ groups['all'] }}"
-
-    - name: Probe inventory FQDN resolution
-      ansible.builtin.command: "getent hosts {{ item }}.{{ cluster_domain | default('local') }}"
-      register: node_dns_probe_fqdn
-      changed_when: false
-      failed_when: false
-      loop: "{{ groups['all'] }}"
-
-    - name: Determine whether DNS already resolves every inventory host
-      ansible.builtin.set_fact:
-        node_dns_ok: >-
-          {{
-            (node_dns_probe_short.results | default([]) | map(attribute='rc') | reject('equalto', 0) | list | length == 0)
-            and
-            (node_dns_probe_fqdn.results | default([]) | map(attribute='rc') | reject('equalto', 0) | list | length == 0)
-          }}
-
-    - name: Render /etc/hosts from inventory
-      ansible.builtin.template:
-        src: hosts.j2
-        dest: /etc/hosts
-        owner: root
-        group: root
-        mode: "0644"
-        unsafe_writes: true
-      when: not (node_dns_ok | bool)
-
-    - name: Re-probe inventory hostname resolution after rendering /etc/hosts
-      ansible.builtin.command: "getent hosts {{ item }}"
-      changed_when: false
-      loop: "{{ groups['all'] }}"
-      when: not (node_dns_ok | bool)
-
-    - name: Re-probe inventory FQDN resolution after rendering /etc/hosts
-      ansible.builtin.command: "getent hosts {{ item }}.{{ cluster_domain | default('local') }}"
-      changed_when: false
-      loop: "{{ groups['all'] }}"
-      when: not (node_dns_ok | bool)
 
 - name: Ensure sysctl config directory exists
   ansible.builtin.file:

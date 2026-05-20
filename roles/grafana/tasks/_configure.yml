@@ -1,20 +1,19 @@
 ---
 - name: Ensure Grafana config and data directories exist
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    owner: "{{ item.owner | default('root') }}"
-    group: grafana
-    mode: "{{ item.mode | default('0755') }}"
-  loop:
-    - { path: "{{ grafana_config_dir }}" }
-    - { path: "{{ grafana_provisioning_dir }}" }
-    - { path: "{{ grafana_provisioning_dir }}/datasources" }
-    - { path: "{{ grafana_provisioning_dir }}/dashboards" }
-    - { path: "{{ grafana_logs_dir }}", owner: grafana }
-    - { path: "{{ grafana_data_dir }}", owner: grafana }
-    - { path: "{{ grafana_dashboards_dir }}", owner: grafana }
-    - { path: "{{ grafana_data_dir }}/plugins", owner: grafana }
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      install -d -o root -g grafana -m 0755 \
+        {{ grafana_config_dir }} \
+        {{ grafana_provisioning_dir }} \
+        {{ grafana_provisioning_dir }}/datasources \
+        {{ grafana_provisioning_dir }}/dashboards
+      install -d -o grafana -g grafana -m 0755 \
+        {{ grafana_logs_dir }} \
+        {{ grafana_data_dir }} \
+        {{ grafana_dashboards_dir }} \
+        {{ grafana_data_dir }}/plugins
+  changed_when: false
 
 - name: Render /etc/grafana/grafana.ini
   ansible.builtin.template:

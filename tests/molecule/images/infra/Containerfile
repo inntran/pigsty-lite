@@ -8,10 +8,13 @@ COPY grafana.repo /etc/yum.repos.d/grafana.repo
 COPY nginx.repo /etc/yum.repos.d/nginx.repo
 
 RUN rpm --import https://nginx.org/keys/nginx_signing.key \
+    && rpm --import https://rpm.grafana.com/gpg.key \
     && dnf --enablerepo=epel install -y \
         alertmanager \
         nginx \
         grafana-12.* \
-    && dnf clean all
+    && grafana-cli plugins install victoriametrics-metrics-datasource \
+    && grafana-cli plugins install victoriametrics-logs-datasource \
+    && dnf --enablerepo=epel makecache
 
 CMD ["/sbin/init"]
