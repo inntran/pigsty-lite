@@ -51,3 +51,26 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
     raw = (tmp_path / "responses" / "site.rsp.yml").read_text()
     assert raw.startswith("---\n")
     assert yaml.safe_load(raw)["profile"] == "spof"
+
+
+def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
+    """The wizard writes only the response file; inventory/response.yml come from `make regen`."""
+    module = _load_configure_module()
+    (tmp_path / "responses").mkdir()
+    (tmp_path / "responses" / "spof.rsp.yml.example").write_text(
+        (ROOT / "responses" / "spof.rsp.yml.example").read_text()
+    )
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
+    monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
+    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(sys, "stdin", _TtyStdin())
+    answers = iter(["pg-dev", "example.internal"])
+    monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
+
+    rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
+
+    assert rc == 0
+    assert not (tmp_path / "inventory" / "site.yml").exists()
+    assert not (tmp_path / "group_vars" / "response.yml").exists()

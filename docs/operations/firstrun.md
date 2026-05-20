@@ -43,21 +43,17 @@ Target hosts:
    ./configure --validate responses/site.rsp.yml
    ```
 
-3. Generate inventory and variables.
-
-   ```bash
-   ./configure -s -f responses/site.rsp.yml
-   ```
-
-   This writes `inventory/site.yml` and `group_vars/response.yml`.
-
-4. Dry-run.
+3. Dry-run.
 
    ```bash
    make plan
    ```
 
-5. Deploy.
+   `make plan` regenerates `inventory/site.yml` and `group_vars/response.yml`
+   from the response file before running, so an edited `responses/site.rsp.yml`
+   is never stale.
+
+4. Deploy.
 
    ```bash
    make deploy

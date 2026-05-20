@@ -15,7 +15,9 @@ endif
 include Makefile.d/lint.mk
 include Makefile.d/images.mk
 
-.PHONY: help init configure plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test test-configure clean
+.PHONY: help init configure regen plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test test-configure clean
+
+RESPONSE_FILE ?= responses/site.rsp.yml
 
 PYTEST ?= .venv/bin/pytest
 
@@ -25,6 +27,7 @@ help:
 	@echo "  Deploy actions:"
 	@echo "  make init                          Set up control node (Galaxy collections + roles)"
 	@echo "  make configure                     Interactive wizard; emits inventory + response file"
+	@echo "  make regen                         Regenerate inventory/site.yml from responses/site.rsp.yml"
 	@echo "  make plan                          Run site.yml in --check --diff mode"
 	@echo "  make deploy                        Run site.yml against the active inventory"
 	@echo
@@ -53,10 +56,18 @@ init:
 configure:
 	./configure
 
-plan: init
+# Regenerate the deployable inventory from the response file (source of truth).
+# plan/deploy depend on this so an edited responses/site.rsp.yml is never stale.
+regen: $(RESPONSE_FILE)
+	@if [ ! -f "$(RESPONSE_FILE)" ]; then \
+		echo "ERROR: $(RESPONSE_FILE) not found; run 'make configure' first"; exit 1; \
+	fi
+	./configure -s -f $(RESPONSE_FILE) --no-vault
+
+plan: init regen
 	ansible-playbook playbooks/site.yml --check --diff
 
-deploy: init
+deploy: init regen
 	ansible-playbook playbooks/site.yml
 
 test-configure:

@@ -7,11 +7,12 @@ Modes:
   ./configure -s -f FILE       Silent: load FILE, validate, regenerate
   ./configure --validate FILE  Validate FILE and exit
 
-Always emits:
+The interactive wizard writes only the response file (the source of truth):
+  responses/site.rsp.yml
+Silent mode (-s -f) also generates the derived files:
   inventory/site.yml
   group_vars/response.yml
-On a non-silent run, also writes:
-  responses/site.rsp.yml
+Regenerate the derived files any time with `make regen`.
 """
 
 from __future__ import annotations
@@ -195,20 +196,23 @@ def cmd_interactive(args: argparse.Namespace) -> int:
         print(f"INVALID generated response: {exc}", file=sys.stderr)
         return 2
 
+    # The wizard only writes the response file (the source of truth).
+    # inventory/site.yml and group_vars/response.yml are derived; they are
+    # generated from the response file by `make regen` (and by `-s -f`).
     RESPONSE_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with RESPONSE_FILE_PATH.open("w") as fh:
         yaml.safe_dump(data, fh, sort_keys=False, explicit_start=True)
-    _write(INVENTORY_PATH, gen_inventory(data))
-    _write(RESPONSE_VARS_PATH, gen_response_vars(data))
     print(f"Wrote {RESPONSE_FILE_PATH.relative_to(ROOT)}")
-    print(f"Wrote {INVENTORY_PATH.relative_to(ROOT)}")
-    print(f"Wrote {RESPONSE_VARS_PATH.relative_to(ROOT)}")
     if not args.no_vault:
         rc = _ensure_vault_interactive()
         if rc != 0:
             return rc
     print()
-    print("Edit responses/site.rsp.yml to fill IPv4/IPv6 IPs, then: make plan")
+    print(
+        "Edit responses/site.rsp.yml to fill IPv4/IPv6 IPs, then: make plan\n"
+        "(make plan/deploy regenerate inventory/site.yml and"
+        " group_vars/response.yml from the response file automatically)"
+    )
     return 0
 
 
