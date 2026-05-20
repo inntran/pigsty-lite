@@ -8,6 +8,11 @@ network:
 cluster:
   name: pg-prod
   domain: example.internal
+# Ansible logs in as this user on every target host. It must have
+# passwordless SSH (key auth) and NOPASSWD sudo. pigsty-lite does not
+# configure this - set it up yourself. See docs/operations/firstrun.md.
+access:
+  ansible_user: dba
 nodes:
   pgmon01: {ip: 10.20.30.10, role: monitor}
   pgnode01: {ip: 10.20.30.11, role: pg_primary}
