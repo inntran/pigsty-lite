@@ -259,3 +259,36 @@ def test_monitoring_scrape_interval_is_optional():
     response = _minimal_spof_response()
     response["monitoring"].pop("scrape_interval", None)
     validate(response)
+
+
+def test_access_absent_is_valid():
+    data = _minimal_spof_response()
+    data.pop("access", None)
+    validate(data)
+
+
+def test_access_custom_user_is_valid():
+    data = _minimal_spof_response()
+    data["access"] = {"ansible_user": "ansible-svc"}
+    validate(data)
+
+
+def test_access_must_be_mapping():
+    data = _minimal_spof_response()
+    data["access"] = "dba"
+    with pytest.raises(SchemaError, match="access: must be a mapping"):
+        validate(data)
+
+
+def test_access_ansible_user_must_be_string():
+    data = _minimal_spof_response()
+    data["access"] = {"ansible_user": 42}
+    with pytest.raises(SchemaError, match="access.ansible_user"):
+        validate(data)
+
+
+def test_access_ansible_user_must_not_be_empty():
+    data = _minimal_spof_response()
+    data["access"] = {"ansible_user": ""}
+    with pytest.raises(SchemaError, match="access.ansible_user"):
+        validate(data)

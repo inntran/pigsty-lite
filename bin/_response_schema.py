@@ -93,6 +93,17 @@ def _validate_network(network: dict | None) -> str:
     return ip_version
 
 
+def _validate_access(access: dict | None) -> str:
+    if access is None:
+        return "dba"
+    if not isinstance(access, dict):
+        raise SchemaError("access: must be a mapping")
+    ansible_user = access.get("ansible_user", "dba")
+    if not isinstance(ansible_user, str) or not ansible_user.strip():
+        raise SchemaError("access.ansible_user: expected a non-empty string")
+    return ansible_user
+
+
 def _validate_nodes(nodes: dict, profile: str, ip_version: str) -> None:
     if not isinstance(nodes, dict) or not nodes:
         raise SchemaError("nodes: must be a non-empty mapping")
@@ -415,6 +426,7 @@ def validate(data: Any) -> None:
     if profile not in ALLOWED_PROFILES:
         raise SchemaError(f"profile: '{profile}' not in {sorted(ALLOWED_PROFILES)}")
     ip_version = _validate_network(data.get("network"))
+    _validate_access(data.get("access"))
 
     cluster = _require(data, "cluster", "")
     if not isinstance(cluster, dict):
