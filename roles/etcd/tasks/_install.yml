@@ -25,19 +25,6 @@
     owner: etcd
     group: etcd
     mode: "0700"
-
-- name: Register SELinux fcontext for etcd data dir
-  community.general.sefcontext:
-    target: "{{ etcd_data_dir }}(/.*)?"
-    setype: etcd_var_lib_t
-    state: present
-  register: etcd_sefcontext
-  when: ansible_facts.selinux.status == "enabled"
-
-- name: Relabel etcd data dir if fcontext changed
-  ansible.builtin.command:
-    cmd: "restorecon -RF {{ etcd_data_dir }}"
-  when:
-    - ansible_facts.selinux.status == "enabled"
-    - etcd_sefcontext.changed
-  changed_when: true
+  # No SELinux fcontext registration: the targeted policy ships no etcd
+  # module, so there is no etcd-specific type. etcd runs unconfined and
+  # the data dir under /var/lib already gets the default var_lib_t label.

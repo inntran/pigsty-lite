@@ -1,13 +1,11 @@
 ---
 # roles/etcd/defaults/main.yml
-# All variables prefixed `etcd_`. Paths follow vendor defaults so SELinux
-# fcontext is inherited where possible.
+# All variables prefixed `etcd_`. The data dir lives under /var/lib so it
+# inherits the default var_lib_t label; etcd has no confined SELinux domain.
 
 # Package
 etcd_package: etcd
-etcd_support_packages:
-  - python3-libselinux
-  - policycoreutils-python-utils
+etcd_support_packages: []
 etcd_service_name: etcd
 
 # Filesystem (vendor defaults)
