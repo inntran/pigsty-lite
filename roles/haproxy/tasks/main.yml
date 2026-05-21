@@ -112,8 +112,8 @@
 - name: Open haproxy backend port from postgres peer hosts
   ansible.posix.firewalld:
     rich_rule: >-
-      rule family="{{ 'ipv6' if ':' in hostvars[item].patroni_advertise_address else 'ipv4' }}"
-      source address="{{ hostvars[item].patroni_advertise_address }}"
+      rule family="{{ 'ipv6' if ':' in (hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host'])) else 'ipv4' }}"
+      source address="{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}"
       port port="{{ haproxy_backend_port }}" protocol="tcp" accept
     permanent: true
     state: enabled
