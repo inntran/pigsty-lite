@@ -112,6 +112,16 @@
     - repos_epel_enabled | bool
     - "'epel-release' not in ansible_facts.packages"
 
+# Prime EPEL metadata while the repo is reachable. EPEL is left disabled
+# below, so later `enablerepo=epel` installs (e.g. patroni -> python3-click)
+# would otherwise have to fetch metadata mid-transaction, which fails when
+# that on-the-fly refresh is incomplete. Must run before the disable step.
+- name: Refresh EPEL metadata while it is enabled
+  ansible.builtin.command:
+    cmd: "dnf --enablerepo={{ repos_epel_repo_id }} makecache"
+  changed_when: false
+  when: repos_epel_enabled | bool
+
 - name: Disable EPEL for normal dependency resolution
   ansible.builtin.command:
     cmd: "dnf config-manager --set-disabled {{ repos_epel_repo_id }}"
