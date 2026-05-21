@@ -19,6 +19,12 @@ See `defaults/main.yml`. The most important downstream contract is that
 `postgresql.data_dir`. Both roles consume `group_vars/postgres.yml` for this;
 do not override per-host unless you really mean it.
 
+`postgres_extension_packages` is a list of RPM package names to install on
+every PostgreSQL node after the server/contrib/libs packages. Use it for
+extension file packages such as `pgvector_{{ postgres_version }}`. This only
+makes extension files available; SQL extension creation is separate and remains
+driven by `postgres_extensions` in the provision role.
+
 ## SELinux
 
 Vendor data dir `/var/lib/pgsql/<ver>/data` carries `postgresql_db_t` by

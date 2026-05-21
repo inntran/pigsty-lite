@@ -23,8 +23,17 @@ postgres:
   port: 5432
   tune: oltp
   shared_buffer_ratio: 0.25
-  # P3 day-2 workflow: edit these declarative lists, then run make deploy.
-  extensions: [pg_stat_statements, pgvector]
+  # RPM packages providing extension files - installed on every PG node.
+  # Makes extensions available (CREATE EXTENSION is separate, see below).
+  # Values pass through Jinja, so "pgvector_{{ postgres_version }}" auto-syncs
+  # with the PG major version. Browse available packages for your platform at:
+  #   https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-10-x86_64/
+  extension_packages:
+    - "pgvector_{{ postgres_version }}"
+  # Extensions to CREATE EXTENSION, and in which database - run on the leader.
+  extensions:
+    - {name: vector, db: app}
+    - pg_stat_statements
   databases: [{name: app, owner: app}]
   users: []
   hba_rules:
