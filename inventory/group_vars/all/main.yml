@@ -4,8 +4,14 @@
 # defines the shared defaults all roles depend on.
 #
 # Variable precedence (low -> high):
-#   role defaults -> group_vars/all -> group_vars/<group> ->
-#   inventory host vars -> group_vars/response.yml -> --extra-vars
+#   role defaults -> group_vars/all/main.yml -> group_vars/all/response.yml
+#   -> group_vars/<group> -> inventory host vars -> --extra-vars
+#
+# response.yml is generated into group_vars/all/, so it overrides this
+# file but NOT group_vars/<group>.yml. To keep the operator's response
+# file authoritative, operator-tunable keys live ONLY in response.yml and
+# are never redeclared in a group file; the consuming role carries a
+# default() fallback instead. See docs/variables.md.
 
 # Identity ----------------------------------------------------------
 cluster_profile: "ha"

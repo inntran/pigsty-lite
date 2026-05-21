@@ -26,20 +26,14 @@ patroni_superuser_password: "{{ vault_patroni_superuser_password | default('post
 patroni_replication_password: "{{ vault_patroni_replication_password | default('replicator-dev-password-change-me') }}"
 patroni_rewind_password: "{{ vault_patroni_rewind_password | default('rewind-dev-password-change-me') }}"
 
-# Memory tuning ratio, surfaced to patroni_shared_buffer_ratio.
-postgres_shared_buffer_ratio: 0.25
-
-# Tuning profile file selected from roles/patroni/files/tuning/.
-postgres_tune_profile: oltp
-
-# Operator overrides applied after tuning profile.
-postgres_extra_parameters: {}
-
 # Connection layer (P2b)
-haproxy_rto_profile: norm
-haproxy_backend_target: pgbouncer
 haproxy_stats_user: pigsty
 haproxy_stats_password: "{{ vault_haproxy_stats_password | default('haproxy-dev-stats-change-me') }}"
 pgbouncer_admin_users: ["postgres"]
 pgbouncer_stats_users: ["postgres"]
-vip_manager_enabled: false
+
+# Operator-tunable knobs (postgres_shared_buffer_ratio, postgres_tune_profile,
+# postgres_extra_parameters, haproxy_rto_profile, haproxy_backend_target,
+# vip_manager_enabled) live ONLY in the generated all/response.yml. The
+# consuming roles each provide a default() / role default fallback, so this
+# group file does not redeclare them.
