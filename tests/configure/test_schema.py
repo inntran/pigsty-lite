@@ -100,6 +100,28 @@ def test_postgres_extensions_dict_requires_name():
         validate(data)
 
 
+def test_postgres_extension_packages_accepts_list_of_strings():
+    data = _load("spof.rsp.yml")
+    data["postgres"]["extension_packages"] = ["pgvector_{{ postgres_version }}"]
+    validate(data)
+
+
+def test_postgres_extension_packages_must_be_list():
+    data = _load("spof.rsp.yml")
+    data["postgres"]["extension_packages"] = "pgvector_18"
+    with pytest.raises(SchemaError, match=r"postgres\.extension_packages: must be a list"):
+        validate(data)
+
+
+def test_postgres_extension_packages_rejects_non_string_entries():
+    data = _load("spof.rsp.yml")
+    data["postgres"]["extension_packages"] = ["pgvector_18", 42]
+    with pytest.raises(
+        SchemaError, match=r"postgres\.extension_packages\[1\]: expected string"
+    ):
+        validate(data)
+
+
 def test_minor_upgrade_block_must_be_mapping():
     response = _minimal_spof_response()
     response["postgres"]["minor_upgrade"] = "soon"

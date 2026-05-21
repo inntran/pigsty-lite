@@ -205,6 +205,15 @@ def _validate_extensions(postgres: dict) -> None:
         raise SchemaError(f"{path}: must be a string or a mapping with at least 'name'")
 
 
+def _validate_extension_packages(postgres: dict) -> None:
+    packages = postgres.get("extension_packages", [])
+    if not isinstance(packages, list):
+        raise SchemaError("postgres.extension_packages: must be a list")
+    for index, package in enumerate(packages):
+        if not isinstance(package, str):
+            raise SchemaError(f"postgres.extension_packages[{index}]: expected string")
+
+
 def _validate_minor_upgrade(postgres: dict) -> None:
     minor_upgrade = postgres.get("minor_upgrade")
     if minor_upgrade is None:
@@ -236,6 +245,7 @@ def _validate_postgres(postgres: dict, ip_version: str) -> None:
     _validate_hba_rules(postgres, ip_version)
     _validate_users(postgres)
     _validate_databases(postgres)
+    _validate_extension_packages(postgres)
     _validate_extensions(postgres)
     _validate_minor_upgrade(postgres)
 
