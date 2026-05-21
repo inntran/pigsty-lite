@@ -27,7 +27,7 @@ def test_epel_is_installed_by_default_but_repo_is_disabled():
     # epel-release is always installed; repos_epel_enabled selects EPEL's
     # terminal state, and the safe default is disabled for normal resolution.
     assert defaults["repos_epel_enabled"] is False
-    assert defaults["repos_epel_repo_id"] == "epel"
+    assert defaults["epel_repo_id"] == "epel"
 
     disable_tasks = [
         task
@@ -39,4 +39,4 @@ def test_epel_is_installed_by_default_but_repo_is_disabled():
     # The task disables EPEL via `dnf config-manager --set-disabled`.
     cmd = disable_tasks[0]["ansible.builtin.command"]["cmd"]
     assert "config-manager --set-disabled" in cmd
-    assert "{{ repos_epel_repo_id }}" in cmd
+    assert "{{ epel_repo_id }}" in cmd

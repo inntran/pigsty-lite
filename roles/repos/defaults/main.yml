@@ -8,7 +8,8 @@ repos_vendor_enabled: true
 # epel-release + CRB are always installed; this flag only selects EPEL's
 # terminal state (false = disabled for normal resolution, the safe default).
 repos_epel_enabled: false
-repos_epel_repo_id: epel
+# dnf id of the EPEL repo; shared across roles, overridable in group_vars.
+epel_repo_id: epel
 repos_pigsty_enabled: false
 repos_pigsty_packages: []
 repos_pigsty_baseurl: "https://repo.pigsty.io/yum/infra/$basearch"

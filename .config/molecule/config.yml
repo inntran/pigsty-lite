@@ -14,5 +14,3 @@ provisioner:
         # role's default IP-SAN derivation picks an unresolvable string. Pin
         # the IP SAN to the container's actual default IPv4 address.
         certs_default_ip_san_address: "{{ ansible_facts['default_ipv4']['address'] }}"
-        # Alertmanager and other monitoring packages live in EPEL on EL10.
-        repos_epel_enabled: true

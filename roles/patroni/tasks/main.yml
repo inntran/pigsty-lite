@@ -7,7 +7,7 @@
   ansible.builtin.dnf:
     name: "{{ patroni_packages }}"
     state: present
-    enablerepo: epel
+    enablerepo: "{{ epel_repo_id }}"
   tags: [patroni, install]
 
 - name: Ensure postgres user can read shared PKI via the pigsty group

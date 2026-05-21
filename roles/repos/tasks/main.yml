@@ -119,7 +119,7 @@
 # when that on-the-fly refresh is incomplete.
 - name: Refresh EPEL metadata
   ansible.builtin.command:
-    cmd: "dnf --enablerepo={{ repos_epel_repo_id }} makecache"
+    cmd: "dnf --enablerepo={{ epel_repo_id }} makecache"
   changed_when: false
 
 # repos_epel_enabled selects EPEL's terminal state. When false (the default)
@@ -127,7 +127,7 @@
 # reach them via `enablerepo=epel`. When true, EPEL is left enabled.
 - name: Disable EPEL for normal dependency resolution
   ansible.builtin.command:
-    cmd: "dnf config-manager --set-disabled {{ repos_epel_repo_id }}"
+    cmd: "dnf config-manager --set-disabled {{ epel_repo_id }}"
   changed_when: false
   when: not (repos_epel_enabled | bool)
 

@@ -43,7 +43,10 @@ def test_nginx_proxy_prepare_uses_common_molecule_cert_san_config():
         assert "pre_tasks" not in play
 
 
-def test_monitoring_scenarios_enable_repos_for_alertmanager_package():
+def test_molecule_scenarios_do_not_pin_epel_repo_state():
+    """Roles reach EPEL packages via `enablerepo`, so no scenario (nor the
+    shared config) should pin repos_epel_enabled — molecule must exercise the
+    same disabled-by-default state production uses."""
     scenario_files = [
         "tests/molecule/grafana/molecule/default/molecule.yml",
         "tests/molecule/monitoring_agents/molecule/default/molecule.yml",
@@ -59,4 +62,4 @@ def test_monitoring_scenarios_enable_repos_for_alertmanager_package():
 
     config = _load_yaml(ROOT / ".config/molecule/config.yml")
     group_vars = config["provisioner"]["inventory"]["group_vars"]["all"]
-    assert group_vars["repos_epel_enabled"] is True
+    assert "repos_epel_enabled" not in group_vars

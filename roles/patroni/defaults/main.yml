@@ -9,6 +9,10 @@ patroni_packages:
   - patroni-etcd
   - python3-psycopg3
 
+# dnf id of the EPEL repo. Un-prefixed by design: shared across roles and
+# normally set in group_vars; this is the standalone fallback.
+epel_repo_id: epel
+
 # Filesystem
 patroni_config_dir: /etc/patroni
 patroni_config_file: "{{ patroni_config_dir }}/patroni.yml"

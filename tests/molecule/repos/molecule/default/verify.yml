@@ -32,7 +32,8 @@
     - name: EPEL disabled for normal dependency resolution
       ansible.builtin.assert:
         that:
-          - "'epel' not in repolist.stdout"
+          - "'epel' not in (repolist.stdout_lines | map('split') | map('first'))"
+        fail_msg: "EPEL is still enabled; repolist:\n{{ repolist.stdout }}"
 
     - name: Pigsty repo not present
       ansible.builtin.stat:

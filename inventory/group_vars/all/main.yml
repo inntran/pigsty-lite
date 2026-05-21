@@ -62,6 +62,9 @@ postgres_version: 18
 repos_pgdg_enabled: true
 repos_vendor_enabled: true
 repos_epel_enabled: false
+# dnf id of the EPEL repo, shared by every role that installs EPEL
+# packages via `enablerepo` (repos, patroni, monitoring_*).
+epel_repo_id: epel
 repos_pigsty_enabled: false
 repos_pigsty_packages: []
 
