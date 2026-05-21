@@ -9,6 +9,7 @@ exclude_paths:
 
 skip_list:
   - role-name  # we use single-word role names by design
+  - var-naming[no-role-prefix]  # shared vars (e.g. epel_repo_id) are intentionally cross-role
 
 warn_list: []
 
