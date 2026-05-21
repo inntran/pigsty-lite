@@ -11,6 +11,10 @@ postgres_support_packages:
   - python3-libselinux
   - policycoreutils-python-utils
 
+# Optional RPMs that provide PostgreSQL extension files. SQL extension creation
+# is separate and driven by postgres_extensions in the provision role.
+postgres_extension_packages: []
+
 # Filesystem (vendor defaults). group_vars/postgres.yml overrides these
 # in production; role defaults keep the role runnable in isolation
 # (e.g. molecule scenarios that don't redeclare the contract).

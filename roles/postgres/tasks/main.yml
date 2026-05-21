@@ -12,6 +12,13 @@
     state: present
   tags: [postgres, install]
 
+- name: Install PostgreSQL extension packages
+  ansible.builtin.dnf:
+    name: "{{ postgres_extension_packages }}"
+    state: present
+  when: postgres_extension_packages | length > 0
+  tags: [postgres, install]
+
 - name: Install support packages for SELinux management
   ansible.builtin.dnf:
     name: "{{ postgres_support_packages }}"
