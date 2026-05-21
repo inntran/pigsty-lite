@@ -14,6 +14,16 @@
           - pg_bin.stat.exists
           - pg_bin.stat.executable
 
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert pgvector extension RPM installed
+      ansible.builtin.assert:
+        that:
+          - "'pgvector_18' in ansible_facts.packages"
+        fail_msg: "pgvector_18 package was not installed"
+
     - name: List data dir contents
       ansible.builtin.command: ls -A /var/lib/pgsql/18/data
       register: data_dir_listing
