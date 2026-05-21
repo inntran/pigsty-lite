@@ -24,6 +24,7 @@
 - name: Import P2b haproxy playbook
   import_playbook: _haproxy.yml
   tags: [haproxy]
+  when: cluster_profile | default('ha') != 'spof'
 - name: Import P2b vip-manager playbook
   import_playbook: _vip_manager.yml
   tags: [vip_manager]
