@@ -31,3 +31,16 @@
       - provision_socket_dir.stat.isdir
     fail_msg: "PostgreSQL Unix socket dir {{ provision_osdba_socket_dir }} missing on {{ provision_leader_host }}."
   run_once: true
+
+- name: Every database owner is listed in postgres_users
+  ansible.builtin.assert:
+    that:
+      - item.owner | default(provision_osdba) in ['postgres'] + (postgres_users | default([]) | map(attribute='name') | list)
+    fail_msg: >-
+      Database '{{ item.name }}' has owner '{{ item.owner }}' which is not
+      listed in postgres_users. Add it before provisioning.
+  loop: "{{ postgres_databases | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.owner is defined
+  run_once: true
