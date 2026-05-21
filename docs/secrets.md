@@ -1,7 +1,7 @@
 # Secrets in pigsty-lite
 
 pigsty-lite stores all sensitive values in an ansible-vault encrypted
-file at `group_vars/all/vault.yml`. The vault passphrase lives in
+file at `inventory/group_vars/all/vault.yml`. The vault passphrase lives in
 `.pigsty/vault-pass` on the control node. Both paths are gitignored.
 
 `ansible.cfg` reads the passphrase via a small wrapper script
@@ -47,7 +47,7 @@ grafana_admin_password: >-
 Variable precedence (low → high):
 
 1. Role default (the line above) — production path; reads from vault.
-2. `group_vars/all/vault.yml` — vault layer; populated by `./configure`.
+2. `inventory/group_vars/all/vault.yml` — vault layer; populated by `./configure`.
 3. Inventory `group_vars` — test/dev override (e.g., `grafana_admin_password: grafana-test-pw`).
 
 If a test scenario sets the alias var (`grafana_admin_password`) directly,
@@ -60,7 +60,7 @@ the `mandatory` filter raises with the configured message — fail fast.
 
 ## Backup
 
-`group_vars/all/vault.yml` and `.pigsty/vault-pass` are **not** in git.
+`inventory/group_vars/all/vault.yml` and `.pigsty/vault-pass` are **not** in git.
 Losing the passphrase is unrecoverable — back both up out of band
 (password manager, encrypted USB, etc.).
 

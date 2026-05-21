@@ -52,7 +52,7 @@ These are out of scope by design — pigsty-lite is a PostgreSQL operator, not a
 | Role count | 11 | 28 |
 | Largest role size | ~150 lines | ~1,400 lines (pgsql) |
 | External collection dependencies | Heavy (Galaxy-first) | Light (mostly self-contained) |
-| Configuration variables | ~62 scalars in `group_vars/all.yml` | 200+ across 28 roles and 20+ profiles |
+| Configuration variables | ~62 scalars in `inventory/group_vars/all/` | 200+ across 28 roles and 20+ profiles |
 | Test strategy | Molecule (CI-friendly) | Manual sandbox VMs |
 | OS posture | SELinux enforcing, firewalld, vendor paths | SELinux disabled, custom paths |
 

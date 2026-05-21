@@ -59,7 +59,7 @@ Target hosts:
    make plan
    ```
 
-   `make plan` regenerates `inventory/site.yml` and `group_vars/response.yml`
+   `make plan` regenerates `inventory/site.yml` and `inventory/group_vars/all/response.yml`
    from the response file before running, so an edited `responses/site.rsp.yml`
    is never stale.
 
@@ -112,7 +112,7 @@ sudo -u postgres /usr/pgsql-18/bin/psql -h ::1 -U postgres -c '\l'
 Patroni passwords are not auto-generated in P2a. For now, override
 `patroni_superuser_password`, `patroni_replication_password`, and
 `patroni_rewind_password` via vault-encrypted inventory vars or
-`group_vars/response.yml`.
+`inventory/group_vars/all/response.yml`.
 
 ### connection layer (P2b)
 

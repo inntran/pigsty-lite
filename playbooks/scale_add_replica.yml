@@ -4,7 +4,7 @@
 #
 # Prerequisite: the operator has already added the new host to the
 # inventory (with postgres_role: pg_replica) and re-run
-# `./configure -s -f ...` so group_vars/response.yml and the host's
+# `./configure -s -f ...` so inventory/group_vars/all/response.yml and the host's
 # identity vars exist. This playbook then runs the install/bootstrap
 # path against that one host. Patroni handles the actual replica clone
 # when it starts.
