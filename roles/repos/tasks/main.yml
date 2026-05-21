@@ -78,8 +78,12 @@
   changed_when: false
   when: repos_pgdg_enabled | bool
 
+# CRB and EPEL are always installed: roles such as patroni, pgbackrest and
+# the monitoring stack pull packages (e.g. python3-click) that only exist in
+# EPEL, and reach them via `enablerepo=epel` regardless of repos_epel_enabled.
+# repos_epel_enabled controls only whether EPEL stays enabled for *normal*
+# dependency resolution (the disable step at the end of this file).
 - name: Enable CodeReady Builder (CRB) repository
-  when: repos_epel_enabled | bool
   block:
     - name: Enable CRB via subscription-manager (RHEL)
       ansible.builtin.command:
@@ -108,25 +112,24 @@
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
     state: present
     disable_gpg_check: true
-  when:
-    - repos_epel_enabled | bool
-    - "'epel-release' not in ansible_facts.packages"
+  when: "'epel-release' not in ansible_facts.packages"
 
-# Prime EPEL metadata while the repo is reachable. EPEL is left disabled
-# below, so later `enablerepo=epel` installs (e.g. patroni -> python3-click)
-# would otherwise have to fetch metadata mid-transaction, which fails when
-# that on-the-fly refresh is incomplete. Must run before the disable step.
-- name: Refresh EPEL metadata while it is enabled
+# Prime EPEL metadata so later `enablerepo=epel` installs (e.g. patroni ->
+# python3-click) do not have to fetch metadata mid-transaction, which fails
+# when that on-the-fly refresh is incomplete.
+- name: Refresh EPEL metadata
   ansible.builtin.command:
     cmd: "dnf --enablerepo={{ repos_epel_repo_id }} makecache"
   changed_when: false
-  when: repos_epel_enabled | bool
 
+# repos_epel_enabled selects EPEL's terminal state. When false (the default)
+# EPEL is disabled for normal resolution; roles that need EPEL packages still
+# reach them via `enablerepo=epel`. When true, EPEL is left enabled.
 - name: Disable EPEL for normal dependency resolution
   ansible.builtin.command:
     cmd: "dnf config-manager --set-disabled {{ repos_epel_repo_id }}"
   changed_when: false
-  when: repos_epel_enabled | bool
+  when: not (repos_epel_enabled | bool)
 
 - name: Render /etc/yum.repos.d/pigsty.repo
   ansible.builtin.template:
