@@ -29,8 +29,16 @@ def test_postgres_keys_namespaced():
     assert out["postgres_port"] == 5432
     assert out["postgres_tune_profile"] == "oltp"
     assert out["postgres_shared_buffer_ratio"] == 0.25
+    assert out["postgres_extension_packages"] == []
     assert out["postgres_extensions"] == ["pg_stat_statements", "pgvector"]
     assert out["postgres_databases"] == [{"name": "app", "owner": "app"}]
+
+
+def test_postgres_extension_packages_pass_through():
+    data = _load("ha.rsp.yml")
+    data["postgres"]["extension_packages"] = ["pgvector_{{ postgres_version }}"]
+    out = yaml.safe_load(generate(data))
+    assert out["postgres_extension_packages"] == ["pgvector_{{ postgres_version }}"]
 
 
 def test_firewall_keys_promoted_to_top_level():

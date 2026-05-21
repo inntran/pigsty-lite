@@ -81,6 +81,7 @@ def generate(response: dict[str, Any]) -> str:
         "postgres_port": postgres["port"],
         "postgres_tune_profile": postgres["tune"],
         "postgres_shared_buffer_ratio": postgres.get("shared_buffer_ratio", 0.25),
+        "postgres_extension_packages": postgres.get("extension_packages", []),
         "postgres_extensions": postgres.get("extensions", []),
         "postgres_databases": postgres.get("databases", []),
         "postgres_users": postgres.get("users", []),
