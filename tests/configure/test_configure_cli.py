@@ -172,9 +172,7 @@ def test_interactive_prompts_for_db_routing(monkeypatch, tmp_path):
     rc = module.cmd_interactive(argparse.Namespace(profile="ha", no_vault=True))
 
     assert rc == 0
-    routing = yaml.safe_load(
-        (tmp_path / "responses" / "site.rsp.yml").read_text()
-    )["db_routing"]
+    routing = yaml.safe_load((tmp_path / "responses" / "site.rsp.yml").read_text())["db_routing"]
     assert routing["haproxy"] == {"rto_profile": "tight", "backend_target": "postgres"}
     assert routing["vip_manager"] == {
         "enabled": True,

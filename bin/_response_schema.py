@@ -298,14 +298,10 @@ def _validate_db_routing(value: Any, ip_version: str) -> None:
         cidr = vip.get("vip_cidr")
         iface = vip.get("interface")
         if not isinstance(cidr, str) or not cidr:
-            raise SchemaError(
-                "db_routing.vip_manager.enabled=true requires vip_cidr (string)"
-            )
+            raise SchemaError("db_routing.vip_manager.enabled=true requires vip_cidr (string)")
         _check_cidr(cidr, "db_routing.vip_manager.vip_cidr", ip_version)
         if not isinstance(iface, str) or not iface:
-            raise SchemaError(
-                "db_routing.vip_manager.enabled=true requires interface (string)"
-            )
+            raise SchemaError("db_routing.vip_manager.enabled=true requires interface (string)")
 
 
 def _validate_monitoring(monitoring: dict) -> None:
