@@ -46,7 +46,7 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "dba"])
+    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -74,7 +74,7 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "dba"])
+    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -101,7 +101,7 @@ def test_interactive_prompts_for_remote_user(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "ansible-svc"])
+    answers = iter(["pg-dev", "example.internal", "ansible-svc", "norm", "pgbouncer", "n"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -128,7 +128,7 @@ def test_interactive_remote_user_defaults_to_dba(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", ""])
+    answers = iter(["pg-dev", "example.internal", "", "norm", "pgbouncer", "n"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -136,3 +136,48 @@ def test_interactive_remote_user_defaults_to_dba(monkeypatch, tmp_path):
     assert rc == 0
     data = yaml.safe_load((tmp_path / "responses" / "site.rsp.yml").read_text())
     assert data["access"]["ansible_user"] == "dba"
+
+
+def test_interactive_prompts_for_db_routing(monkeypatch, tmp_path):
+    """The db_routing prompts write haproxy + vip-manager settings."""
+    module = _load_configure_module()
+    (tmp_path / "responses").mkdir()
+    (tmp_path / "responses" / "ha.rsp.yml.example").write_text(
+        (ROOT / "responses" / "ha.rsp.yml.example").read_text()
+    )
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
+    monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
+    monkeypatch.setattr(sys, "stdin", _TtyStdin())
+    answers = iter(
+        [
+            "pg-dev",
+            "example.internal",
+            "dba",
+            "tight",
+            "postgres",
+            "y",
+            "10.20.30.20/24",
+            "eth0",
+        ]
+    )
+    monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
+
+    rc = module.cmd_interactive(argparse.Namespace(profile="ha", no_vault=True))
+
+    assert rc == 0
+    routing = yaml.safe_load(
+        (tmp_path / "responses" / "site.rsp.yml").read_text()
+    )["db_routing"]
+    assert routing["haproxy"] == {"rto_profile": "tight", "backend_target": "postgres"}
+    assert routing["vip_manager"] == {
+        "enabled": True,
+        "vip_cidr": "10.20.30.20/24",
+        "interface": "eth0",
+    }

@@ -135,7 +135,7 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
   that intentionally target HAProxy should use this dedicated local
   address rather than raw PostgreSQL's `127.0.0.1`.
 - `_vip_manager.yml` (vip-manager role) is a no-op unless the operator
-  sets `connection_layer.vip_manager.enabled: true` in the response
+  sets `db_routing.vip_manager.enabled: true` in the response
   file. When enabled, it installs `vip-manager` from PGDG-extras,
   renders `/etc/vip-manager.yml` pointing at the etcd cluster, and
   binds the configured VIP to the configured interface on whichever
@@ -162,7 +162,7 @@ A failover triggered by `patronictl switchover` is invisible to clients
 hitting 5432 or 5433 after a few seconds (HAProxy detects the leader
 change via Patroni REST and re-routes). RTO target ~45s under the
 default `norm` profile; tighten via
-`connection_layer.haproxy.rto_profile: tight` if you want sub-15s at
+`db_routing.haproxy.rto_profile: tight` if you want sub-15s at
 the cost of more false-positive health-check flapping.
 
 ### vip-manager (optional)
@@ -171,7 +171,7 @@ To enable:
 
 ```yaml
 # In responses/site.rsp.yml
-connection_layer:
+db_routing:
   vip_manager:
     enabled: true
     vip_cidr: "10.20.30.20/24"

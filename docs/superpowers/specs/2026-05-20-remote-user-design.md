@@ -29,7 +29,7 @@ We want:
 
 ## Naming note
 
-The response file already has a `connection_layer` section (HAProxy / VIP
+The response file already has a `db_routing` section (HAProxy / VIP
 manager). To avoid confusion with that unrelated section, the new section is
 named **`access`**, not `connection`.
 

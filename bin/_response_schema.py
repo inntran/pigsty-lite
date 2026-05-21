@@ -269,42 +269,42 @@ ALLOWED_HAPROXY_RTO = {"tight", "norm", "loose"}
 ALLOWED_HAPROXY_BACKEND = {"pgbouncer", "postgres"}
 
 
-def _validate_connection_layer(value: Any, ip_version: str) -> None:
+def _validate_db_routing(value: Any, ip_version: str) -> None:
     if value is None:
         return
     if not isinstance(value, dict):
-        raise SchemaError("connection_layer: must be a mapping")
+        raise SchemaError("db_routing: must be a mapping")
     haproxy = value.get("haproxy", {})
     if not isinstance(haproxy, dict):
-        raise SchemaError("connection_layer.haproxy: must be a mapping")
+        raise SchemaError("db_routing.haproxy: must be a mapping")
     rto = haproxy.get("rto_profile", "norm")
     if rto not in ALLOWED_HAPROXY_RTO:
         raise SchemaError(
-            f"connection_layer.haproxy.rto_profile: '{rto}' not in {sorted(ALLOWED_HAPROXY_RTO)}"
+            f"db_routing.haproxy.rto_profile: '{rto}' not in {sorted(ALLOWED_HAPROXY_RTO)}"
         )
     backend = haproxy.get("backend_target", "pgbouncer")
     if backend not in ALLOWED_HAPROXY_BACKEND:
         raise SchemaError(
-            f"connection_layer.haproxy.backend_target: '{backend}' not in "
+            f"db_routing.haproxy.backend_target: '{backend}' not in "
             f"{sorted(ALLOWED_HAPROXY_BACKEND)}"
         )
     vip = value.get("vip_manager", {})
     if not isinstance(vip, dict):
-        raise SchemaError("connection_layer.vip_manager: must be a mapping")
+        raise SchemaError("db_routing.vip_manager: must be a mapping")
     enabled = vip.get("enabled", False)
     if not isinstance(enabled, bool):
-        raise SchemaError("connection_layer.vip_manager.enabled: must be bool")
+        raise SchemaError("db_routing.vip_manager.enabled: must be bool")
     if enabled:
         cidr = vip.get("vip_cidr")
         iface = vip.get("interface")
         if not isinstance(cidr, str) or not cidr:
             raise SchemaError(
-                "connection_layer.vip_manager.enabled=true requires vip_cidr (string)"
+                "db_routing.vip_manager.enabled=true requires vip_cidr (string)"
             )
-        _check_cidr(cidr, "connection_layer.vip_manager.vip_cidr", ip_version)
+        _check_cidr(cidr, "db_routing.vip_manager.vip_cidr", ip_version)
         if not isinstance(iface, str) or not iface:
             raise SchemaError(
-                "connection_layer.vip_manager.enabled=true requires interface (string)"
+                "db_routing.vip_manager.enabled=true requires interface (string)"
             )
 
 
@@ -441,4 +441,4 @@ def validate(data: Any) -> None:
     _validate_firewall(_require(data, "firewall", ""), ip_version)
     _validate_monitoring(_require(data, "monitoring", ""))
     _validate_backup(data.get("backup"))
-    _validate_connection_layer(data.get("connection_layer"), ip_version)
+    _validate_db_routing(data.get("db_routing"), ip_version)

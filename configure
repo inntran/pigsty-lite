@@ -43,6 +43,24 @@ def _load_yaml(path: Path) -> dict:
         return yaml.safe_load(fh)
 
 
+def _prompt_choice(label: str, choices: tuple[str, ...], default: str) -> str:
+    """Prompt until the answer is one of choices; empty input keeps default."""
+    options = "|".join(choices)
+    while True:
+        answer = input(f"{label} ({options}) [{default}]: ").strip() or default
+        if answer in choices:
+            return answer
+        print(f"  '{answer}' is not one of {options}; try again.")
+
+
+def _prompt_yes_no(label: str, default: bool = False) -> bool:
+    suffix = "Y/n" if default else "y/N"
+    answer = input(f"{label} ({suffix}): ").strip().lower()
+    if not answer:
+        return default
+    return answer in ("y", "yes")
+
+
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content)
@@ -181,6 +199,21 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     cluster_domain = input("Cluster domain [example.internal]: ").strip() or "example.internal"
     remote_user = input("Remote user [dba]: ").strip() or "dba"
 
+    print()
+    print("Database routing (HAProxy + vip-manager):")
+    rto_profile = _prompt_choice(
+        "  HAProxy RTO profile", ("tight", "norm", "loose"), "norm"
+    )
+    backend_target = _prompt_choice(
+        "  HAProxy backend target", ("pgbouncer", "postgres"), "pgbouncer"
+    )
+    vip_enabled = _prompt_yes_no("  Enable vip-manager (leader-bound VIP)", default=False)
+    vip_cidr = ""
+    vip_interface = ""
+    if vip_enabled:
+        vip_cidr = input("    VIP CIDR (e.g. 10.20.30.20/24): ").strip()
+        vip_interface = input("    VIP interface [eth0]: ").strip() or "eth0"
+
     example_name = f"{profile}.rsp.yml.example"
     example_path = ROOT / "responses" / example_name
     if not example_path.exists():
@@ -191,6 +224,16 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     data["cluster"]["name"] = cluster_name
     data["cluster"]["domain"] = cluster_domain
     data["access"] = {"ansible_user": remote_user}
+    data["db_routing"] = {
+        "haproxy": {
+            "rto_profile": rto_profile,
+            "backend_target": backend_target,
+        },
+        "vip_manager": {"enabled": vip_enabled},
+    }
+    if vip_enabled:
+        data["db_routing"]["vip_manager"]["vip_cidr"] = vip_cidr
+        data["db_routing"]["vip_manager"]["interface"] = vip_interface
 
     try:
         validate(data)

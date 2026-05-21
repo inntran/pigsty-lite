@@ -103,7 +103,7 @@ def generate(response: dict[str, Any]) -> str:
     }
     out.update(_flatten_backup(response.get("backup", {})))
 
-    conn = response.get("connection_layer", {}) or {}
+    conn = response.get("db_routing", {}) or {}
     hap = conn.get("haproxy", {}) or {}
     vip = conn.get("vip_manager", {}) or {}
 
