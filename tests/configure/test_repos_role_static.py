@@ -24,7 +24,9 @@ def test_epel_is_installed_by_default_but_repo_is_disabled():
     defaults = _load_yaml("roles/repos/defaults/main.yml")
     tasks = _load_yaml("roles/repos/tasks/main.yml")
 
-    assert defaults["repos_epel_enabled"] is True
+    # epel-release is always installed; repos_epel_enabled selects EPEL's
+    # terminal state, and the safe default is disabled for normal resolution.
+    assert defaults["repos_epel_enabled"] is False
     assert defaults["repos_epel_repo_id"] == "epel"
 
     disable_tasks = [
