@@ -1,4 +1,4 @@
-"""group_vars/response.yml generator: response dict -> Ansible vars YAML."""
+"""inventory/group_vars/all/response.yml generator: response dict -> Ansible vars YAML."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def _flatten_backup(backup: dict[str, Any]) -> dict[str, Any]:
 
 
 def generate(response: dict[str, Any]) -> str:
-    """Produce group_vars/response.yml content from a validated response dict."""
+    """Produce inventory/group_vars/all/response.yml content from a validated response dict."""
     postgres = response["postgres"]
     tls = response["tls"]
     monitoring = response["monitoring"]

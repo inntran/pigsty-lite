@@ -101,7 +101,7 @@ test:
 	fi
 
 clean:
-	rm -rf inventory/site.yml group_vars/response.yml .ansible/
+	rm -rf inventory/site.yml inventory/group_vars/all/response.yml .ansible/
 	find tests/molecule -path '*/_tmp*' -exec rm -rf {} +
 	find . -name __pycache__ -type d -exec rm -rf {} +
 	find . -name '*.pyc' -type f -delete

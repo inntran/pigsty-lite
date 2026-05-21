@@ -11,7 +11,7 @@ The interactive wizard writes only the response file (the source of truth):
   responses/site.rsp.yml
 Silent mode (-s -f) also generates the derived files:
   inventory/site.yml
-  group_vars/response.yml
+  inventory/group_vars/all/response.yml
 Regenerate the derived files any time with `make regen`.
 """
 
@@ -32,9 +32,9 @@ from bin._response_schema import SchemaError, validate  # noqa: E402
 from bin import _passwords, _vault  # noqa: E402
 
 INVENTORY_PATH = ROOT / "inventory" / "site.yml"
-RESPONSE_VARS_PATH = ROOT / "group_vars" / "response.yml"
+RESPONSE_VARS_PATH = ROOT / "inventory" / "group_vars" / "all" / "response.yml"
 RESPONSE_FILE_PATH = ROOT / "responses" / "site.rsp.yml"
-VAULT_PATH = ROOT / "group_vars" / "all" / "vault.yml"
+VAULT_PATH = ROOT / "inventory" / "group_vars" / "all" / "vault.yml"
 VAULT_PASSPHRASE_PATH = ROOT / ".pigsty" / "vault-pass"
 
 
@@ -199,8 +199,9 @@ def cmd_interactive(args: argparse.Namespace) -> int:
         return 2
 
     # The wizard only writes the response file (the source of truth).
-    # inventory/site.yml and group_vars/response.yml are derived; they are
-    # generated from the response file by `make regen` (and by `-s -f`).
+    # inventory/site.yml and inventory/group_vars/all/response.yml are
+    # derived; they are generated from the response file by `make regen`
+    # (and by `-s -f`).
     RESPONSE_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with RESPONSE_FILE_PATH.open("w") as fh:
         yaml.safe_dump(data, fh, sort_keys=False, explicit_start=True)
@@ -213,7 +214,8 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     print(
         "Edit responses/site.rsp.yml to fill IPv4/IPv6 IPs, then: make plan\n"
         "(make plan/deploy regenerate inventory/site.yml and"
-        " group_vars/response.yml from the response file automatically)"
+        " inventory/group_vars/all/response.yml from the response file"
+        " automatically)"
     )
     print()
     contract_lines = [
