@@ -97,7 +97,7 @@ def test_grafana_role_no_longer_references_grafana_version_variable():
 
 
 def test_monitor_group_vars_does_not_pin_legacy_grafana_version():
-    monitor_vars = _load_yaml("group_vars/monitor.yml") or {}
+    monitor_vars = _load_yaml("inventory/group_vars/monitor.yml") or {}
     assert "grafana_version" not in monitor_vars
 
 

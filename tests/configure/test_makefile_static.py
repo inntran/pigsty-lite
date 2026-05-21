@@ -35,7 +35,7 @@ def test_test_role_fail_fast_zero_enables_task_level_continue_mode():
 def test_clean_removes_only_rebuildable_generated_artifacts():
     makefile = _makefile()
 
-    assert ("rm -rf inventory/site.yml group_vars/response.yml .ansible/") in makefile
+    assert ("rm -rf inventory/site.yml inventory/group_vars/all/response.yml .ansible/") in makefile
     assert "find tests/molecule -path '*/_tmp*' -exec rm -rf {} +" in makefile
     assert "find . -name __pycache__ -type d -exec rm -rf {} +" in makefile
     assert "find . -name '*.pyc' -type f -delete" in makefile

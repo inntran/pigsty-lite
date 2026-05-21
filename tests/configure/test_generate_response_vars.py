@@ -1,4 +1,4 @@
-"""Tests for group_vars/response.yml generator."""
+"""Tests for inventory/group_vars/all/response.yml generator."""
 
 from __future__ import annotations
 

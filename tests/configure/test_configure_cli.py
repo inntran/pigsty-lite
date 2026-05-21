@@ -40,7 +40,11 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
-    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
     answers = iter(["pg-dev", "example.internal", "dba"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
@@ -64,7 +68,11 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
-    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
     answers = iter(["pg-dev", "example.internal", "dba"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
@@ -73,7 +81,7 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
 
     assert rc == 0
     assert not (tmp_path / "inventory" / "site.yml").exists()
-    assert not (tmp_path / "group_vars" / "response.yml").exists()
+    assert not (tmp_path / "inventory" / "group_vars" / "all" / "response.yml").exists()
 
 
 def test_interactive_prompts_for_remote_user(monkeypatch, tmp_path):
@@ -87,7 +95,11 @@ def test_interactive_prompts_for_remote_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
-    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
     answers = iter(["pg-dev", "example.internal", "ansible-svc"])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
@@ -110,7 +122,11 @@ def test_interactive_remote_user_defaults_to_dba(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
     monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
-    monkeypatch.setattr(module, "RESPONSE_VARS_PATH", tmp_path / "group_vars" / "response.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
     answers = iter(["pg-dev", "example.internal", ""])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
