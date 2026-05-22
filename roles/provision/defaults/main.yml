@@ -31,5 +31,7 @@ provision_pg_hba_system_rules:
   - { contype: host, databases: all, users: postgres, source_addr: 127.0.0.1/32, method: trust }
   - { contype: host, databases: replication, users: "{{ patroni_replication_user | default('replicator') }}", source_addr: 127.0.0.1/32, method: trust }
   - { contype: hostssl, databases: replication, users: "{{ patroni_replication_user | default('replicator') }}", source_addr: 0.0.0.0/0, method: cert }
+  - { contype: host, databases: postgres, users: "{{ patroni_rewind_user | default('rewind_user') }}", source_addr: 127.0.0.1/32, method: trust }
+  - { contype: hostssl, databases: postgres, users: "{{ patroni_rewind_user | default('rewind_user') }}", source_addr: 0.0.0.0/0, method: scram-sha-256 }
 # Monitor rule: pg_monitor user from the monitor host. Empty until P5.
 provision_pg_hba_monitor_rules: []
