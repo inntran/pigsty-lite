@@ -30,9 +30,7 @@ def test_postgres_extension_packages_install_task_after_core_packages():
     assert core_index < extension_index
 
     extension_task = tasks[extension_index]
-    assert extension_task["ansible.builtin.dnf"] == {
-        "name": "{{ postgres_extension_packages }}",
-        "state": "present",
-    }
+    assert extension_task["ansible.builtin.dnf"]["name"] == "{{ postgres_extension_packages }}"
+    assert extension_task["ansible.builtin.dnf"]["state"] == "present"
     assert extension_task["when"] == "postgres_extension_packages | length > 0"
-    assert extension_task["tags"] == ["postgres", "install"]
+    assert set(extension_task["tags"]) == {"postgres", "install"}

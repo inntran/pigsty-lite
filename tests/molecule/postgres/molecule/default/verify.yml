@@ -21,8 +21,8 @@
     - name: Assert pgvector extension RPM installed
       ansible.builtin.assert:
         that:
-          - "'pgvector_18' in ansible_facts.packages"
-        fail_msg: "pgvector_18 package was not installed"
+          - "'pgvector_' ~ postgres_version in ansible_facts.packages"
+        fail_msg: "pgvector_{{ postgres_version }} package was not installed"
 
     - name: List data dir contents
       ansible.builtin.command: ls -A /var/lib/pgsql/18/data
