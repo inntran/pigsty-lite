@@ -5,7 +5,7 @@
 # and vlagent bind loopback-only and remote_write/ship to the monitor.
 
 # Exporters - packages
-monitoring_agents_node_exporter_package: golang-github-prometheus-node-exporter
+monitoring_agents_node_exporter_package: node-exporter
 monitoring_agents_postgres_exporter_package: postgres_exporter
 monitoring_agents_pgbouncer_exporter_package: pgbouncer_exporter
 monitoring_agents_pgbackrest_exporter_package: pgbackrest_exporter
@@ -36,6 +36,7 @@ monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }
 monitoring_agents_vmagent_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vmagent_port | default(8429) }}"
 monitoring_agents_vmagent_remote_write_url: "http://{{ hostvars[monitoring_host].ansible_host }}:{{ vmsingle_port | default(8428) }}/api/v1/write"
 monitoring_agents_vmagent_buffer_dir: /var/lib/vmagent
+monitoring_agents_vlagent_buffer_dir: /var/lib/vlagent
 monitoring_agents_scrape_interval: "{{ monitoring_scrape_interval | default('15s') }}"
 
 # vlagent (log shipping)

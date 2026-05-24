@@ -25,7 +25,7 @@ nginx_proxy_byo_key: ""
 nginx_proxy_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
 nginx_proxy_http_port: 80
 nginx_proxy_https_port: 443
-nginx_proxy_server_name: "{{ cluster_domain }}"
+nginx_proxy_server_name: "{{ inventory_hostname }}.{{ cluster_domain }} {{ cluster_name }}.{{ cluster_domain }}"
 
 # Upstreams (loopback)
 nginx_proxy_grafana_upstream: "{{ network_loopback_address | default('127.0.0.1') }}:{{ grafana_default_port | default(3000) }}"

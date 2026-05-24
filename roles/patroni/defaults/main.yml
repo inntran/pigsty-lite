@@ -78,6 +78,11 @@ patroni_systemd_dropin_file: "{{ patroni_systemd_dropin_dir }}/10-pigsty-lite.co
 patroni_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 patroni_firewalld_service_name: patroni-rest
 
+# pg_hba management
+# When true, Patroni writes pg_hba.conf via postgresql.pg_hba on every
+# reconcile loop. Set to false (default) to let roles/provision manage it.
+patroni_pg_hba_managed: false
+
 # Health gates
 patroni_leader_wait_retries: "{{ (patroni_bootstrap_timeout_seconds | int) // 5 }}"
 patroni_leader_wait_delay: 5

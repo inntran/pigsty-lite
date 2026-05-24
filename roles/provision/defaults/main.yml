@@ -23,7 +23,7 @@ provision_osdba_socket_dir: /var/run/postgresql
 provision_extensions_in_db: postgres
 
 # pg_hba.conf management
-provision_pg_hba_managed: true
+provision_pg_hba_managed: "{{ not (patroni_pg_hba_managed | default(false) | bool) }}"
 provision_pg_hba_path: "{{ patroni_postgres_data_dir | default('/var/lib/pgsql/' ~ postgres_version ~ '/data') }}/pg_hba.conf"
 # System rules always present at the top.
 provision_pg_hba_system_rules:

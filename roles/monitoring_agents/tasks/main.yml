@@ -26,20 +26,20 @@
           agents need it to verify the monitor host's TLS. Run the P0
           _node.yml playbook (certs role) first.
 
-- name: Install and configure exporters
-  ansible.builtin.import_tasks: _exporters.yml
-  tags: [monitoring, install]
+#- name: Install and configure exporters
+#  ansible.builtin.import_tasks: _exporters.yml
+#  tags: [monitoring, install]
 
 - name: Install and configure vmagent
   tags: [monitoring, config]
   block:
-    - name: Ensure the vmagent buffer directory exists
+    - name: Ensure the vmagent config directory exists
       ansible.builtin.file:
-        path: "{{ monitoring_agents_vmagent_buffer_dir }}"
+        path: /etc/vmagent
         state: directory
         owner: root
         group: root
-        mode: "0750"
+        mode: "0755"
 
     - name: Render the vmagent scrape config
       ansible.builtin.template:
@@ -64,28 +64,60 @@
           "remoteWrite.tmpDataPath": "{{ monitoring_agents_vmagent_buffer_dir }}"
           "remoteWrite.streamAggr.config": "{{ vmagent_config_dir }}/aggregation.yml"
 
+    - name: Ensure the vmagent buffer directory is owned by the service user
+      # vic_vm_agent is the default vmagent_system_user in victoriametrics.cluster.vmagent;
+      # include_role variables don't leak back, so we can't reference vmagent_system_user here.
+      ansible.builtin.file:
+        path: "{{ monitoring_agents_vmagent_buffer_dir }}"
+        state: directory
+        owner: vic_vm_agent
+        group: vic_vm_agent
+        mode: "0750"
+
+    - name: Restore SELinux context on vmagent binary
+      ansible.builtin.command: restorecon -v /usr/local/bin/vmagent-prod
+      changed_when: false
+
 - name: Install and configure vlagent
   tags: [monitoring, config]
   block:
-    - name: Render the vlagent config
-      ansible.builtin.template:
-        src: vlagent-config.yml.j2
-        dest: /etc/vlagent/config.yml
-        owner: root
-        group: root
-        mode: "0644"
-
     - name: Install and configure vlagent
       ansible.builtin.include_role:
         name: victoriametrics.cluster.vlagent
       vars:
+        # vlagent has no config file format; everything is CLI flags.
+        # Array-typed flags accept a YAML list — the upstream service template
+        # renders each list item as a separate --flag=value argument.
         vlagent_service_args:
           httpListenAddr: "{{ monitoring_agents_vlagent_listen }}"
           "remoteWrite.url": "{{ monitoring_agents_vlagent_remote_write_url }}"
           "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
-          "syslog.listenAddr.tcp": ""
-          "configPath": /etc/vlagent/config.yml
+          "remoteWrite.tmpDataPath": "{{ monitoring_agents_vlagent_buffer_dir }}"
+          "journald.streamFields": "hostname"
+          "fileCollector.glob": >-
+            {{ [
+                '/var/lib/pgsql/' ~ (postgres_version | default('16')) ~ '/data/log/*.log',
+                '/var/log/patroni/*.log'
+               ]
+               if inventory_hostname in groups.get('postgres', [])
+               else [] }}
+          "fileCollector.extraFields": '{"cluster":"{{ cluster_name }}","instance":"{{ inventory_hostname }}"}'
+          "fileCollector.streamFields": "cluster,instance"
 
-- name: Open firewalld for exporters
-  ansible.builtin.import_tasks: _firewall.yml
-  tags: [monitoring, firewall]
+    - name: Ensure the vlagent buffer directory is owned by the service user
+      # vic_vl_agent is the default vlagent_system_user in victoriametrics.cluster.vlagent;
+      # include_role variables don't leak back, so we can't reference vlagent_system_user here.
+      ansible.builtin.file:
+        path: "{{ monitoring_agents_vlagent_buffer_dir }}"
+        state: directory
+        owner: vic_vl_agent
+        group: vic_vl_agent
+        mode: "0750"
+
+    - name: Restore SELinux context on vlagent binary
+      ansible.builtin.command: restorecon -v /usr/local/bin/vlagent-prod
+      changed_when: false
+
+#- name: Open firewalld for exporters
+#  ansible.builtin.import_tasks: _firewall.yml
+#  tags: [monitoring, firewall]
