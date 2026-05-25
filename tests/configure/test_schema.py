@@ -116,9 +116,7 @@ def test_postgres_extension_packages_must_be_list():
 def test_postgres_extension_packages_rejects_non_string_entries():
     data = _load("spof.rsp.yml")
     data["postgres"]["extension_packages"] = ["pgvector_18", 42]
-    with pytest.raises(
-        SchemaError, match=r"postgres\.extension_packages\[1\]: expected string"
-    ):
+    with pytest.raises(SchemaError, match=r"postgres\.extension_packages\[1\]: expected string"):
         validate(data)
 
 
