@@ -101,7 +101,7 @@
                ]
                if inventory_hostname in groups.get('postgres', [])
                else [] }}
-          "fileCollector.extraFields": '{"cluster":"{{ cluster_name }}","instance":"{{ inventory_hostname }}"}'
+          "fileCollector.extraFields": '{\"cluster\":\"{{ cluster_name }}\",\"instance\":\"{{ inventory_hostname }}\"}'
           "fileCollector.streamFields": "cluster,instance"
 
     - name: Ensure the vlagent buffer directory is owned by the service user
