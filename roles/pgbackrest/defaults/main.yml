@@ -8,6 +8,9 @@ pgbackrest_support_packages:
   - python3-libselinux
   - policycoreutils-python-utils
 
+# Shared cross-role var — also declared here so the role works standalone (e.g. molecule).
+epel_repo_id: epel
+
 pgbackrest_stanza: "{{ backup_stanza | default('pigsty') }}"
 pgbackrest_repo_path: /var/lib/pgbackrest
 pgbackrest_log_path: /var/log/pgbackrest
