@@ -26,9 +26,9 @@
           agents need it to verify the monitor host's TLS. Run the P0
           _node.yml playbook (certs role) first.
 
-#- name: Install and configure exporters
-#  ansible.builtin.import_tasks: _exporters.yml
-#  tags: [monitoring, install]
+# - name: Install and configure exporters
+#   ansible.builtin.import_tasks: _exporters.yml
+#   tags: [monitoring, install]
 
 - name: Install and configure vmagent
   tags: [monitoring, config]
@@ -118,6 +118,6 @@
       ansible.builtin.command: restorecon -v /usr/local/bin/vlagent-prod
       changed_when: false
 
-#- name: Open firewalld for exporters
-#  ansible.builtin.import_tasks: _firewall.yml
-#  tags: [monitoring, firewall]
+# - name: Open firewalld for exporters
+#   ansible.builtin.import_tasks: _firewall.yml
+#   tags: [monitoring, firewall]
