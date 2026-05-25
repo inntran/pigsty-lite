@@ -2,7 +2,7 @@
 - name: Install pgBackRest and SELinux helpers
   ansible.builtin.dnf:
     name: "{{ [pgbackrest_package] + pgbackrest_support_packages }}"
-    enablerepo: "{{ epel_repo_id }}" 
+    enablerepo: "{{ epel_repo_id }}"
     state: present
 
 - name: Ensure pgbackrest daemon user can read shared PKI via the pigsty group
