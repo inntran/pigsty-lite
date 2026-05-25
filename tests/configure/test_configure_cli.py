@@ -46,7 +46,7 @@ def test_interactive_response_file_starts_with_document_marker(monkeypatch, tmp_
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n"])
+    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n", ""])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -74,7 +74,7 @@ def test_interactive_does_not_generate_derived_files(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n"])
+    answers = iter(["pg-dev", "example.internal", "dba", "norm", "pgbouncer", "n", ""])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -101,7 +101,7 @@ def test_interactive_prompts_for_remote_user(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "ansible-svc", "norm", "pgbouncer", "n"])
+    answers = iter(["pg-dev", "example.internal", "ansible-svc", "norm", "pgbouncer", "n", ""])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -128,7 +128,7 @@ def test_interactive_remote_user_defaults_to_dba(monkeypatch, tmp_path):
         tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
     )
     monkeypatch.setattr(sys, "stdin", _TtyStdin())
-    answers = iter(["pg-dev", "example.internal", "", "norm", "pgbouncer", "n"])
+    answers = iter(["pg-dev", "example.internal", "", "norm", "pgbouncer", "n", ""])
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
 
     rc = module.cmd_interactive(argparse.Namespace(profile="spof", no_vault=True))
@@ -165,6 +165,7 @@ def test_interactive_prompts_for_db_routing(monkeypatch, tmp_path):
             "y",
             "10.20.30.20/24",
             "eth0",
+            "",
         ]
     )
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))

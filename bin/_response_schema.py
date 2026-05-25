@@ -9,6 +9,7 @@ from __future__ import annotations
 import ipaddress
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 ALLOWED_PROFILES = {"spof", "ha"}
 ALLOWED_NODE_ROLES = {"monitor", "backup_store", "pg_primary", "pg_replica"}
@@ -16,6 +17,7 @@ ALLOWED_IP_VERSIONS = {"dual", "ipv4", "ipv6"}
 ALLOWED_TUNE = {"oltp", "olap", "tiny"}
 ALLOWED_CA_MODES = {"generate", "existing", "byo"}
 ALLOWED_USER_TLS = {"ca_signed", "byo", "http"}
+ALLOWED_MONITORING_MODES = {"self_hosted", "external_push", "external_pull"}
 DURATION_RE = re.compile(r"^\d+[smhdw]$")
 
 
@@ -104,7 +106,13 @@ def _validate_access(access: dict | None) -> str:
     return ansible_user
 
 
-def _validate_nodes(nodes: dict, profile: str, ip_version: str) -> None:
+def _check_url(value: str, path: str) -> None:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise SchemaError(f"{path}: must be an http(s) URL")
+
+
+def _validate_nodes(nodes: dict, profile: str, ip_version: str, monitoring_mode: str) -> None:
     if not isinstance(nodes, dict) or not nodes:
         raise SchemaError("nodes: must be a non-empty mapping")
 
@@ -124,8 +132,13 @@ def _validate_nodes(nodes: dict, profile: str, ip_version: str) -> None:
     replicas = roles.count("pg_replica")
     monitors = roles.count("monitor")
 
-    if monitors != 1:
+    if monitoring_mode == "self_hosted" and monitors != 1:
         raise SchemaError(f"nodes: profile '{profile}' requires exactly 1 monitor node")
+    if monitoring_mode in {"external_push", "external_pull"} and monitors > 1:
+        raise SchemaError(
+            f"nodes: monitoring.mode '{monitoring_mode}' allows at most 1 monitor node; "
+            f"got {monitors}"
+        )
     if primaries != 1:
         raise SchemaError(
             f"nodes: profile '{profile}' requires exactly 1 pg_primary; got {primaries}"
@@ -314,13 +327,94 @@ def _validate_db_routing(value: Any, ip_version: str) -> None:
             raise SchemaError("db_routing.vip_manager.enabled=true requires interface (string)")
 
 
-def _validate_monitoring(monitoring: dict) -> None:
+def _validate_monitoring_push(monitoring: dict) -> None:
+    if "external_pull" in monitoring:
+        raise SchemaError("monitoring.external_pull: forbidden when mode is external_push")
+    push = _require(monitoring, "external_push", "monitoring")
+    if not isinstance(push, dict):
+        raise SchemaError("monitoring.external_push: must be a mapping")
+
+    for key in ("metrics_url", "logs_url"):
+        value = _require_str(push, key, "monitoring.external_push")
+        if not value:
+            raise SchemaError(f"monitoring.external_push.{key}: must be non-empty")
+        _check_url(value, f"monitoring.external_push.{key}")
+
+    auth = push.get("auth")
+    if auth is not None:
+        if not isinstance(auth, dict):
+            raise SchemaError("monitoring.external_push.auth: must be a mapping")
+        allowed = {"username", "bearer"}
+        unknown = sorted(set(auth) - allowed)
+        if unknown:
+            raise SchemaError(f"monitoring.external_push.auth: unknown keys {unknown}")
+        username = auth.get("username")
+        if username is not None and not isinstance(username, str):
+            raise SchemaError("monitoring.external_push.auth.username: expected string")
+        bearer = auth.get("bearer")
+        if bearer is not None and not isinstance(bearer, bool):
+            raise SchemaError("monitoring.external_push.auth.bearer: expected bool")
+
+    tls_skip_verify = push.get("tls_skip_verify", False)
+    if not isinstance(tls_skip_verify, bool):
+        raise SchemaError("monitoring.external_push.tls_skip_verify: expected bool")
+
+
+def _validate_monitoring_pull(monitoring: dict, ip_version: str) -> None:
+    if "external_push" in monitoring:
+        raise SchemaError("monitoring.external_push: forbidden when mode is external_pull")
+    pull = _require(monitoring, "external_pull", "monitoring")
+    if not isinstance(pull, dict):
+        raise SchemaError("monitoring.external_pull: must be a mapping")
+
+    port = _require_int(pull, "metrics_port", "monitoring.external_pull")
+    if port < 1 or port > 65535:
+        raise SchemaError("monitoring.external_pull.metrics_port: must be in 1..65535")
+
+    auth = _require(pull, "auth", "monitoring.external_pull")
+    if not isinstance(auth, dict):
+        raise SchemaError("monitoring.external_pull.auth: must be a mapping")
+    username = _require_str(auth, "username", "monitoring.external_pull.auth")
+    if not username:
+        raise SchemaError("monitoring.external_pull.auth.username: must be non-empty")
+
+    source_cidrs = _require(pull, "source_cidrs", "monitoring.external_pull")
+    if not isinstance(source_cidrs, list) or not source_cidrs:
+        raise SchemaError("monitoring.external_pull.source_cidrs: must be a non-empty list")
+    for index, cidr in enumerate(source_cidrs):
+        if not isinstance(cidr, str):
+            raise SchemaError(f"monitoring.external_pull.source_cidrs[{index}]: expected string")
+        _check_cidr(cidr, f"monitoring.external_pull.source_cidrs[{index}]", ip_version)
+
+    tls = pull.get("tls", True)
+    if not isinstance(tls, bool):
+        raise SchemaError("monitoring.external_pull.tls: expected bool")
+
+
+def _validate_monitoring(monitoring: dict, ip_version: str) -> str:
     if not isinstance(monitoring, dict):
         raise SchemaError("monitoring: must be a mapping")
-    for key in ("vmsingle_retention", "vlsingle_retention"):
-        value = _require_str(monitoring, key, "monitoring")
-        if not DURATION_RE.match(value):
-            raise SchemaError(f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)")
+    mode = monitoring.get("mode", "self_hosted")
+    if not isinstance(mode, str):
+        raise SchemaError("monitoring.mode: expected string")
+    if mode not in ALLOWED_MONITORING_MODES:
+        raise SchemaError(f"monitoring.mode: '{mode}' not in {sorted(ALLOWED_MONITORING_MODES)}")
+
+    if mode == "self_hosted":
+        for key in ("vmsingle_retention", "vlsingle_retention"):
+            value = _require_str(monitoring, key, "monitoring")
+            if not DURATION_RE.match(value):
+                raise SchemaError(
+                    f"monitoring.{key}: '{value}' must match Nm|Nh|Nd|Nw form (e.g. 90d)"
+                )
+        if "external_push" in monitoring:
+            raise SchemaError("monitoring.external_push: forbidden when mode is self_hosted")
+        if "external_pull" in monitoring:
+            raise SchemaError("monitoring.external_pull: forbidden when mode is self_hosted")
+    elif mode == "external_push":
+        _validate_monitoring_push(monitoring)
+    else:
+        _validate_monitoring_pull(monitoring, ip_version)
 
     alertmanager = monitoring.get("alertmanager")
     if alertmanager is not None:
@@ -348,6 +442,7 @@ def _validate_monitoring(monitoring: dict) -> None:
         not isinstance(scrape_interval, str) or not re.fullmatch(r"\d+[smhd]", scrape_interval)
     ):
         raise SchemaError("monitoring.scrape_interval: must match Ns|Nm|Nh|Nd form (e.g. 15s)")
+    return mode
 
 
 def _validate_backup_cron(value: str, field: str) -> None:
@@ -440,11 +535,11 @@ def validate(data: Any) -> None:
     _require_str(cluster, "name", "cluster")
     _require_str(cluster, "domain", "cluster")
 
+    monitoring_mode = _validate_monitoring(_require(data, "monitoring", ""), ip_version)
     nodes = _require(data, "nodes", "")
-    _validate_nodes(nodes, profile, ip_version)
+    _validate_nodes(nodes, profile, ip_version, monitoring_mode)
     _validate_postgres(_require(data, "postgres", ""), ip_version)
     _validate_tls(_require(data, "tls", ""))
     _validate_firewall(_require(data, "firewall", ""), ip_version)
-    _validate_monitoring(_require(data, "monitoring", ""))
     _validate_backup(data.get("backup"))
     _validate_db_routing(data.get("db_routing"), ip_version)

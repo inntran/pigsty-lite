@@ -1,0 +1,39 @@
+---
+- name: Verify external pull metrics frontend
+  hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check nginx metrics frontend rejects unauthenticated requests
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9965/metrics/node"
+        method: GET
+        status_code: [401]
+
+    - name: Check nginx metrics frontend serves node metrics with basic auth
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9965/metrics/node"
+        method: GET
+        user: pigsty
+        password: pull-test-pw
+        force_basic_auth: true
+        status_code: [200]
+        return_content: true
+      register: node_metrics
+      retries: 10
+      delay: 3
+      until: node_metrics.status == 200
+
+    - name: Assert node metrics came through the path-routed frontend
+      ansible.builtin.assert:
+        that:
+          - "'node_exporter_build_info' in node_metrics.content"
+        fail_msg: "nginx metrics frontend did not return node_exporter metrics"
+
+    - name: Check vmagent is not listening in external_pull mode
+      ansible.builtin.command:
+        cmd: "ss -H -ltn sport = :8429"
+      register: vmagent_listen
+      changed_when: false
+      failed_when: vmagent_listen.stdout | length > 0

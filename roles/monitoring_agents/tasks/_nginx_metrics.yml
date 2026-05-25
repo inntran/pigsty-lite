@@ -1,0 +1,65 @@
+---
+# external_pull metrics frontend. monitoring_agents runs on hosts: all, so
+# this installs nginx itself rather than depending on the haproxy role
+# (which only runs on postgres nodes). nginx fronts the loopback-only
+# exporters with basic auth and optional TLS.
+
+- name: Install nginx for the metrics frontend
+  ansible.builtin.dnf:
+    name: "{{ monitoring_agents_nginx_package }}"
+    state: present
+
+- name: Allow nginx to connect to loopback exporters
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+  when: ansible_facts.selinux.status == "enabled"
+
+- name: Derive a deterministic salt for the htpasswd hash
+  # Stable salt -> stable hash -> idempotent on re-runs. The salt is not
+  # secret; it only prevents identical-password collisions across hosts.
+  ansible.builtin.set_fact:
+    monitoring_agents_pull_htpasswd_salt: >-
+      {{ (monitoring_agents_pull_auth_username ~ inventory_hostname)
+         | hash('md5') | truncate(8, true, '') }}
+
+- name: Hash the metrics frontend password
+  ansible.builtin.command:
+    cmd: >-
+      openssl passwd -apr1
+      -salt {{ monitoring_agents_pull_htpasswd_salt }}
+      {{ monitoring_agents_pull_password }}
+  changed_when: false
+  no_log: true
+  register: monitoring_agents_pull_htpasswd_hash
+
+- name: Write the metrics frontend htpasswd file
+  ansible.builtin.copy:
+    content: "{{ monitoring_agents_pull_auth_username }}:{{ monitoring_agents_pull_htpasswd_hash.stdout }}\n"
+    dest: "{{ monitoring_agents_nginx_metrics_htpasswd }}"
+    owner: root
+    group: nginx
+    mode: "0640"
+  no_log: true
+  notify: Reload nginx for monitoring_agents
+
+- name: Render the nginx metrics frontend config
+  ansible.builtin.template:
+    src: nginx-metrics.conf.j2
+    dest: "{{ monitoring_agents_nginx_metrics_config }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx for monitoring_agents
+
+- name: Validate nginx configuration
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started

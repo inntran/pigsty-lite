@@ -30,6 +30,24 @@ def test_spof_inventory_collocates_monitor_and_backup_server():
     assert mon_hosts == bs_hosts == {"pgmon01"}
 
 
+def test_external_inventory_allows_empty_monitor_and_falls_back_backup_to_primary():
+    data = _load("spof.rsp.yml")
+    data["nodes"] = {
+        name: node for name, node in data["nodes"].items() if node["role"] != "monitor"
+    }
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+        },
+    }
+    out = yaml.safe_load(generate(data))
+    children = out["all"]["children"]
+    assert children["monitor"]["hosts"] == {}
+    assert set(children["backup_server"]["hosts"]) == {"pgnode01"}
+
+
 def test_spof_postgres_node_is_in_etcd_group():
     out = yaml.safe_load(generate(_load("spof.rsp.yml")))
     etcd_hosts = out["all"]["children"]["etcd"]["hosts"]

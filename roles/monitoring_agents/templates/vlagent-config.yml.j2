@@ -7,7 +7,7 @@ journald:
     extra_fields:
       cluster: "{{ cluster_name }}"
       instance: "{{ inventory_hostname }}"
-{% if inventory_hostname in groups['postgres'] %}
+{% if inventory_hostname in groups.get('postgres', []) %}
 file:
   - paths:
       - "/var/lib/pgsql/{{ postgres_version }}/data/log/*.log"

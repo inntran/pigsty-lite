@@ -37,14 +37,19 @@ def generate(response: dict[str, Any]) -> str:
 
     monitor_hosts = [(name, {"ansible_host": node["ip"]}) for name, node in by_role["monitor"]]
 
+    pg_nodes = by_role["pg_primary"] + by_role["pg_replica"]
+
     if by_role["backup_store"]:
         backup_hosts = [
             (name, {"ansible_host": node["ip"]}) for name, node in by_role["backup_store"]
         ]
-    else:
+    elif monitor_hosts:
         backup_hosts = monitor_hosts.copy()
+    else:
+        backup_hosts = [
+            (name, {"ansible_host": node["ip"]}) for name, node in by_role["pg_primary"]
+        ]
 
-    pg_nodes = by_role["pg_primary"] + by_role["pg_replica"]
     pg_hosts: list[tuple[str, dict[str, Any]]] = []
     for seq, (name, node) in enumerate(pg_nodes, start=1):
         host_vars = {

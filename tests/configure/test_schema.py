@@ -312,3 +312,136 @@ def test_access_ansible_user_must_not_be_empty():
     data["access"] = {"ansible_user": ""}
     with pytest.raises(SchemaError, match="access.ansible_user"):
         validate(data)
+
+
+def test_monitoring_self_hosted_mode_is_default():
+    response = _minimal_spof_response()
+    response["monitoring"].pop("mode", None)
+    validate(response)
+
+
+def test_monitoring_self_hosted_rejects_external_blocks():
+    response = _minimal_spof_response()
+    response["monitoring"]["external_push"] = {
+        "metrics_url": "https://vm.example/api/v1/write",
+        "logs_url": "https://vl.example/insert/jsonline",
+    }
+    with pytest.raises(SchemaError, match=r"monitoring\.external_push"):
+        validate(response)
+
+
+def test_monitoring_external_push_validates_without_monitor_or_retention():
+    response = _minimal_spof_response()
+    response["nodes"] = {
+        name: node for name, node in response["nodes"].items() if node["role"] != "monitor"
+    }
+    response["monitoring"] = {
+        "mode": "external_push",
+        "scrape_interval": "15s",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+            "auth": {"username": "pigsty", "bearer": True},
+            "tls_skip_verify": True,
+        },
+    }
+    validate(response)
+
+
+def test_monitoring_external_push_rejects_bad_url_and_extra_pull_block():
+    response = _minimal_spof_response()
+    response["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "not-a-url",
+            "logs_url": "https://vl.example/insert/jsonline",
+        },
+        "external_pull": {},
+    }
+    with pytest.raises(SchemaError, match=r"monitoring\.external_pull"):
+        validate(response)
+    response["monitoring"].pop("external_pull")
+    with pytest.raises(SchemaError, match=r"metrics_url"):
+        validate(response)
+
+
+def test_monitoring_external_push_rejects_unknown_auth_keys():
+    response = _minimal_spof_response()
+    response["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+            "auth": {"token": "secret"},
+        },
+    }
+    with pytest.raises(SchemaError, match=r"unknown keys"):
+        validate(response)
+
+
+def test_monitoring_external_pull_validates_without_monitor_or_retention():
+    response = _minimal_spof_response()
+    response["nodes"] = {
+        name: node for name, node in response["nodes"].items() if node["role"] != "monitor"
+    }
+    response["monitoring"] = {
+        "mode": "external_pull",
+        "scrape_interval": "15s",
+        "external_pull": {
+            "metrics_port": 9965,
+            "auth": {"username": "pigsty"},
+            "source_cidrs": ["10.0.0.0/8"],
+            "tls": False,
+        },
+    }
+    validate(response)
+
+
+def test_monitoring_external_pull_rejects_bad_port_empty_auth_and_empty_cidrs():
+    response = _minimal_spof_response()
+    response["monitoring"] = {
+        "mode": "external_pull",
+        "external_pull": {
+            "metrics_port": 70000,
+            "auth": {"username": "pigsty"},
+            "source_cidrs": ["10.0.0.0/8"],
+        },
+    }
+    with pytest.raises(SchemaError, match=r"metrics_port"):
+        validate(response)
+    response["monitoring"]["external_pull"]["metrics_port"] = 9965
+    response["monitoring"]["external_pull"]["auth"]["username"] = ""
+    with pytest.raises(SchemaError, match=r"auth\.username"):
+        validate(response)
+    response["monitoring"]["external_pull"]["auth"]["username"] = "pigsty"
+    response["monitoring"]["external_pull"]["source_cidrs"] = []
+    with pytest.raises(SchemaError, match=r"source_cidrs"):
+        validate(response)
+
+
+def test_monitoring_external_pull_cidrs_follow_ip_version():
+    response = _load("ipv6.rsp.yml")
+    response["monitoring"] = {
+        "mode": "external_pull",
+        "external_pull": {
+            "metrics_port": 9965,
+            "auth": {"username": "pigsty"},
+            "source_cidrs": ["10.0.0.0/8"],
+        },
+    }
+    with pytest.raises(SchemaError, match=r"network\.ip_version"):
+        validate(response)
+
+
+def test_external_monitoring_rejects_more_than_one_monitor():
+    response = _minimal_spof_response()
+    response["nodes"]["pgmon02"] = {"ip": "10.20.30.42", "role": "monitor"}
+    response["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+        },
+    }
+    with pytest.raises(SchemaError, match=r"at most 1 monitor"):
+        validate(response)

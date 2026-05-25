@@ -27,3 +27,8 @@
   ansible.builtin.systemd:
     name: firewalld
     state: reloaded
+
+- name: Reload nginx for monitoring_agents
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded

@@ -2,6 +2,7 @@
 inventory/site.yml
 responses/site.rsp.yml
 inventory/group_vars/all/response.yml
+responses/external-monitoring.md
 
 # secrets & generated state
 pki/

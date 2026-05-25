@@ -1,0 +1,38 @@
+# {{ ansible_managed }}
+# external_pull metrics frontend: basic-auth proxy to loopback exporters.
+{% set loopback = network_loopback_address | default('127.0.0.1') %}
+server {
+{% if monitoring_agents_pull_tls | bool %}
+    listen {{ monitoring_agents_pull_metrics_port }} ssl;
+    ssl_certificate     {{ monitoring_agents_pull_tls_cert }};
+    ssl_certificate_key {{ monitoring_agents_pull_tls_key }};
+{% else %}
+    listen {{ monitoring_agents_pull_metrics_port }};
+{% endif %}
+    server_name _;
+
+    auth_basic           "pigsty-metrics";
+    auth_basic_user_file {{ monitoring_agents_nginx_metrics_htpasswd }};
+
+    location = /metrics/node {
+        proxy_pass http://{{ loopback }}:{{ monitoring_agents_node_exporter_port }}/metrics;
+    }
+{% if inventory_hostname in groups.get('postgres', []) %}
+
+    location = /metrics/postgres {
+        proxy_pass http://{{ loopback }}:{{ monitoring_agents_postgres_exporter_port }}/metrics;
+    }
+
+    location = /metrics/pgbouncer {
+        proxy_pass http://{{ loopback }}:{{ monitoring_agents_pgbouncer_exporter_port }}/metrics;
+    }
+
+    location = /metrics/pgbackrest {
+        proxy_pass http://{{ loopback }}:{{ monitoring_agents_pgbackrest_exporter_port }}/metrics;
+    }
+{% endif %}
+
+    location / {
+        return 404;
+    }
+}

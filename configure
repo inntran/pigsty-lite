@@ -28,12 +28,14 @@ sys.path.insert(0, str(ROOT))
 
 from bin._generate_inventory import generate as gen_inventory  # noqa: E402
 from bin._generate_response_vars import generate as gen_response_vars  # noqa: E402
+from bin._generate_external_monitoring_doc import generate as gen_external_monitoring_doc  # noqa: E402
 from bin._response_schema import SchemaError, validate  # noqa: E402
 from bin import _passwords, _vault  # noqa: E402
 
 INVENTORY_PATH = ROOT / "inventory" / "site.yml"
 RESPONSE_VARS_PATH = ROOT / "inventory" / "group_vars" / "all" / "response.yml"
 RESPONSE_FILE_PATH = ROOT / "responses" / "site.rsp.yml"
+EXTERNAL_MONITORING_DOC_PATH = ROOT / "responses" / "external-monitoring.md"
 VAULT_PATH = ROOT / "inventory" / "group_vars" / "all" / "vault.yml"
 VAULT_PASSPHRASE_PATH = ROOT / ".pigsty" / "vault-pass"
 
@@ -80,7 +82,7 @@ def _prompt_passphrase() -> str:
         return first
 
 
-def _ensure_vault_interactive() -> int:
+def _ensure_vault_interactive(monitoring: dict | None = None) -> int:
     """Ensure passphrase file + vault file exist; fill in missing secrets."""
     if not VAULT_PASSPHRASE_PATH.exists():
         print(f"No vault passphrase found at {VAULT_PASSPHRASE_PATH}; creating one.")
@@ -99,6 +101,7 @@ def _ensure_vault_interactive() -> int:
     updated = _passwords.ensure_human_secrets(
         updated,
         prompter=lambda label: getpass.getpass(f"Password for {label}: "),
+        monitoring=monitoring,
     )
     if updated != existing:
         _vault.vault_write(VAULT_PATH, updated, VAULT_PASSPHRASE_PATH)
@@ -108,7 +111,7 @@ def _ensure_vault_interactive() -> int:
     return 0
 
 
-def _ensure_vault_silent() -> int:
+def _ensure_vault_silent(monitoring: dict | None = None) -> int:
     """In silent mode: refuse to prompt; require vault to already exist."""
     if not VAULT_PASSPHRASE_PATH.exists():
         print(
@@ -119,15 +122,86 @@ def _ensure_vault_silent() -> int:
         return 1
     if not _vault.vault_exists(VAULT_PATH):
         updated = _passwords.ensure_machine_secrets({})
+        missing = _passwords.missing_human_secrets(updated, monitoring)
+        if missing:
+            keys = ", ".join(secret.key for secret in missing)
+            print(
+                "ERROR: silent mode requires existing vault secrets "
+                f"({keys}); run interactive configure first to bootstrap them",
+                file=sys.stderr,
+            )
+            return 1
         _vault.vault_write(VAULT_PATH, updated, VAULT_PASSPHRASE_PATH)
         print(f"Wrote {VAULT_PATH.relative_to(ROOT)} (machine secrets only)")
         return 0
     existing = _vault.vault_read(VAULT_PATH, VAULT_PASSPHRASE_PATH)
     updated = _passwords.ensure_machine_secrets(existing)
+    missing = _passwords.missing_human_secrets(updated, monitoring)
+    if missing:
+        keys = ", ".join(secret.key for secret in missing)
+        print(
+            "ERROR: silent mode requires existing vault secrets "
+            f"({keys}); run interactive configure first to bootstrap them",
+            file=sys.stderr,
+        )
+        return 1
     if updated != existing:
         _vault.vault_write(VAULT_PATH, updated, VAULT_PASSPHRASE_PATH)
         print(f"Updated {VAULT_PATH.relative_to(ROOT)} (new machine secrets)")
     return 0
+
+
+def _prompt_bool(prompt: str, default: bool = False) -> bool:
+    suffix = "[Y/n]" if default else "[y/N]"
+    raw = input(f"{prompt} {suffix}: ").strip().lower()
+    if not raw:
+        return default
+    return raw in {"y", "yes", "true", "1"}
+
+
+def _prompt_list(prompt: str) -> list[str]:
+    raw = input(prompt).strip()
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _prompt_monitoring(data: dict) -> None:
+    mode = (
+        input("Monitoring mode (self_hosted|external_push|external_pull) [self_hosted]: ").strip()
+        or "self_hosted"
+    )
+    if mode == "self_hosted":
+        data["monitoring"]["mode"] = "self_hosted"
+        data["monitoring"].pop("external_push", None)
+        data["monitoring"].pop("external_pull", None)
+        return
+
+    data["monitoring"] = {
+        "mode": mode,
+        "scrape_interval": data.get("monitoring", {}).get("scrape_interval", "15s"),
+    }
+    if mode == "external_push":
+        username = input("External metrics/logs basic-auth username [none]: ").strip()
+        auth: dict[str, object] = {}
+        if username:
+            auth["username"] = username
+        if _prompt_bool("Use bearer token auth?", default=False):
+            auth["bearer"] = True
+        push: dict[str, object] = {
+            "metrics_url": input("External metrics remote_write URL: ").strip(),
+            "logs_url": input("External logs ingest URL: ").strip(),
+            "tls_skip_verify": _prompt_bool("Skip TLS verification?", default=False),
+        }
+        if auth:
+            push["auth"] = auth
+        data["monitoring"]["external_push"] = push
+        return
+
+    data["monitoring"]["external_pull"] = {
+        "metrics_port": int(input("External pull metrics port [9965]: ").strip() or "9965"),
+        "auth": {"username": input("External pull basic-auth username: ").strip()},
+        "source_cidrs": _prompt_list("External scraper source CIDRs (comma-separated): "),
+        "tls": _prompt_bool("Enable TLS on pull metrics frontend?", default=True),
+    }
 
 
 def cmd_rotate(args: argparse.Namespace) -> int:
@@ -177,8 +251,11 @@ def cmd_silent(args: argparse.Namespace) -> int:
     _write(RESPONSE_VARS_PATH, gen_response_vars(data))
     print(f"Wrote {INVENTORY_PATH.relative_to(ROOT)}")
     print(f"Wrote {RESPONSE_VARS_PATH.relative_to(ROOT)}")
+    if data.get("monitoring", {}).get("mode", "self_hosted") != "self_hosted":
+        _write(EXTERNAL_MONITORING_DOC_PATH, gen_external_monitoring_doc(data))
+        print(f"Wrote {EXTERNAL_MONITORING_DOC_PATH.relative_to(ROOT)}")
     if not args.no_vault:
-        rc = _ensure_vault_silent()
+        rc = _ensure_vault_silent(data.get("monitoring"))
         if rc != 0:
             return rc
     return 0
@@ -234,6 +311,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     if vip_enabled:
         data["db_routing"]["vip_manager"]["vip_cidr"] = vip_cidr
         data["db_routing"]["vip_manager"]["interface"] = vip_interface
+    _prompt_monitoring(data)
 
     try:
         validate(data)
@@ -250,7 +328,7 @@ def cmd_interactive(args: argparse.Namespace) -> int:
         yaml.safe_dump(data, fh, sort_keys=False, explicit_start=True)
     print(f"Wrote {RESPONSE_FILE_PATH.relative_to(ROOT)}")
     if not args.no_vault:
-        rc = _ensure_vault_interactive()
+        rc = _ensure_vault_interactive(data.get("monitoring"))
         if rc != 0:
             return rc
     print()

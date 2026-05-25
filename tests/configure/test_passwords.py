@@ -66,6 +66,38 @@ def test_ensure_human_secrets_skips_existing():
     assert updated == existing
 
 
+def test_external_push_human_secrets_are_conditional():
+    monitoring = {
+        "mode": "external_push",
+        "external_push": {"auth": {"username": "pigsty", "bearer": True}},
+    }
+    keys = {s.key for s in _passwords.required_human_secrets(monitoring)}
+    assert "vault_grafana_admin_password" in keys
+    assert "vault_monitoring_external_password" in keys
+    assert "vault_monitoring_external_bearer_token" in keys
+    assert "vault_monitoring_pull_password" not in keys
+
+
+def test_external_pull_human_secret_is_required():
+    monitoring = {"mode": "external_pull"}
+    keys = {s.key for s in _passwords.required_human_secrets(monitoring)}
+    assert "vault_monitoring_pull_password" in keys
+    assert "vault_monitoring_external_password" not in keys
+
+
+def test_missing_human_secrets_reports_external_requirements():
+    monitoring = {"mode": "external_pull"}
+    missing = _passwords.missing_human_secrets(
+        {"vault_grafana_admin_password": "set"},
+        monitoring,
+    )
+    assert [secret.key for secret in missing] == ["vault_monitoring_pull_password"]
+
+
+def test_missing_human_secrets_does_not_require_base_human_secrets_by_default():
+    assert _passwords.missing_human_secrets({}, {"mode": "self_hosted"}) == []
+
+
 def test_rotate_replaces_named_key():
     existing = {
         "vault_patroni_superuser_password": "old",

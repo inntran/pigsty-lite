@@ -66,6 +66,8 @@ def generate(response: dict[str, Any]) -> str:
     if ip_version == "dual":
         loopback_addresses.append("::1")
 
+    monitoring_mode = monitoring.get("mode", "self_hosted")
+
     out: dict[str, Any] = {
         "cluster_profile": response["profile"],
         "cluster_name": response["cluster"]["name"],
@@ -93,15 +95,33 @@ def generate(response: dict[str, Any]) -> str:
         ),
         "ca_mode": tls["internal_ca"],
         "nginx_proxy_tls_mode": tls["user_facing"]["mode"],
-        "vmsingle_retention": monitoring["vmsingle_retention"],
-        "vlsingle_retention": monitoring["vlsingle_retention"],
-        "alertmanager_receivers": monitoring.get("alertmanager", {}).get("receivers", []),
+        "monitoring_mode": monitoring_mode,
         "monitoring_scrape_interval": monitoring.get("scrape_interval", "15s"),
         "operator_cidrs": firewall["operator_cidrs"],
         "postgres_client_cidrs": firewall["postgres_client_cidrs"],
         "repos_pigsty_enabled": bool(repos.get("pigsty", {}).get("enabled", False)),
         "repos_pigsty_packages": repos.get("pigsty", {}).get("packages", []),
     }
+
+    if monitoring_mode == "self_hosted":
+        out["vmsingle_retention"] = monitoring["vmsingle_retention"]
+        out["vlsingle_retention"] = monitoring["vlsingle_retention"]
+        out["alertmanager_receivers"] = monitoring.get("alertmanager", {}).get("receivers", [])
+    elif monitoring_mode == "external_push":
+        push = monitoring["external_push"]
+        auth = push.get("auth", {}) or {}
+        out["monitoring_external_metrics_url"] = push["metrics_url"]
+        out["monitoring_external_logs_url"] = push["logs_url"]
+        out["monitoring_external_auth_username"] = auth.get("username", "")
+        out["monitoring_external_auth_bearer"] = bool(auth.get("bearer", False))
+        out["monitoring_external_tls_skip_verify"] = bool(push.get("tls_skip_verify", False))
+    else:
+        pull = monitoring["external_pull"]
+        out["monitoring_pull_metrics_port"] = pull["metrics_port"]
+        out["monitoring_pull_auth_username"] = pull["auth"]["username"]
+        out["monitoring_pull_source_cidrs"] = pull["source_cidrs"]
+        out["monitoring_pull_tls"] = bool(pull.get("tls", True))
+
     out.update(_flatten_backup(response.get("backup", {})))
 
     conn = response.get("db_routing", {}) or {}

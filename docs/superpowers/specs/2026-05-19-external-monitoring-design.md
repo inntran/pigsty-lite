@@ -50,9 +50,10 @@ Important facts that shape this design:
 - The `monitor` node currently also serves as the `backup_server`
   fallback (`bin/_generate_inventory.py`) and hosts Grafana +
   nginx_proxy.
-- HAProxy already runs on every postgres node and already has an
-  HTTP-mode `stats` listener, so it can host an additional HTTP
-  frontend.
+- HAProxy runs only on postgres nodes (`_haproxy.yml` is
+  `hosts: postgres`); `backup_store` and `monitor` nodes have no
+  HAProxy. The `external_pull` frontend therefore cannot rely on
+  HAProxy and uses nginx, which `monitoring_agents` installs itself.
 - `monitoring_host` is defined in `group_vars/all/main.yml` as
   `{{ groups['monitor'][0] }}`.
 
@@ -185,12 +186,10 @@ The role keys behaviour off a single resolved variable
 - **`external_pull`**:
   - Exporters stay loopback-only.
   - vmagent/vlagent are **not** configured for remote_write (no external
-    push target). vmagent may still run locally for its own scrape
-    aggregation if that is simplest, but it does not ship data out.
-    Implementation note for Codex: simplest correct behaviour is to not
-    deploy vmagent/vlagent remote-write config at all in this mode; the
-    HAProxy frontend is the data path.
-  - Deploy the HAProxy metrics frontend (section 5).
+    push target). The simplest correct behaviour is to not deploy
+    vmagent/vlagent remote-write config at all in this mode; the nginx
+    metrics frontend is the data path.
+  - Deploy the nginx metrics frontend (section 5).
   - `_firewall.yml` opens `external_pull.metrics_port` to
     `external_pull.source_cidrs` only (reuse the rich-rule pattern
     already in `_firewall.yml`, retargeted from the monitor host to the
@@ -200,21 +199,23 @@ The role keys behaviour off a single resolved variable
 guarded so they are only evaluated in `self_hosted` mode (they would
 fail with an empty `monitor` group otherwise).
 
-## 5. HAProxy metrics frontend (owned by `monitoring_agents`)
+## 5. nginx metrics frontend (owned by `monitoring_agents`)
 
-Only deployed in `external_pull` mode.
+Only deployed in `external_pull` mode. nginx — not HAProxy — is the
+frontend, because `monitoring_agents` runs on `hosts: all` and HAProxy
+is only installed on postgres nodes (`_haproxy.yml` is `hosts:
+postgres`). A `backup_store` or `monitor` node has no HAProxy, so a
+HAProxy-based frontend cannot be built there. `monitoring_agents`
+installs nginx itself, giving every node a consistent metrics endpoint
+regardless of role.
 
-- `monitoring_agents` renders `/etc/haproxy/conf.d/metrics.cfg`
-  containing one HTTP-mode `frontend` bound on
-  `external_pull.metrics_port`.
-- HAProxy does not read a `conf.d/` directory by default. The
-  `monitoring_agents` role installs a systemd drop-in for the `haproxy`
-  unit that appends `-f /etc/haproxy/conf.d/metrics.cfg` to `ExecStart`,
-  so the `haproxy` role's `haproxy.cfg` is untouched. The drop-in must
-  reproduce the base `ExecStart` plus the extra `-f`; verify against the
-  packaged `haproxy.service` on the target distro.
-- Path routing (`use_backend` on `path_beg`), prefix stripped to
-  `/metrics` before forwarding:
+- `monitoring_agents` installs the `nginx` package and renders
+  `/etc/nginx/conf.d/pigsty-metrics.conf` — one `server` block bound on
+  `external_pull.metrics_port`. nginx reads `conf.d/*.conf` natively, so
+  no systemd drop-in or unit override is needed.
+- Path routing via `location` blocks; the exporters all serve at
+  `/metrics`, so each location `proxy_pass`es to the exporter's
+  `/metrics`:
 
   ```
   /metrics/node       -> 127.0.0.1:9100/metrics
@@ -223,20 +224,23 @@ Only deployed in `external_pull` mode.
   /metrics/pgbackrest -> 127.0.0.1:9854/metrics
   ```
 
-  postgres/pgbouncer/pgbackrest backends exist only on postgres hosts;
-  the template must guard those routes the same way
-  `vmagent-scrape.yml.j2` does (`inventory_hostname in groups['postgres']`).
-  `node` is available on every host.
-- Prefix strip: `http-request set-path /metrics` on the matched
-  backend (the exporters all serve their data at `/metrics`).
-- Basic auth: a HAProxy `userlist` with `external_pull.auth.username`
-  and the vault password; `http-request auth unless { http_auth(...) }`
-  on the frontend. Always on.
-- TLS: when `external_pull.tls` is true, the frontend `bind` uses
-  `ssl crt <pem>`. Reuse the node's existing TLS material from the P0
-  certs role (`{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt` +
-  key, combined into a PEM as HAProxy expects). When `tls` is false,
-  plain HTTP bind.
+  `/metrics/node` exists on every host. The postgres/pgbouncer/pgbackrest
+  locations exist only on postgres hosts; the template guards them the
+  same way `vmagent-scrape.yml.j2` does
+  (`inventory_hostname in groups.get('postgres', [])`). Any other path
+  returns 404.
+- Basic auth: an `auth_basic` realm plus an `auth_basic_user_file`
+  htpasswd file. The htpasswd entry is generated from
+  `external_pull.auth.username` and the vault password, **hashed** at
+  render time (`community.general.htpasswd` module or
+  `password_hash('apr_md5_crypt')`) so the cleartext password is not
+  written into an on-disk config file. Always on.
+- TLS: when `external_pull.tls` is true, the `server` block uses
+  `listen <port> ssl` with `ssl_certificate` / `ssl_certificate_key`
+  pointing at the node's existing P0 certs-role material
+  (`{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt` and `.key`). nginx
+  takes the cert and key as separate directives, so no PEM concatenation
+  step is needed. When `tls` is false, plain HTTP `listen`.
 - The external monitor scrapes with one job per path, e.g.:
 
   ```yaml
@@ -323,7 +327,7 @@ are identical for every deployment:
 - What endpoints the external service must accept in push mode
   (`/api/v1/write` for metrics, `/insert/jsonline` for logs) and that
   any VictoriaMetrics/Prometheus-remote-write-compatible service works.
-- The `external_pull` HAProxy metrics frontend: the
+- The `external_pull` nginx metrics frontend: the
   `/metrics/<exporter>` URL scheme, basic auth, TLS, the per-node
   `metrics_port`.
 - The auth model (basic auth / bearer, where each secret lives).
@@ -399,7 +403,7 @@ already be partly ignored — match existing convention).
 - Inventory generator test: zero-monitor response produces an empty
   `monitor` group and `backup_server` falling back to the primary.
 - Molecule scenario for `monitoring_agents` in `external_pull`:
-  verify the HAProxy metrics frontend serves `/metrics/node` and
+  verify the nginx metrics frontend serves `/metrics/node` and
   requires basic auth (401 without credentials, 200 with).
 - Unit test for `_generate_external_monitoring_doc`: an `external_pull`
   response produces a `scrape_configs` block with one job per exporter

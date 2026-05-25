@@ -8,7 +8,7 @@ scrape_configs:
         labels:
           cluster: "{{ cluster_name }}"
           instance: "{{ inventory_hostname }}"
-{% if inventory_hostname in groups['postgres'] %}
+{% if inventory_hostname in groups.get('postgres', []) %}
   - job_name: postgres
     static_configs:
       - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_postgres_exporter_port }}"]

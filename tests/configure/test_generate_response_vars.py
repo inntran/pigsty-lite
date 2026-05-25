@@ -77,8 +77,50 @@ def test_tls_keys_namespaced():
 
 def test_monitoring_retention_namespaced():
     out = yaml.safe_load(generate(_load("ha.rsp.yml")))
+    assert out["monitoring_mode"] == "self_hosted"
     assert out["vmsingle_retention"] == "90d"
     assert out["vlsingle_retention"] == "30d"
+
+
+def test_external_push_monitoring_vars_promoted_without_self_hosted_retention():
+    data = _load("spof.rsp.yml")
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+            "auth": {"username": "pigsty", "bearer": True},
+            "tls_skip_verify": True,
+        },
+    }
+    out = yaml.safe_load(generate(data))
+    assert out["monitoring_mode"] == "external_push"
+    assert out["monitoring_external_metrics_url"] == "https://vm.example/api/v1/write"
+    assert out["monitoring_external_logs_url"] == "https://vl.example/insert/jsonline"
+    assert out["monitoring_external_auth_username"] == "pigsty"
+    assert out["monitoring_external_auth_bearer"] is True
+    assert out["monitoring_external_tls_skip_verify"] is True
+    assert "vmsingle_retention" not in out
+    assert "vlsingle_retention" not in out
+
+
+def test_external_pull_monitoring_vars_promoted():
+    data = _load("spof.rsp.yml")
+    data["monitoring"] = {
+        "mode": "external_pull",
+        "external_pull": {
+            "metrics_port": 9965,
+            "auth": {"username": "pigsty"},
+            "source_cidrs": ["10.0.0.0/8"],
+            "tls": False,
+        },
+    }
+    out = yaml.safe_load(generate(data))
+    assert out["monitoring_mode"] == "external_pull"
+    assert out["monitoring_pull_metrics_port"] == 9965
+    assert out["monitoring_pull_auth_username"] == "pigsty"
+    assert out["monitoring_pull_source_cidrs"] == ["10.0.0.0/8"]
+    assert out["monitoring_pull_tls"] is False
 
 
 def test_monitoring_scrape_interval_defaults_to_15s():

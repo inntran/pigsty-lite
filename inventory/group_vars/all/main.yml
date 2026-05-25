@@ -84,7 +84,8 @@ backup_ssh_port: 22
 # The monitor host is the single member of the `monitor` group. Agents
 # remote_write metrics and ship logs to it. Scrape interval is the
 # operator-tunable cadence for vmagent.
-monitoring_host: "{{ groups['monitor'][0] }}"
+monitoring_mode: self_hosted
+monitoring_host: "{{ (groups['monitor'] | default([]))[0] | default('') }}"
 monitoring_scrape_interval: 15s
 
 # Lifecycle operations (P6) -----------------------------------------

@@ -11,6 +11,7 @@
           monitor host to remote_write metrics and ship logs to.
       run_once: true
       delegate_to: localhost
+      when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
     - name: Stat the CA certificate (from P0 certs role)
       ansible.builtin.stat:
@@ -25,6 +26,7 @@
           Expected the pigsty-lite CA at {{ monitoring_agents_ca_file }};
           agents need it to verify the monitor host's TLS. Run the P0
           _node.yml playbook (certs role) first.
+      when: (monitoring_mode | default('self_hosted')) != 'external_pull'
 
 # - name: Install and configure exporters
 #   ansible.builtin.import_tasks: _exporters.yml
@@ -32,6 +34,7 @@
 
 - name: Install and configure vmagent
   tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) != 'external_pull'
   block:
     - name: Ensure the vmagent config directory exists
       ansible.builtin.file:
@@ -56,13 +59,52 @@
         # The upstream role replaces vmagent_service_args wholesale, so we
         # restate every flag we want — including the stream-aggregation config
         # path, which upstream always renders (empty by default).
-        vmagent_service_args:
-          httpListenAddr: "{{ monitoring_agents_vmagent_listen }}"
-          "promscrape.config": /etc/vmagent/scrape.yml
-          "remoteWrite.url": "{{ monitoring_agents_vmagent_remote_write_url }}"
-          "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
-          "remoteWrite.tmpDataPath": "{{ monitoring_agents_vmagent_buffer_dir }}"
-          "remoteWrite.streamAggr.config": "{{ vmagent_config_dir }}/aggregation.yml"
+        vmagent_service_args: >-
+          {{
+            {
+              'httpListenAddr': monitoring_agents_vmagent_listen,
+              'promscrape.config': '/etc/vmagent/scrape.yml',
+              'remoteWrite.url': (
+                monitoring_external_metrics_url
+                if (monitoring_mode | default('self_hosted')) == 'external_push'
+                else monitoring_agents_vmagent_remote_write_url
+              ),
+              'remoteWrite.tmpDataPath': monitoring_agents_vmagent_buffer_dir,
+              'remoteWrite.streamAggr.config': vmagent_config_dir ~ '/aggregation.yml',
+            }
+            | combine(
+              {'remoteWrite.tlsCAFile': monitoring_agents_ca_file}
+              if (monitoring_mode | default('self_hosted')) == 'self_hosted'
+              else {}
+            )
+            | combine(
+              {
+                'remoteWrite.basicAuth.username': monitoring_agents_external_auth_username,
+                'remoteWrite.basicAuth.password': vault_monitoring_external_password,
+              }
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_auth_username | length > 0
+              )
+              else {}
+            )
+            | combine(
+              {'remoteWrite.bearerToken': vault_monitoring_external_bearer_token}
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_auth_bearer | bool
+              )
+              else {}
+            )
+            | combine(
+              {'remoteWrite.tlsInsecureSkipVerify': 'true'}
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_tls_skip_verify | bool
+              )
+              else {}
+            )
+          }}
 
     - name: Ensure the vmagent buffer directory is owned by the service user
       # vic_vm_agent is the default vmagent_system_user in victoriametrics.cluster.vmagent;
@@ -80,6 +122,7 @@
 
 - name: Install and configure vlagent
   tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) != 'external_pull'
   block:
     - name: Install and configure vlagent
       ansible.builtin.include_role:
@@ -88,21 +131,61 @@
         # vlagent has no config file format; everything is CLI flags.
         # Array-typed flags accept a YAML list — the upstream service template
         # renders each list item as a separate --flag=value argument.
-        vlagent_service_args:
-          httpListenAddr: "{{ monitoring_agents_vlagent_listen }}"
-          "remoteWrite.url": "{{ monitoring_agents_vlagent_remote_write_url }}"
-          "remoteWrite.tlsCAFile": "{{ monitoring_agents_ca_file }}"
-          "remoteWrite.tmpDataPath": "{{ monitoring_agents_vlagent_buffer_dir }}"
-          "journald.streamFields": "hostname"
-          "fileCollector.glob": >-
-            {{ [
-                '/var/lib/pgsql/' ~ (postgres_version | default('16')) ~ '/data/log/*.log',
-                '/var/log/patroni/*.log'
-               ]
-               if inventory_hostname in groups.get('postgres', [])
-               else [] }}
-          "fileCollector.extraFields": '{\"cluster\":\"{{ cluster_name }}\",\"instance\":\"{{ inventory_hostname }}\"}'
-          "fileCollector.streamFields": "cluster,instance"
+        vlagent_service_args: >-
+          {{
+            {
+              'httpListenAddr': monitoring_agents_vlagent_listen,
+              'remoteWrite.url': (
+                monitoring_external_logs_url
+                if (monitoring_mode | default('self_hosted')) == 'external_push'
+                else monitoring_agents_vlagent_remote_write_url
+              ),
+              'remoteWrite.tmpDataPath': monitoring_agents_vlagent_buffer_dir,
+              'journald.streamFields': 'hostname',
+              'fileCollector.glob': (
+                [
+                  '/var/lib/pgsql/' ~ (postgres_version | default('16')) ~ '/data/log/*.log',
+                  '/var/log/patroni/*.log',
+                ]
+                if inventory_hostname in groups.get('postgres', [])
+                else []
+              ),
+              'fileCollector.extraFields': '{\"cluster\":\"' ~ cluster_name ~ '\",\"instance\":\"' ~ inventory_hostname ~ '\"}',
+              'fileCollector.streamFields': 'cluster,instance',
+            }
+            | combine(
+              {'remoteWrite.tlsCAFile': monitoring_agents_ca_file}
+              if (monitoring_mode | default('self_hosted')) == 'self_hosted'
+              else {}
+            )
+            | combine(
+              {
+                'remoteWrite.basicAuth.username': monitoring_agents_external_auth_username,
+                'remoteWrite.basicAuth.password': vault_monitoring_external_password,
+              }
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_auth_username | length > 0
+              )
+              else {}
+            )
+            | combine(
+              {'remoteWrite.bearerToken': vault_monitoring_external_bearer_token}
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_auth_bearer | bool
+              )
+              else {}
+            )
+            | combine(
+              {'remoteWrite.tlsInsecureSkipVerify': 'true'}
+              if (
+                (monitoring_mode | default('self_hosted')) == 'external_push'
+                and monitoring_agents_external_tls_skip_verify | bool
+              )
+              else {}
+            )
+          }}
 
     - name: Ensure the vlagent buffer directory is owned by the service user
       # vic_vl_agent is the default vlagent_system_user in victoriametrics.cluster.vlagent;
@@ -117,6 +200,11 @@
     - name: Restore SELinux context on vlagent binary
       ansible.builtin.command: restorecon -v /usr/local/bin/vlagent-prod
       changed_when: false
+
+- name: Install nginx metrics frontend for external pull
+  ansible.builtin.import_tasks: _nginx_metrics.yml
+  when: (monitoring_mode | default('self_hosted')) == 'external_pull'
+  tags: [monitoring, nginx]
 
 # - name: Open firewalld for exporters
 #   ansible.builtin.import_tasks: _firewall.yml

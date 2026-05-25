@@ -4,6 +4,18 @@ The monitoring stack is declarative. Most changes go through the
 response file's `monitoring:` block, then `make deploy`. To target only
 the monitoring step, pass `--tags monitoring`.
 
+## External monitoring
+
+`monitoring.mode` selects where observability data lands:
+
+- `self_hosted` keeps the built-in monitor host stack.
+- `external_push` sends local vmagent/vlagent data to external ingest URLs.
+- `external_pull` exposes an authenticated HAProxy metrics frontend for an
+  external scraper.
+
+See [external-monitoring.md](external-monitoring.md) for endpoint shapes,
+auth, TLS, and generated scraper snippets.
+
 ## Add an Alertmanager receiver
 
 ```yaml

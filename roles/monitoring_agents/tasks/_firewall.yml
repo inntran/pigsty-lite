@@ -10,11 +10,13 @@
       address: >-
         {{ hostvars[monitoring_host].ansible_host
            | default(hostvars[monitoring_host].ansible_facts.default_ipv4.address) }}
+  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
 - name: Set the monitor source address family
   ansible.builtin.set_fact:
     monitoring_agents_monitor_family: >-
       {{ 'ipv6' if ':' in (monitoring_agents_monitor_source.address | string) else 'ipv4' }}
+  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
 - name: Open the built-in prometheus-node-exporter service to the monitor host
   ansible.posix.firewalld:
@@ -26,6 +28,7 @@
     state: enabled
     immediate: true
     zone: "{{ monitoring_agents_firewalld_zone }}"
+  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
 - name: Install the PG-side exporter firewalld service definitions
   ansible.builtin.copy:
@@ -38,11 +41,14 @@
     - postgres-exporter
     - pgbouncer-exporter
     - pgbackrest-exporter
-  when: inventory_hostname in groups['postgres']
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - inventory_hostname in groups.get('postgres', [])
   notify: Reload firewalld
 
 - name: Flush handlers so firewalld reloads before service rules apply
   ansible.builtin.meta: flush_handlers
+  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
 - name: Open the PG-side exporter services to the monitor host
   ansible.posix.firewalld:
@@ -58,4 +64,19 @@
     - postgres-exporter
     - pgbouncer-exporter
     - pgbackrest-exporter
-  when: inventory_hostname in groups['postgres']
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - inventory_hostname in groups.get('postgres', [])
+
+- name: Open external pull HAProxy metrics frontend to configured CIDRs
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in (item | string) else 'ipv4' }}"
+      source address="{{ item }}"
+      port port="{{ monitoring_agents_pull_metrics_port }}" protocol="tcp" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ monitoring_agents_firewalld_zone }}"
+  loop: "{{ monitoring_agents_pull_source_cidrs }}"
+  when: (monitoring_mode | default('self_hosted')) == 'external_pull'

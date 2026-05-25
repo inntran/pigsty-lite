@@ -36,13 +36,16 @@
   tags: [backup]
 - name: Import P5 monitoring server playbook
   import_playbook: _monitoring_server.yml
+  when: groups['monitor'] | length > 0
   tags: [monitoring]
 - name: Import P5 monitoring agents playbook
   import_playbook: _monitoring_agents.yml
   tags: [monitoring]
 - name: Import P5 Grafana playbook
   import_playbook: _grafana.yml
+  when: groups['monitor'] | length > 0
   tags: [monitoring]
 - name: Import P5 nginx reverse proxy playbook
   import_playbook: _nginx_proxy.yml
+  when: groups['monitor'] | length > 0
   tags: [nginx_proxy]
