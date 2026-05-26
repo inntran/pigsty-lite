@@ -8,13 +8,13 @@
       ansible.builtin.package_facts:
         manager: rpm
 
-    - name: Check vip-manager package NOT installed
+    - name: Check vip-manager package IS installed
       ansible.builtin.assert:
         that:
-          - "'vip-manager' not in ansible_facts.packages"
+          - "'vip-manager' in ansible_facts.packages"
         fail_msg: >-
-          vip-manager rpm is installed despite vip_manager_enabled=false.
-          The disabled short-circuit in tasks/main.yml is broken.
+          vip-manager rpm should be installed regardless of
+          vip_manager_enabled. Package install must run unconditionally.
 
     - name: Check vip-manager.yml NOT rendered
       ansible.builtin.stat:

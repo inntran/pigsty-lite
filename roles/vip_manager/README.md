@@ -5,9 +5,11 @@ that wins the leader election, binds a single L2 VIP (e.g.
 `10.20.30.20/24`) to a named interface (e.g. `eth0`). Other hosts release
 the VIP.
 
-This role is **gated off by default** (`vip_manager_enabled: false`). It
-is a no-op unless the operator opts in by setting it true in the
-response file.
+This role is **gated off by default** (`vip_manager_enabled: false`).
+The `vip-manager` package is installed unconditionally so the binary is
+present and ready; only the config rendering and service activation are
+gated. When disabled, the role removes `/etc/vip-manager.yml` and
+ensures the `vip-manager.service` unit is stopped and disabled.
 
 ## When to enable
 
@@ -46,7 +48,8 @@ a "default" address.
 
 ## Testing
 
-Molecule tests in this project verify the **disabled** path (role is a
-no-op when `vip_manager_enabled: false`). Enabling it requires a real L2
-network and a routable VIP, which podman doesn't model. Use the smoke
-test in Task 23 for that.
+Molecule tests in this project verify the **disabled** path: package
+installs, config is absent, and service is inactive when
+`vip_manager_enabled: false`. Enabling it requires a real L2 network and
+a routable VIP, which podman doesn't model. Use the smoke test in
+Task 23 for that.

@@ -1,7 +1,8 @@
 ---
-# Testing goal: verify the vip_manager role installs cleanly with
-# enabled=false (no VIP bind), so packaging and unit-file management
-# can be exercised without requiring a routable VIP in the test network.
+# Testing goal: verify the vip_manager role's disabled path — the
+# package installs unconditionally, but no config is rendered and the
+# service stays inactive when vip_manager_enabled=false. Avoids needing
+# a routable VIP in the test network.
 driver:
   name: podman
 platforms:
@@ -30,7 +31,6 @@ provisioner:
         etcd_initial_cluster_state: new
     host_vars:
       pigsty-lite-vipmgr:
-        ansible_host: 127.0.0.1
         postgres_role: primary
         etcd_seq: 1
 verifier:

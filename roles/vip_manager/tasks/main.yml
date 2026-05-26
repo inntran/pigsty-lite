@@ -1,5 +1,26 @@
 ---
-- name: Short-circuit when vip-manager is disabled
+- name: Install vip-manager from PGDG-extras
+  ansible.builtin.dnf:
+    name: "{{ vip_manager_package }}"
+    state: present
+  tags: [vip_manager, install]
+
+- name: Ensure vip-manager is stopped and disabled when not enabled
+  ansible.builtin.systemd:
+    name: "{{ vip_manager_service_name }}"
+    enabled: false
+    state: stopped
+  when: not (vip_manager_enabled | bool)
+  tags: [vip_manager, service]
+
+- name: Remove vip-manager.yml when not enabled
+  ansible.builtin.file:
+    path: "{{ vip_manager_config_file }}"
+    state: absent
+  when: not (vip_manager_enabled | bool)
+  tags: [vip_manager, config]
+
+- name: End play when vip-manager is disabled
   ansible.builtin.meta: end_play
   when: not (vip_manager_enabled | bool)
 
@@ -22,12 +43,6 @@
       {{ inventory_hostname }}. Existing interfaces:
       {{ ansible_facts.interfaces | default([]) | join(', ') }}
   tags: [vip_manager, assert]
-
-- name: Install vip-manager from PGDG-extras
-  ansible.builtin.dnf:
-    name: "{{ vip_manager_package }}"
-    state: present
-  tags: [vip_manager, install]
 
 - name: Ensure vip-manager config directory exists
   ansible.builtin.file:
