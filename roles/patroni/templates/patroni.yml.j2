@@ -96,9 +96,13 @@ postgresql:
     replication:
       username: {{ patroni_replication_user }}
       password: {{ patroni_replication_password | to_json }}
+      sslmode: verify-ca
+      sslrootcert: {{ patroni_trusted_ca_file }}
     rewind:
       username: {{ patroni_rewind_user }}
       password: {{ patroni_rewind_password | to_json }}
+      sslmode: verify-ca
+      sslrootcert: {{ patroni_trusted_ca_file }}
 
   parameters:
     ssl_cert_file: {{ patroni_cert_file | to_json }}

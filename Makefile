@@ -15,7 +15,7 @@ endif
 include Makefile.d/lint.mk
 include Makefile.d/images.mk
 
-.PHONY: help init configure regen plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica lint images test-image test test-configure clean
+.PHONY: help init configure regen plan deploy switchover failover minor-upgrade scale-add-replica scale-remove-replica rotate-passwords lint images test-image test test-configure clean
 
 RESPONSE_FILE ?= responses/site.rsp.yml
 
@@ -37,6 +37,7 @@ help:
 	@echo "  make minor-upgrade                  Rolling minor PostgreSQL upgrade"
 	@echo "  make scale-add-replica HOST=<host>  Add a replica (host must be in inventory)"
 	@echo "  make scale-remove-replica HOST=<host>  Decommission a replica"
+	@echo "  make rotate-passwords               Re-sync Patroni-managed role passwords from vault"
 	@echo
 	@echo "  Dev/testing actions:"
 	@echo "  make lint                          Run all linters"
@@ -128,3 +129,6 @@ scale-add-replica:
 scale-remove-replica:
 	@if [ -z "$(HOST)" ]; then echo "Usage: make scale-remove-replica HOST=<host>"; exit 2; fi
 	ansible-playbook playbooks/scale_remove_replica.yml -e target_host=$(HOST)
+
+rotate-passwords:
+	ansible-playbook playbooks/rotate_passwords.yml
