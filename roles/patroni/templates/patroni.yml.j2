@@ -1,6 +1,25 @@
 # {{ ansible_managed }}
 # Rendered by roles/patroni. Do not edit by hand. To change tunables,
 # edit inventory variables and re-run `make deploy`.
+{#
+  The bootstrap and postgresql pg_hba blocks are identical; define them once.
+  `patroni_hba_any_cidr` follows the deployment's address family — an IPv4
+  `0.0.0.0/0` never matches an IPv6 peer, so single-stack v6 clusters would
+  otherwise be unable to authenticate replication or rewind connections.
+  Loopback `trust` rules cover both families so local tooling works either way.
+#}
+{%- set hba_rules = [
+      'local all all peer',
+      'host all postgres ' ~ patroni_hba_loopback_cidr ~ ' trust',
+      'host replication ' ~ patroni_replication_user ~ ' ' ~ patroni_hba_loopback_cidr ~ ' trust',
+      'hostssl replication ' ~ patroni_replication_user ~ ' ' ~ patroni_hba_any_cidr ~ ' scram-sha-256',
+      'host postgres ' ~ patroni_rewind_user ~ ' ' ~ patroni_hba_loopback_cidr ~ ' trust',
+      'hostssl postgres ' ~ patroni_rewind_user ~ ' ' ~ patroni_hba_any_cidr ~ ' scram-sha-256',
+    ] -%}
+{%- set patroni_hba_lines -%}
+{% for rule in hba_rules %}    - {{ rule }}
+{% endfor %}
+{%- endset -%}
 
 scope: {{ patroni_scope | to_json }}
 namespace: {{ patroni_namespace | to_json }}
@@ -63,12 +82,7 @@ bootstrap:
     - locale: C.UTF-8
 
   pg_hba:
-    - local all all peer
-    - host all postgres 127.0.0.1/32 trust
-    - host replication {{ patroni_replication_user }} 127.0.0.1/32 trust
-    - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 scram-sha-256
-    - host postgres {{ patroni_rewind_user }} 127.0.0.1/32 trust
-    - hostssl postgres {{ patroni_rewind_user }} 0.0.0.0/0 scram-sha-256
+{{ patroni_hba_lines }}
 
   # Patroni >= 4.0.0 removed the `bootstrap.users` block; superuser,
   # replication, and rewind roles are created from
@@ -77,13 +91,8 @@ bootstrap:
 postgresql:
 {% if patroni_pg_hba_managed | bool %}
   pg_hba:
-    - local all all peer
-    - host all postgres 127.0.0.1/32 trust
-    - host replication {{ patroni_replication_user }} 127.0.0.1/32 trust
-    - hostssl replication {{ patroni_replication_user }} 0.0.0.0/0 scram-sha-256
-    - host postgres {{ patroni_rewind_user }} 127.0.0.1/32 trust
-    - hostssl postgres {{ patroni_rewind_user }} 0.0.0.0/0 scram-sha-256
-{% endif %}
+{{ patroni_hba_lines }}
+{%- endif %}
   listen: {{ patroni_postgres_listen_address }}:{{ patroni_postgres_port }}
   connect_address: {{ patroni_advertise_address }}:{{ patroni_postgres_port }}
   data_dir: {{ patroni_postgres_data_dir }}

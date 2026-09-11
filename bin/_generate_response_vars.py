@@ -78,6 +78,9 @@ def generate(response: dict[str, Any]) -> str:
         "network_loopback_address": "::1" if ipv6_single_stack else "127.0.0.1",
         "network_loopback_addresses": loopback_addresses,
         "network_any_address": "::" if ipv6_single_stack else "0.0.0.0",
+        # Wildcard CIDR for pg_hba "any source" rules. IPv4 `0.0.0.0/0` never
+        # matches an IPv6 peer, so single-stack v6 clusters need `::/0`.
+        "network_any_cidr": "::/0" if ipv6_single_stack else "0.0.0.0/0",
         "haproxy_loopback_listen_addresses": ["127.0.0.2"],
         "postgres_version": postgres["version"],
         "postgres_port": postgres["port"],

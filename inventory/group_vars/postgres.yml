@@ -11,9 +11,20 @@ postgres_base_dir: /var/lib/pgsql
 postgres_version_dir: "{{ postgres_base_dir }}/{{ postgres_version }}"
 postgres_data_dir: "{{ postgres_version_dir }}/data"
 postgres_log_dir: "{{ postgres_version_dir }}/log"
+# Bind to the host's routable address plus loopback. Pick the address family
+# that matches the deployment: default_ipv4 is undefined on a single-stack
+# IPv6 host, so selecting it unconditionally breaks ip_version: ipv6.
 postgres_listen_address: >-
   {{
-    ([ansible_facts.default_ipv4.address] + network_loopback_addresses)
+    (
+      [
+        (ansible_facts | default({})).get('default_ipv6', {}).get('address')
+        if (network_ipv6_single_stack | default(false) | bool)
+        else (ansible_facts | default({})).get('default_ipv4', {}).get('address')
+      ]
+      | reject('none') | list
+      + network_loopback_addresses
+    )
     | unique | join(',')
   }}
 # postgres_port is defined in group_vars/all/main.yml (shared with
