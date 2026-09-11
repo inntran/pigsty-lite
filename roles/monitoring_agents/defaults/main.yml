@@ -73,6 +73,12 @@ monitoring_agents_systemd_dir: /etc/systemd/system
 
 # External pull nginx metrics frontend
 monitoring_agents_nginx_package: nginx
+# openssl is the CLI package (openssl-libs is the library and is not enough);
+# _nginx_metrics.yml shells out to `openssl passwd` for the htpasswd hash.
+monitoring_agents_openssl_package: openssl
+monitoring_agents_nginx_metrics_packages:
+  - "{{ monitoring_agents_nginx_package }}"
+  - "{{ monitoring_agents_openssl_package }}"
 monitoring_agents_nginx_metrics_config: /etc/nginx/conf.d/pigsty-metrics.conf
 monitoring_agents_nginx_metrics_htpasswd: /etc/nginx/pigsty-metrics.htpasswd
 monitoring_agents_pull_metrics_port: "{{ monitoring_pull_metrics_port | default(9965) }}"

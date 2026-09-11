@@ -4,9 +4,13 @@
 # (which only runs on postgres nodes). nginx fronts the loopback-only
 # exporters with basic auth and optional TLS.
 
-- name: Install nginx for the metrics frontend
+# The openssl CLI is a separate package from openssl-libs on RHEL 10, so a
+# minimal host has the library but not the binary. "Hash the metrics frontend
+# password" below shells out to it, and that task is no_log, so a missing
+# binary surfaces as a censored failure with no cause.
+- name: Install nginx and openssl for the metrics frontend
   ansible.builtin.dnf:
-    name: "{{ monitoring_agents_nginx_package }}"
+    name: "{{ monitoring_agents_nginx_metrics_packages }}"
     state: present
 
 - name: Allow nginx to connect to loopback exporters
@@ -15,6 +19,16 @@
     state: true
     persistent: true
   when: ansible_facts.selinux.status == "enabled"
+
+# The hashing task below is no_log, so any failure there is censored and
+# gives the operator nothing to go on. Check the binary here, where the
+# error can actually be reported.
+- name: Verify the openssl CLI is available for password hashing
+  ansible.builtin.command:
+    cmd: openssl version
+  changed_when: false
+  register: monitoring_agents_openssl_probe
+  failed_when: monitoring_agents_openssl_probe.rc != 0
 
 - name: Derive a deterministic salt for the htpasswd hash
   # Stable salt -> stable hash -> idempotent on re-runs. The salt is not
@@ -25,14 +39,21 @@
          | hash('md5') | truncate(8, true, '') }}
 
 - name: Hash the metrics frontend password
+  # The password goes in on stdin, not as an argument: argv is world-readable
+  # through /proc/<pid>/cmdline while the command runs.
   ansible.builtin.command:
     cmd: >-
       openssl passwd -apr1
       -salt {{ monitoring_agents_pull_htpasswd_salt }}
-      {{ monitoring_agents_pull_password }}
+      -stdin
+    stdin: "{{ monitoring_agents_pull_password }}"
+    stdin_add_newline: false
   changed_when: false
   no_log: true
   register: monitoring_agents_pull_htpasswd_hash
+  failed_when: >-
+    monitoring_agents_pull_htpasswd_hash.rc != 0
+    or not monitoring_agents_pull_htpasswd_hash.stdout.startswith('$apr1$')
 
 - name: Write the metrics frontend htpasswd file
   ansible.builtin.copy:

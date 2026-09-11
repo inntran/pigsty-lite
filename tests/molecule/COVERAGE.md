@@ -122,12 +122,22 @@ image, not on a baked first-party image:
 These run in parallel with `build-common`/`build-data`/`build-infra` in
 CI (see `.github/workflows/molecule.yml`).
 
-`monitoring_agents/default` is currently excluded from CI. Its exporter RPM
-names are not available in the Oracle Linux 10 repo set used by this project,
-and the role's `_exporters.yml` import is commented out, so the scenario's
-verify still asserts on exporter endpoints (9100/9187/9127/9854) that nothing
-installs. Re-enabling it means sourcing those packages and restoring the
-import, not just adding a matrix row.
+`monitoring_agents/default` and `monitoring_agents/external_pull` are both
+excluded from CI, for the same reason: the role's `_exporters.yml` and
+`_firewall.yml` imports are commented out, so no exporter is installed, while
+both scenarios' verify steps assert on exporter endpoints. `default` checks
+9100/9187/9127/9854 directly; `external_pull` gets a 502 from the nginx
+frontend proxying to a node_exporter that is not running.
+
+The blocker is packaging, not wiring: `node_exporter`, `postgres_exporter`,
+`pgbouncer_exporter` and `pgbackrest_exporter` are not present in the
+Oracle Linux 10 + EPEL repo set these images build from, so restoring the
+imports as-is would fail at the `dnf` task. Re-enabling either scenario means
+first choosing a package source for the exporters.
+
+`external_pull` otherwise converges, is idempotent, and its auth assertions
+pass: the frontend rejects unauthenticated requests and accepts the generated
+htpasswd credentials.
 
 `monitoring_agents/external_push` does run in CI. It covers the path where the
 role handles secrets: remote_write credentials are staged as root-owned `0640`

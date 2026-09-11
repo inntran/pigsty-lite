@@ -1,4 +1,7 @@
-"""external_push credentials must never be passed as agent command-line args.
+"""monitoring_agents must never put a credential on a command line.
+
+Covers both paths that handle secrets: the external_push remote_write
+credentials, and the external_pull metrics-frontend htpasswd hash.
 
 The upstream victoriametrics.cluster roles interpolate every entry of
 vmagent_service_args / vlagent_service_args into the ExecStart line of a
@@ -100,3 +103,52 @@ def test_stale_credential_files_are_removed_when_auth_is_disabled():
         if task.get("ansible.builtin.file", {}).get("state") == "absent"
     ]
     assert absent, "expected a task removing unconfigured credential files"
+
+
+NGINX_METRICS_TASKS = ROOT / "roles/monitoring_agents/tasks/_nginx_metrics.yml"
+
+
+def test_openssl_cli_is_installed_not_assumed():
+    """openssl-libs ships without the CLI on RHEL 10, so `openssl passwd`
+    fails on a minimal host unless the binary is installed explicitly."""
+    defaults = yaml.safe_load(DEFAULTS.read_text())
+    packages = defaults["monitoring_agents_nginx_metrics_packages"]
+
+    assert any("openssl" in str(pkg) for pkg in packages), (
+        "the metrics frontend must install the openssl CLI"
+    )
+    assert defaults["monitoring_agents_openssl_package"] == "openssl"
+
+
+def test_htpasswd_password_is_passed_on_stdin_not_argv():
+    """argv is world-readable via /proc/<pid>/cmdline while the command runs."""
+    tasks = yaml.safe_load(NGINX_METRICS_TASKS.read_text())
+    hash_tasks = [
+        task
+        for task in _walk(tasks)
+        if "passwd" in str(task.get("ansible.builtin.command", {}).get("cmd", ""))
+    ]
+    assert hash_tasks, "expected a password-hashing task"
+
+    for task in hash_tasks:
+        command = task["ansible.builtin.command"]
+        assert "-stdin" in command["cmd"], "openssl passwd must read the password from stdin"
+        assert "stdin" in command, "the password must be supplied via the stdin parameter"
+        assert "monitoring_agents_pull_password" not in command["cmd"], (
+            "the password must not appear in the command arguments"
+        )
+        assert task.get("no_log") is True
+
+
+def test_openssl_availability_is_checked_outside_a_no_log_task():
+    """A no_log failure is censored, so a missing binary must surface from a
+    task whose output the operator can actually read."""
+    tasks = list(_walk(yaml.safe_load(NGINX_METRICS_TASKS.read_text())))
+    probes = [
+        task
+        for task in tasks
+        if "openssl version" in str(task.get("ansible.builtin.command", {}).get("cmd", ""))
+    ]
+    assert probes, "expected an openssl availability probe"
+    for task in probes:
+        assert not task.get("no_log"), "the probe must not be no_log, or it cannot be diagnosed"
