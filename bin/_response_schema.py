@@ -154,6 +154,46 @@ def _validate_nodes(nodes: dict, profile: str, ip_version: str, monitoring_mode:
         raise SchemaError(f"nodes: profile 'ha' requires at least 2 pg_replica; got {replicas}")
 
 
+# pg_hba.conf accepts these literal keywords in the address column instead of
+# a CIDR. Anything else must be a CIDR or a resolvable host/domain pattern.
+HBA_SOURCE_KEYWORDS = {"all", "samehost", "samenet"}
+# A dotted hostname (`db.example.com`) or a `.example.com` suffix pattern.
+# A dot is required: this is the last gate before pg_hba.conf, and accepting
+# bare single-label words would let a typo like `10.0.0/8` or `smaenet` pass
+# as a "hostname". `localhost` is the one single-label name worth allowing.
+HBA_HOSTNAME_RE = re.compile(
+    r"^\.?(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))+$"
+)
+HBA_SINGLE_LABEL_HOSTS = {"localhost"}
+
+
+def _check_hba_source(value: str, path: str, ip_version: str) -> None:
+    """Validate a pg_hba address: a keyword, a CIDR, or a hostname pattern.
+
+    Previously a malformed CIDR was swallowed here, so a typo reached the
+    generated pg_hba.conf and failed mid-deploy instead of at validate time.
+    """
+    if value in HBA_SOURCE_KEYWORDS or value in HBA_SINGLE_LABEL_HOSTS:
+        return
+
+    # Anything carrying '/' or ':' is meant to be an address, not a hostname;
+    # hold it to the CIDR rules (including the ip_version check) and report
+    # the underlying parse error rather than a vague "not a hostname".
+    if "/" in value or ":" in value:
+        _check_cidr(value, path, ip_version)
+        return
+
+    try:
+        _check_cidr(value, path, ip_version)
+    except SchemaError:
+        if HBA_HOSTNAME_RE.match(value):
+            return
+        raise SchemaError(
+            f"{path}: '{value}' is not a CIDR, a dotted hostname, or one of "
+            f"{sorted(HBA_SOURCE_KEYWORDS | HBA_SINGLE_LABEL_HOSTS)}"
+        ) from None
+
+
 def _validate_hba_rules(postgres: dict, ip_version: str) -> None:
     hba_rules = postgres.get("hba_rules", [])
     if not isinstance(hba_rules, list):
@@ -163,11 +203,7 @@ def _validate_hba_rules(postgres: dict, ip_version: str) -> None:
             raise SchemaError(f"postgres.hba_rules[{index}]: must be a mapping")
         source = rule.get("source")
         if isinstance(source, str):
-            try:
-                _check_cidr(source, f"postgres.hba_rules[{index}].source", ip_version)
-            except SchemaError as exc:
-                if "invalid cidr" not in str(exc):
-                    raise
+            _check_hba_source(source, f"postgres.hba_rules[{index}].source", ip_version)
 
 
 def _validate_users(postgres: dict) -> None:

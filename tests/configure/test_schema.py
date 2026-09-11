@@ -58,6 +58,37 @@ def test_ipv6_single_stack_rejects_ipv4_hba_source():
         validate(data)
 
 
+@pytest.mark.parametrize(
+    "source",
+    ["10.20.40.0/24", "10.0.0.1", "all", "samehost", "samenet", "localhost",
+     "db.example.com", ".example.com"],
+)
+def test_hba_source_accepts_cidrs_keywords_and_hostnames(source):
+    data = _load("ha.rsp.yml")
+    data["postgres"]["hba_rules"][0]["source"] = source
+    validate(data)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "not-a-cidr",      # bare word typo
+        "smaenet",         # misspelled keyword
+        "10.20.40.0/99",   # prefix out of range
+        "999.1.1.1/24",    # octet out of range
+        "10.20.40.o/24",   # letter o for zero
+        "",                # empty
+    ],
+)
+def test_hba_source_rejects_malformed_values(source):
+    """A malformed source used to be swallowed here and would surface only
+    when pg_hba.conf was written, failing mid-deploy."""
+    data = _load("ha.rsp.yml")
+    data["postgres"]["hba_rules"][0]["source"] = source
+    with pytest.raises(SchemaError, match="hba_rules"):
+        validate(data)
+
+
 def test_postgres_users_must_be_list_of_dicts():
     data = _load("spof.rsp.yml")
     data["postgres"]["users"] = ["bare-string-not-dict"]
