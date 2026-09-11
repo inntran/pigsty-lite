@@ -1,0 +1,58 @@
+---
+# Testing goal: verify external_push ships metrics/logs to an external
+# endpoint with basic-auth + bearer-token credentials, and that those
+# credentials are staged as root-owned files rather than passed as agent
+# command-line arguments. The upstream victoriametrics.cluster roles render
+# every service arg into the ExecStart line of a world-readable systemd unit,
+# so an inline secret would leak via the unit file and /proc/<pid>/cmdline.
+#
+# No monitor host: external_push means the receiver is somebody else's. A
+# local nginx stub stands in for it so the agents have a live URL to push to.
+driver:
+  name: podman
+platforms:
+  - name: pigsty-lite-monagt-push
+    image: localhost/molecule-base-infra:latest
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volume_mounts:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    security_opts: ["label=disable"]
+    systemd: always
+    groups: [external_push]
+    network: pigsty-lite-monagt-push
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        network_ip_version: ipv4
+        cluster_name: pigsty-lite-test
+        cluster_domain: test.local
+        pigsty_pki_dir: /etc/pki/pigsty
+        node_sysctl_apply: false
+        postgres_version: 18
+        monitoring_mode: external_push
+        monitoring_agents_node_exporter_package: node-exporter
+        # The stub receiver below listens here.
+        monitoring_external_metrics_url: "http://127.0.0.1:8480/api/v1/write"
+        monitoring_external_logs_url: "http://127.0.0.1:8480/insert/jsonline"
+        # Basic auth and bearer are mutually exclusive: the agents exit with
+        # "cannot simultaneously use `authorization`, `basic_auth` and
+        # `bearer_token_file`". Exercise basic auth here.
+        monitoring_external_auth_username: pigsty
+        monitoring_external_auth_bearer: false
+        vault_monitoring_external_password: push-test-pw
+verifier:
+  name: ansible
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy

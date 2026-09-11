@@ -176,6 +176,13 @@ jobs:
           - role: nginx_proxy
             scenario: default
             images: infra
+          # external_push stages remote_write credentials on disk; verify
+          # asserts they stay out of the unit file and /proc/<pid>/cmdline.
+          # (monitoring_agents/default stays out of CI: its verify asserts on
+          # exporters the role no longer installs — see COVERAGE.md.)
+          - role: monitoring_agents
+            scenario: external_push
+            images: infra
     steps:
       - uses: actions/checkout@v6
 

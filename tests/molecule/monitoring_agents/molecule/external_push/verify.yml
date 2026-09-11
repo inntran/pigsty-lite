@@ -1,0 +1,143 @@
+---
+- name: Verify external_push credential handling
+  hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  vars:
+    expected_password: push-test-pw
+    # This scenario uses basic auth, so the bearer files must NOT be present.
+    credential_files:
+      - /etc/pigsty/monitoring/vmagent-remotewrite.password
+      - /etc/pigsty/monitoring/vlagent-remotewrite.password
+    unused_credential_files:
+      - /etc/pigsty/monitoring/vmagent-remotewrite.token
+      - /etc/pigsty/monitoring/vlagent-remotewrite.token
+  tasks:
+    - name: Stat the staged credential files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ credential_files }}"
+      register: credential_stats
+
+    - name: Assert every credential file exists, root-owned and mode 0640
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.pw_name == 'root'
+          - item.stat.mode == '0640'
+        fail_msg: >-
+          {{ item.item }} must exist as a root-owned 0640 file; found
+          exists={{ item.stat.exists }}
+          owner={{ item.stat.pw_name | default('n/a') }}
+          mode={{ item.stat.mode | default('n/a') }}.
+      loop: "{{ credential_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Assert each credential file is group-owned by the agent that reads it
+      ansible.builtin.assert:
+        that:
+          - item.stat.gr_name == (
+              'vic_vm_agent' if 'vmagent' in item.item else 'vic_vl_agent'
+            )
+        fail_msg: >-
+          {{ item.item }} is group-owned by
+          {{ item.stat.gr_name | default('n/a') }}; the reading agent's
+          service account must be able to read it.
+      loop: "{{ credential_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Stat the credential files this mode does not use
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ unused_credential_files }}"
+      register: unused_stats
+
+    - name: Assert unused credential files are not left on the host
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+        fail_msg: >-
+          {{ item.item }} exists although bearer auth is disabled; a
+          credential must not be left readable on disk.
+      loop: "{{ unused_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # The point of the fix: the upstream roles render service args into a
+    # world-readable unit, so the secret must never appear there.
+    - name: Read the rendered systemd units
+      ansible.builtin.slurp:
+        src: "/etc/systemd/system/{{ item }}"
+      loop:
+        - vic-vmagent.service
+        - vic-vlagent.service
+      register: agent_units
+
+    - name: Assert the units reference credential FILES, not values
+      ansible.builtin.assert:
+        that:
+          - expected_password not in unit_text
+          - "'remoteWrite.basicAuth.passwordFile=' in unit_text"
+          - "'remoteWrite.basicAuth.password=' not in unit_text"
+        fail_msg: >-
+          {{ item.item }} exposes a credential on the ExecStart line.
+      vars:
+        unit_text: "{{ item.content | b64decode }}"
+      loop: "{{ agent_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read each running agent's process arguments
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          pid=$(pgrep -f '{{ item }}-prod' | head -1)
+          tr '\0' ' ' < "/proc/${pid}/cmdline"
+        executable: /bin/bash
+      loop:
+        - vmagent
+        - vlagent
+      register: agent_cmdlines
+      changed_when: false
+
+    - name: Assert no secret is visible in /proc/<pid>/cmdline
+      ansible.builtin.assert:
+        that:
+          - expected_password not in item.stdout
+        fail_msg: >-
+          {{ item.item }} exposes a credential in its process arguments,
+          readable by any local user.
+      loop: "{{ agent_cmdlines.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Assert both agents are running
+      ansible.builtin.systemd:
+        name: "vic-{{ item }}"
+      register: agent_state
+      failed_when: agent_state.status.ActiveState != 'active'
+      loop:
+        - vmagent
+        - vlagent
+
+    # If the credentials were staged wrong, the agents would fail to
+    # authenticate and the receiver would never see a request.
+    - name: Check the stub receiver accepted authenticated writes
+      ansible.builtin.command:
+        cmd: grep -c . /var/log/nginx/stub-receiver.log
+      register: receiver_hits
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: (receiver_hits.stdout | default('0') | int) > 0
+
+    - name: Assert the agents actually pushed
+      ansible.builtin.assert:
+        that:
+          - (receiver_hits.stdout | int) > 0
+        fail_msg: >-
+          The stub receiver logged no requests; the agents are not
+          successfully shipping to the external endpoint.

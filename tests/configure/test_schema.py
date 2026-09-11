@@ -89,6 +89,37 @@ def test_hba_source_rejects_malformed_values(source):
         validate(data)
 
 
+def test_external_push_rejects_basic_auth_and_bearer_together():
+    """vmagent/vlagent exit with "cannot simultaneously use `authorization`,
+    `basic_auth` and `bearer_token_file`", so the agents crash-loop after an
+    otherwise successful deploy."""
+    data = _load("spof.rsp.yml")
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://example.com/api/v1/write",
+            "logs_url": "https://example.com/insert/jsonline",
+            "auth": {"username": "pigsty", "bearer": True},
+        },
+    }
+    with pytest.raises(SchemaError, match="not both"):
+        validate(data)
+
+
+@pytest.mark.parametrize("auth", [{"username": "pigsty"}, {"bearer": True}])
+def test_external_push_accepts_a_single_auth_method(auth):
+    data = _load("spof.rsp.yml")
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://example.com/api/v1/write",
+            "logs_url": "https://example.com/insert/jsonline",
+            "auth": auth,
+        },
+    }
+    validate(data)
+
+
 def test_postgres_users_must_be_list_of_dicts():
     data = _load("spof.rsp.yml")
     data["postgres"]["users"] = ["bare-string-not-dict"]
@@ -372,7 +403,10 @@ def test_monitoring_external_push_validates_without_monitor_or_retention():
         "external_push": {
             "metrics_url": "https://vm.example/api/v1/write",
             "logs_url": "https://vl.example/insert/jsonline",
-            "auth": {"username": "pigsty", "bearer": True},
+            # Basic auth only: combining it with bearer makes vmagent and
+            # vlagent exit at startup. See
+            # test_external_push_rejects_basic_auth_and_bearer_together.
+            "auth": {"username": "pigsty"},
             "tls_skip_verify": True,
         },
     }

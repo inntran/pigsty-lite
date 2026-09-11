@@ -36,12 +36,10 @@ These are the building blocks the import-based scenarios pull in:
 
 `CI` column: ✓ = currently in `.github/workflows/molecule.yml` matrix.
 
-The CI matrix is four derived-image scenarios plus the two raw bootstrap
-scenarios chosen to collectively exercise every role except
-`monitoring_agents` as
-either a converge target or via production-playbook prepare. Other scenarios
-remain in-tree and can be run locally via `make test-role ROLE=<name>` but do
-not run in CI.
+The CI matrix is five derived-image scenarios plus the two raw bootstrap
+scenarios chosen to collectively exercise every role as either a converge
+target or via production-playbook prepare. Other scenarios remain in-tree and
+can be run locally via `make test-role ROLE=<name>` but do not run in CI.
 
 | Scenario                  | CI | Role(s) under test (converge) | Supporting roles (prepare)                                                                                  |
 |---------------------------|:--:|-------------------------------|-------------------------------------------------------------------------------------------------------------|
@@ -50,6 +48,7 @@ not run in CI.
 | `haproxy / ha`            | ✓  | `haproxy`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`                                  |
 | `nginx_proxy / default`   | ✓  | `nginx_proxy`                 | `preflight`, `ca`, `repos`, `node`, `certs`, `monitoring_server`, `grafana`                                 |
 | `monitoring_agents / default` |    | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `haproxy`, `pgbackrest`, `monitoring_server` |
+| `monitoring_agents / external_push` | ✓ | `monitoring_agents`    | `preflight`, `ca`, `repos`, `node`, `certs`                                                                 |
 | `preflight / default`     |    | `preflight`                   | —                                                                                                           |
 | `repos / default`         |    | `repos`                       | —                                                                                                           |
 | `node / default`          |    | `repos`, `node`               | —                                                                                                           |
@@ -123,9 +122,22 @@ image, not on a baked first-party image:
 These run in parallel with `build-common`/`build-data`/`build-infra` in
 CI (see `.github/workflows/molecule.yml`).
 
-`monitoring_agents/default` is currently excluded from CI because its exporter
-RPM names are not available in the Oracle Linux 10 repo set used by this
-project.
+`monitoring_agents/default` is currently excluded from CI. Its exporter RPM
+names are not available in the Oracle Linux 10 repo set used by this project,
+and the role's `_exporters.yml` import is commented out, so the scenario's
+verify still asserts on exporter endpoints (9100/9187/9127/9854) that nothing
+installs. Re-enabling it means sourcing those packages and restoring the
+import, not just adding a matrix row.
+
+`monitoring_agents/external_push` does run in CI. It covers the path where the
+role handles secrets: remote_write credentials are staged as root-owned `0640`
+files under `/etc/pigsty/monitoring` and passed to vmagent/vlagent as
+`-remoteWrite.basicAuth.passwordFile` / `-remoteWrite.bearerTokenFile`. The
+upstream `victoriametrics.cluster` roles render every service arg into the
+`ExecStart` line of a world-readable unit, so verify asserts the secret values
+appear in neither the unit file nor `/proc/<pid>/cmdline`. A local nginx stub
+stands in for the external receiver, and its access log proves the agents
+authenticated successfully rather than silently failing.
 
 ## VM binary versions
 

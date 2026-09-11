@@ -1,0 +1,60 @@
+---
+- name: Bring up preflight
+  ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
+- name: Bring up CA
+  ansible.builtin.import_playbook: ../../../../../playbooks/_ca.yml
+- name: Bring up node + repos + certs
+  ansible.builtin.import_playbook: ../../../../../playbooks/_node.yml
+
+- name: Stage the node_exporter package and a stub remote_write receiver
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Install EPEL release
+      ansible.builtin.dnf:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+
+    - name: Disable EPEL outside explicit enablerepo use
+      ansible.builtin.command:
+        cmd: dnf config-manager --set-disabled epel
+      changed_when: false
+
+    # external_push normally targets somebody else's ingest endpoint. Stand up
+    # a local nginx that accepts and discards writes, so vmagent and vlagent
+    # have a live URL and we can assert they authenticate against it.
+    - name: Configure the stub remote_write receiver
+      ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/stub-receiver.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          server {
+              listen 127.0.0.1:8480;
+              access_log /var/log/nginx/stub-receiver.log;
+              location / {
+                  return 204;
+              }
+          }
+      notify: Restart stub receiver
+
+    - name: Remove the default nginx server block
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+      notify: Restart stub receiver
+
+    - name: Ensure nginx is running
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart stub receiver
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted

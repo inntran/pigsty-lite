@@ -390,6 +390,14 @@ def _validate_monitoring_push(monitoring: dict) -> None:
         bearer = auth.get("bearer")
         if bearer is not None and not isinstance(bearer, bool):
             raise SchemaError("monitoring.external_push.auth.bearer: expected bool")
+        # vmagent/vlagent reject a remote_write target that carries both:
+        # "cannot simultaneously use `authorization`, `basic_auth` and
+        #  `bearer_token_file`" — the agent exits and crash-loops.
+        if username and bearer:
+            raise SchemaError(
+                "monitoring.external_push.auth: set either 'username' (basic auth) "
+                "or 'bearer', not both; the agents accept only one auth method"
+            )
 
     tls_skip_verify = push.get("tls_skip_verify", False)
     if not isinstance(tls_skip_verify, bool):

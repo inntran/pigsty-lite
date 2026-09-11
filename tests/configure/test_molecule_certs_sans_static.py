@@ -47,16 +47,21 @@ def test_molecule_scenarios_do_not_pin_epel_repo_state():
     """Roles reach EPEL packages via `enablerepo`, so no scenario (nor the
     shared config) should pin repos_epel_enabled — molecule must exercise the
     same disabled-by-default state production uses."""
+    # Globbed rather than listed, so a new scenario cannot slip past this.
+    # external_pull predates the rule and is grandfathered in.
+    grandfathered = {"tests/molecule/monitoring_agents/molecule/external_pull/molecule.yml"}
     scenario_files = [
-        "tests/molecule/grafana/molecule/default/molecule.yml",
-        "tests/molecule/monitoring_agents/molecule/default/molecule.yml",
-        "tests/molecule/monitoring_server/molecule/default/molecule.yml",
-        "tests/molecule/nginx_proxy/molecule/default/molecule.yml",
+        path
+        for path in sorted((ROOT / "tests/molecule").glob("*/molecule/*/molecule.yml"))
+        if str(path.relative_to(ROOT)) not in grandfathered
     ]
 
+    assert scenario_files, "expected molecule scenarios to check"
     for path in scenario_files:
-        molecule = _load_yaml(ROOT / path)
-        group_vars = molecule["provisioner"]["inventory"]["group_vars"]["all"]
+        molecule = _load_yaml(path)
+        group_vars = (
+            molecule.get("provisioner", {}).get("inventory", {}).get("group_vars", {}).get("all", {})
+        )
         assert "repos_epel_enabled" not in group_vars, path
         assert "repos_pigsty_enabled" not in group_vars, path
 

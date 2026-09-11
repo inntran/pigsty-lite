@@ -13,6 +13,26 @@
       delegate_to: localhost
       when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
 
+    # vmagent and vlagent refuse to start when both are set:
+    #   "cannot simultaneously use `authorization`, `basic_auth` and
+    #    `bearer_token_file`"
+    # Catch it here rather than leaving the operator with an agent that
+    # crash-loops after a successful-looking deploy.
+    - name: Fail if external_push sets both basic auth and a bearer token
+      ansible.builtin.assert:
+        that:
+          - not (
+              monitoring_agents_external_auth_username | length > 0
+              and monitoring_agents_external_auth_bearer | bool
+            )
+        fail_msg: >-
+          monitoring.external_push.auth sets both a username and bearer:
+          true. vmagent and vlagent accept only one remote_write auth
+          method; choose basic auth or a bearer token, not both.
+      run_once: true
+      delegate_to: localhost
+      when: (monitoring_mode | default('self_hosted')) == 'external_push'
+
     - name: Stat the CA certificate (from P0 certs role)
       ansible.builtin.stat:
         path: "{{ monitoring_agents_ca_file }}"
@@ -32,10 +52,38 @@
 #   ansible.builtin.import_tasks: _exporters.yml
 #   tags: [monitoring, install]
 
+- name: Ensure the agent service accounts exist
+  ansible.builtin.import_tasks: _agent_accounts.yml
+  tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) != 'external_pull'
+
 - name: Stage external_push credentials on disk
   ansible.builtin.import_tasks: _external_secrets.yml
   tags: [monitoring, config]
   when: (monitoring_mode | default('self_hosted')) == 'external_push'
+
+# The agents create their own buffer directory only if they can write the
+# parent as their unprivileged service user; under /var/lib they cannot, and
+# the process exits with "cannot create directory: permission denied". The
+# upstream role starts the service inside its own include, so these must
+# exist beforehand — fixing ownership afterwards is too late, the restart
+# budget is already spent.
+- name: Pre-create the agent buffer directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0750"
+  loop:
+    - path: "{{ monitoring_agents_vmagent_buffer_dir }}"
+      user: "{{ monitoring_agents_vmagent_system_user }}"
+    - path: "{{ monitoring_agents_vlagent_buffer_dir }}"
+      user: "{{ monitoring_agents_vlagent_system_user }}"
+  loop_control:
+    label: "{{ item.path }}"
+  tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) != 'external_pull'
 
 - name: Install and configure vmagent
   tags: [monitoring, config]
