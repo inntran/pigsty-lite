@@ -51,6 +51,10 @@ patroni_hba_any_cidr: "{{ '::/0' if (network_ipv6_single_stack | default(false) 
 patroni_hba_loopback_cidr: "{{ '::1/128' if (network_ipv6_single_stack | default(false) | bool) else '127.0.0.1/32' }}"
 patroni_rest_port: 8008
 
+# Patroni REST probes verify against the pigsty-lite CA distributed by
+# roles/certs; patroni_advertise_address is covered by the host cert SANs.
+patroni_rest_validate_certs: true
+
 # DCS - rendered by template from groups['etcd']
 patroni_etcd_protocol: https
 

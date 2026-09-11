@@ -33,6 +33,10 @@
           ansible.builtin.uri:
             url: "https://{{ ansible_host | default(inventory_hostname) }}:{{ patroni_rest_port | default(8008) }}/patroni"
             method: GET
+            # Deliberately unverified: this probes a host that may not have
+            # been issued a cert yet. We only care whether Patroni answers at
+            # all, and a TLS failure here would be rescued into a misleading
+            # "fresh host" verdict. No data is read from the response.
             validate_certs: false
             timeout: 3
             status_code: [200, 503]

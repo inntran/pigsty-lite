@@ -4,10 +4,14 @@
 # tasks_from: includes used by the P6 lifecycle playbooks; it is never
 # run as a whole role.
 
-# Patroni REST
+# Patroni REST. Certificates are issued by the pigsty-lite CA (roles/ca) and
+# the CA bundle is distributed to every host by roles/certs, so these calls
+# verify against it. The certs role puts the host's address and inventory
+# name in the SANs, which is what the REST URLs are built from.
 cluster_ops_rest_scheme: https
 cluster_ops_rest_port: "{{ patroni_rest_port | default(8008) }}"
-cluster_ops_rest_validate_certs: false
+cluster_ops_rest_validate_certs: true
+cluster_ops_rest_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 cluster_ops_rest_timeout: 5
 
 # Health-convergence polling

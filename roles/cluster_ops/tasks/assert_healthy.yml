@@ -10,6 +10,7 @@
       | default(cluster_ops_leader_host) }}:{{ cluster_ops_rest_port }}/cluster
     method: GET
     validate_certs: "{{ cluster_ops_rest_validate_certs }}"
+    ca_path: "{{ cluster_ops_rest_ca_file }}"
     timeout: "{{ cluster_ops_rest_timeout }}"
     return_content: true
     status_code: 200

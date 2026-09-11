@@ -4,6 +4,7 @@
     url: "{{ provision_patroni_rest_scheme }}://{{ provision_patroni_rest_host }}:{{ provision_patroni_rest_port }}/cluster"
     method: GET
     validate_certs: "{{ provision_patroni_rest_validate_certs }}"
+    ca_path: "{{ provision_patroni_rest_ca_file }}"
     timeout: "{{ provision_patroni_rest_timeout }}"
     return_content: true
   register: provision_cluster_view

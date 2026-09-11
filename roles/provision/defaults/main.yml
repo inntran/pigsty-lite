@@ -8,7 +8,9 @@
 provision_patroni_rest_scheme: https
 provision_patroni_rest_host: "{{ patroni_advertise_address | default(ansible_host) }}"
 provision_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
-provision_patroni_rest_validate_certs: false
+# Verify against the pigsty-lite CA distributed by roles/certs.
+provision_patroni_rest_validate_certs: true
+provision_patroni_rest_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
 provision_patroni_rest_timeout: 5
 
 # Connect as the OS database superuser over the local Unix socket.

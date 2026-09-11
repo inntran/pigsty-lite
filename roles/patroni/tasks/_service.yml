@@ -11,7 +11,8 @@
     url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/health"
     method: GET
     return_content: false
-    validate_certs: false
+    validate_certs: "{{ patroni_rest_validate_certs }}"
+    ca_path: "{{ patroni_trusted_ca_file }}"
     status_code: [200, 503]
   register: patroni_rest_probe
   retries: "{{ patroni_leader_wait_retries }}"
@@ -23,7 +24,8 @@
     url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/cluster"
     method: GET
     return_content: true
-    validate_certs: false
+    validate_certs: "{{ patroni_rest_validate_certs }}"
+    ca_path: "{{ patroni_trusted_ca_file }}"
     status_code: 200
   register: patroni_cluster_probe
   retries: "{{ patroni_leader_wait_retries }}"
@@ -38,7 +40,8 @@
     url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/patroni"
     method: GET
     return_content: true
-    validate_certs: false
+    validate_certs: "{{ patroni_rest_validate_certs }}"
+    ca_path: "{{ patroni_trusted_ca_file }}"
     status_code: 200
   register: patroni_member_probe
   retries: "{{ patroni_leader_wait_retries }}"
