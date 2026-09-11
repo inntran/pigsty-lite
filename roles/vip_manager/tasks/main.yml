@@ -24,15 +24,44 @@
   ansible.builtin.meta: end_play
   when: not (vip_manager_enabled | bool)
 
-- name: Fail unless VIP CIDR and interface are set
+- name: Fail unless VIP CIDR is set
   ansible.builtin.assert:
     that:
       - vip_manager_vip_cidr | length > 0
-      - vip_manager_interface | length > 0
     fail_msg: >-
-      vip_manager_enabled is true but vip_manager_vip_cidr or
-      vip_manager_interface is empty. Set both in the response file.
+      vip_manager_enabled is true but vip_manager_vip_cidr is empty.
+      Set it in the response file.
   tags: [vip_manager, assert]
+
+- name: Auto-detect vip-manager interface when not explicitly set
+  when: vip_manager_interface | length == 0
+  tags: [vip_manager, assert]
+  vars:
+    _target_address: "{{ ansible_host | default(inventory_hostname) }}"
+    _matched_interfaces: >-
+      {%- set result = [] -%}
+      {%- for iface in ansible_facts.interfaces | default([]) -%}
+        {%- set iface_facts = ansible_facts[iface] | default({}) -%}
+        {%- if iface_facts.ipv4 is defined and iface_facts.ipv4.address == _target_address -%}
+          {%- set _ = result.append(iface) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ result }}
+  block:
+    - name: Fail if no interface auto-detected for this host
+      ansible.builtin.assert:
+        that:
+          - _matched_interfaces | length > 0
+        fail_msg: >-
+          vip_manager_interface was not set and no interface on
+          {{ inventory_hostname }} carries the address
+          {{ _target_address }}. Existing interfaces:
+          {{ ansible_facts.interfaces | default([]) | join(', ') }}.
+          Set vip_manager_interface explicitly in the response file.
+
+    - name: Use auto-detected interface
+      ansible.builtin.set_fact:
+        vip_manager_interface: "{{ _matched_interfaces | first }}"
 
 - name: Verify interface exists on this host
   ansible.builtin.assert:

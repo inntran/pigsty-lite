@@ -7,7 +7,7 @@ interval: {{ (vip_manager_loop_wait_seconds | int) * 1000 }}
 retry-after: {{ (vip_manager_retry_after_seconds | int) * 1000 }}
 retry-num: 2
 
-hosting-type: {{ vip_manager_hosting_type }}
+manager-type: {{ vip_manager_hosting_type }}
 ip: {{ vip_manager_vip_cidr.split('/')[0] }}
 netmask: {{ vip_manager_vip_cidr.split('/')[1] }}
 interface: {{ vip_manager_interface }}

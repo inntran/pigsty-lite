@@ -29,14 +29,23 @@ vip-manager is published in the PGDG-extras YUM repository, which is
 enabled by the P0 `repos` role. The role installs `vip-manager` from
 there directly; no third-party tarball.
 
+`vip_manager_package` pins `vip-manager >= 5.0.0`. v5 removed the legacy
+`hostingtype`/`hosting_type` config-key aliases that older 4.x builds
+accepted as synonyms for `manager-type`; only `manager-type` binds on
+5.x, which is the key this role renders.
+
 ## Required vars when enabled
 
 - `vip_manager_enabled: true`
 - `vip_manager_vip_cidr: "10.20.30.20/24"` — the VIP and its netmask.
 - `vip_manager_interface: "eth0"` — the interface on the postgres hosts.
+  Optional: leave empty (the default) to auto-detect the interface that
+  carries the host's own inventory/`ansible_host` address from gathered
+  facts. The role fails clearly if no interface matches, rather than
+  guessing.
 
-The role asserts both are set when `enabled` is true. It refuses to bind
-a "default" address.
+The role asserts `vip_manager_vip_cidr` is set when `enabled` is true. It
+refuses to bind a "default" address.
 
 ## What this role does NOT do
 

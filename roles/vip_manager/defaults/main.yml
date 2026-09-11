@@ -7,7 +7,10 @@
 vip_manager_enabled: false
 
 # Package
-vip_manager_package: vip-manager
+# Pin >= 5.0.0: v5 drops the legacy "hostingtype"/"hosting_type" config-key
+# aliases, so the "manager-type" key below is the only key that binds to
+# the effective config on 5.x — older 4.x builds accepted those aliases too.
+vip_manager_package: vip-manager >= 5.0.0
 vip_manager_service_name: vip-manager
 
 # Config
@@ -31,11 +34,14 @@ vip_manager_trigger_key: "{{ vip_manager_namespace }}{{ vip_manager_scope }}/lea
 vip_manager_trigger_value: "{{ inventory_hostname }}"
 
 # Networking
-# operator MUST set vip_manager_vip_cidr and vip_manager_interface if enabling.
-# We do not pick defaults that would silently bind a random address.
+# operator MUST set vip_manager_vip_cidr if enabling.
+# We do not pick a default that would silently bind a random address.
 vip_manager_vip_cidr: ""
+# Interface to bind the VIP to. Leave empty to auto-detect the interface
+# carrying this host's own inventory/ansible_host address from gathered
+# facts; set explicitly to skip auto-detection.
 vip_manager_interface: ""
-vip_manager_hosting_type: basic  # basic | hetzner
+vip_manager_hosting_type: basic  # basic | hetzner - rendered as the "manager-type" config key
 
 # Loop tuning
 vip_manager_loop_wait_seconds: 1
