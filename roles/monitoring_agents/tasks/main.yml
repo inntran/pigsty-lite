@@ -32,6 +32,11 @@
 #   ansible.builtin.import_tasks: _exporters.yml
 #   tags: [monitoring, install]
 
+- name: Stage external_push credentials on disk
+  ansible.builtin.import_tasks: _external_secrets.yml
+  tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) == 'external_push'
+
 - name: Install and configure vmagent
   tags: [monitoring, config]
   when: (monitoring_mode | default('self_hosted')) != 'external_pull'
@@ -80,7 +85,7 @@
             | combine(
               {
                 'remoteWrite.basicAuth.username': monitoring_agents_external_auth_username,
-                'remoteWrite.basicAuth.password': vault_monitoring_external_password,
+                'remoteWrite.basicAuth.passwordFile': monitoring_agents_vmagent_password_file,
               }
               if (
                 (monitoring_mode | default('self_hosted')) == 'external_push'
@@ -89,7 +94,7 @@
               else {}
             )
             | combine(
-              {'remoteWrite.bearerToken': vault_monitoring_external_bearer_token}
+              {'remoteWrite.bearerTokenFile': monitoring_agents_vmagent_bearer_token_file}
               if (
                 (monitoring_mode | default('self_hosted')) == 'external_push'
                 and monitoring_agents_external_auth_bearer | bool
@@ -161,7 +166,7 @@
             | combine(
               {
                 'remoteWrite.basicAuth.username': monitoring_agents_external_auth_username,
-                'remoteWrite.basicAuth.password': vault_monitoring_external_password,
+                'remoteWrite.basicAuth.passwordFile': monitoring_agents_vlagent_password_file,
               }
               if (
                 (monitoring_mode | default('self_hosted')) == 'external_push'
@@ -170,7 +175,7 @@
               else {}
             )
             | combine(
-              {'remoteWrite.bearerToken': vault_monitoring_external_bearer_token}
+              {'remoteWrite.bearerTokenFile': monitoring_agents_vlagent_bearer_token_file}
               if (
                 (monitoring_mode | default('self_hosted')) == 'external_push'
                 and monitoring_agents_external_auth_bearer | bool

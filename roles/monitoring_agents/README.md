@@ -20,6 +20,22 @@ repository for those tasks only.
 - The `postgres-exporter`, `pgbouncer-exporter`, `pgbackrest-exporter`
   custom firewalld services.
 
+## external_push credentials
+
+In `external_push` mode the remote_write basic-auth password and bearer
+token are written to root-owned files under
+`monitoring_agents_secrets_dir` (`/etc/pigsty/monitoring`), mode `0640`,
+group-owned by the agent that reads them, and passed to the agents as
+`-remoteWrite.basicAuth.passwordFile` / `-remoteWrite.bearerTokenFile`.
+
+They are deliberately *not* passed as inline flag values: the upstream
+`victoriametrics.cluster` roles interpolate every service arg into the
+`ExecStart` line of a world-readable (`0644`) systemd unit, which would
+also expose the secret through `/proc/<pid>/cmdline`. vmagent and vlagent
+run as different service users (`vic_vm_agent`, `vic_vl_agent`), so each
+gets its own file rather than sharing one. Disabling either auth method
+removes the corresponding files.
+
 ## What this role does NOT own
 
 - vmsingle/vlsingle/vmalert/Alertmanager — that's `monitoring_server`.

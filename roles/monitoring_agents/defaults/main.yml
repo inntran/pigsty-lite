@@ -50,6 +50,19 @@ monitoring_agents_external_auth_username: "{{ monitoring_external_auth_username 
 monitoring_agents_external_auth_bearer: "{{ monitoring_external_auth_bearer | default(false) }}"
 monitoring_agents_external_tls_skip_verify: "{{ monitoring_external_tls_skip_verify | default(false) }}"
 
+# external_push credentials are written to these files rather than passed as
+# command-line flags. The upstream victoriametrics.cluster roles interpolate
+# every service arg into ExecStart of a world-readable (0644) unit file, so an
+# inline password would be exposed both there and in /proc/<pid>/cmdline.
+# vmagent and vlagent run as different service users, hence one file each.
+monitoring_agents_secrets_dir: /etc/pigsty/monitoring
+monitoring_agents_vmagent_system_user: vic_vm_agent
+monitoring_agents_vlagent_system_user: vic_vl_agent
+monitoring_agents_vmagent_password_file: "{{ monitoring_agents_secrets_dir }}/vmagent-remotewrite.password"
+monitoring_agents_vlagent_password_file: "{{ monitoring_agents_secrets_dir }}/vlagent-remotewrite.password"
+monitoring_agents_vmagent_bearer_token_file: "{{ monitoring_agents_secrets_dir }}/vmagent-remotewrite.token"
+monitoring_agents_vlagent_bearer_token_file: "{{ monitoring_agents_secrets_dir }}/vlagent-remotewrite.token"
+
 # Patroni REST + HAProxy stats scrape targets (postgres hosts only)
 monitoring_agents_patroni_rest_port: "{{ patroni_rest_port | default(8008) }}"
 monitoring_agents_haproxy_stats_port: "{{ haproxy_stats_port | default(7000) }}"
