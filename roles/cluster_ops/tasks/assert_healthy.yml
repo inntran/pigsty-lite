@@ -42,21 +42,35 @@
          | map(attribute='name') | list }}.
   run_once: true
 
-- name: Assert every replica's replication lag is under the threshold
-  ansible.builtin.assert:
-    that:
-      - (cluster_ops_health_view.json.members
-         | selectattr('role', 'equalto', 'replica')
-         | selectattr('lag', 'defined')
-         | selectattr('lag', 'gt', cluster_ops_replication_lag_max_bytes | int)
-         | list | length) == 0
-    fail_msg: >-
-      One or more replicas exceed the
-      {{ cluster_ops_replication_lag_max_bytes }}-byte lag threshold:
+# Patroni reports lag as an integer, but substitutes the string "unknown"
+# when a replica cannot compute it (still starting, or streaming is broken).
+# Comparing that string against an int raises a Jinja TypeError, which would
+# abort a switchover with a type error instead of this task's failure
+# message. Treat a non-integer lag as unhealthy in its own right.
+- name: Collect replicas whose replication lag is unknown or over the threshold
+  ansible.builtin.set_fact:
+    cluster_ops_lagging_replicas: >-
       {{ cluster_ops_health_view.json.members
          | selectattr('role', 'equalto', 'replica')
          | selectattr('lag', 'defined')
-         | selectattr('lag', 'gt', cluster_ops_replication_lag_max_bytes | int)
+         | rejectattr('lag', 'integer')
+         | list
+         + (cluster_ops_health_view.json.members
+            | selectattr('role', 'equalto', 'replica')
+            | selectattr('lag', 'defined')
+            | selectattr('lag', 'integer')
+            | selectattr('lag', 'gt', cluster_ops_replication_lag_max_bytes | int)
+            | list) }}
+  run_once: true
+
+- name: Assert every replica's replication lag is known and under the threshold
+  ansible.builtin.assert:
+    that:
+      - (cluster_ops_lagging_replicas | length) == 0
+    fail_msg: >-
+      One or more replicas have an unknown replication lag, or exceed the
+      {{ cluster_ops_replication_lag_max_bytes }}-byte threshold:
+      {{ cluster_ops_lagging_replicas
          | items2dict(key_name='name', value_name='lag') }}.
   run_once: true
 
