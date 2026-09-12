@@ -46,6 +46,22 @@ removes the corresponding files.
 `_assert` → `_exporters` → `_vmagent` → `_vlagent` → `_firewall`.
 Exporters must listen before vmagent's scrape config references them.
 
+## Exporter versions
+
+None of the four exporters are packaged for EL10 by PGDG or the vendor repos,
+so they are fetched as GitHub release artifacts, pinned by version and sha256
+in [`vars/exporter_versions.yml`](vars/exporter_versions.yml).
+
+To update, query upstream first, then update the record:
+
+```bash
+./bin/check_exporter_releases.py            # report drift
+./bin/check_exporter_releases.py --update   # rewrite the pins
+```
+
+[`docs/reference/exporters.md`](../../docs/reference/exporters.md) covers what
+each exporter is and why these were chosen over `pgexporter` and Percona PMM.
+
 ## Idempotence
 
 Second run is zero-change: packages present, exporter units
