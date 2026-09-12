@@ -48,9 +48,13 @@ Exporters must listen before vmagent's scrape config references them.
 
 ## Exporter versions
 
-None of the four exporters are packaged for EL10 by PGDG or the vendor repos,
-so they are fetched as GitHub release artifacts, pinned by version and sha256
-in [`vars/exporter_versions.yml`](vars/exporter_versions.yml).
+None of the four exporters are packaged for EL10 by PGDG, the vendor repos, or
+EPEL, so `_install_exporter.yml` fetches each one's release tarball, verifies
+its sha256, and installs the binary to `/usr/bin`. Versions and checksums are
+pinned in [`vars/exporter_versions.yml`](vars/exporter_versions.yml).
+
+Re-running is a no-op: the installed binary's `--version` is checked first, so
+a converged host downloads nothing.
 
 To update, query upstream first, then update the record:
 

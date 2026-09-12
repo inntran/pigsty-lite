@@ -9,6 +9,15 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _walk_tasks(tasks):
+    """Yield tasks including those nested in block/rescue/always."""
+    for task in tasks or []:
+        for key in ("block", "rescue", "always"):
+            if key in task:
+                yield from _walk_tasks(task[key])
+        yield task
+
+
 def _load_yaml(path: str):
     with (ROOT / path).open() as fh:
         return yaml.safe_load(fh)
@@ -64,15 +73,29 @@ def test_monitoring_epel_packages_explicitly_enable_epel_repo():
 
     assert alertmanager_install["enablerepo"] == "{{ epel_repo_id }}"
 
+
+def test_exporters_install_from_pinned_tarballs_not_dnf():
+    """EPEL carries none of the four exporters for EL10, so a dnf install
+    would fail at deploy time. They come from pinned release tarballs."""
     exporter_tasks = _load_yaml("roles/monitoring_agents/tasks/_exporters.yml")
-    node_exporter_install = next(
-        task for task in exporter_tasks if task.get("name") == "Install node_exporter"
-    )["ansible.builtin.dnf"]
-    pg_exporter_install = next(
+
+    assert not [task for task in exporter_tasks if "ansible.builtin.dnf" in task], (
+        "_exporters.yml installs with dnf; no EL10 repo packages these exporters"
+    )
+
+    includes = [
         task
         for task in exporter_tasks
-        if task.get("name") == "Install the PostgreSQL-side exporters"
-    )["ansible.builtin.dnf"]
+        if task.get("ansible.builtin.include_tasks") == "_install_exporter.yml"
+    ]
+    assert len(includes) == 2, "expected node_exporter plus the PG-side loop"
 
-    assert node_exporter_install["enablerepo"] == "{{ epel_repo_id }}"
-    assert pg_exporter_install["enablerepo"] == "{{ epel_repo_id }}"
+
+def test_exporter_install_verifies_a_checksum():
+    """An unverified download would install whatever the network returned."""
+    tasks = _load_yaml("roles/monitoring_agents/tasks/_install_exporter.yml")
+    downloads = [task for task in _walk_tasks(tasks) if "ansible.builtin.get_url" in task]
+    assert downloads, "expected a get_url task"
+    for task in downloads:
+        checksum = task["ansible.builtin.get_url"].get("checksum", "")
+        assert checksum.startswith("sha256:"), "the tarball must be checksum-verified"

@@ -48,9 +48,9 @@
           _node.yml playbook (certs role) first.
       when: (monitoring_mode | default('self_hosted')) != 'external_pull'
 
-# - name: Install and configure exporters
-#   ansible.builtin.import_tasks: _exporters.yml
-#   tags: [monitoring, install]
+- name: Install and configure exporters
+  ansible.builtin.import_tasks: _exporters.yml
+  tags: [monitoring, install]
 
 - name: Ensure the agent service accounts exist
   ansible.builtin.import_tasks: _agent_accounts.yml
@@ -259,6 +259,6 @@
   when: (monitoring_mode | default('self_hosted')) == 'external_pull'
   tags: [monitoring, nginx]
 
-# - name: Open firewalld for exporters
-#   ansible.builtin.import_tasks: _firewall.yml
-#   tags: [monitoring, firewall]
+- name: Open firewalld for exporters
+  ansible.builtin.import_tasks: _firewall.yml
+  tags: [monitoring, firewall]

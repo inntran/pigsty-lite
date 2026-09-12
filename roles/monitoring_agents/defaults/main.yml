@@ -4,11 +4,19 @@
 # network_any_address and are firewalled to the monitor host. vmagent
 # and vlagent bind loopback-only and remote_write/ship to the monitor.
 
-# Exporters - packages
-monitoring_agents_node_exporter_package: node-exporter
-monitoring_agents_postgres_exporter_package: postgres_exporter
-monitoring_agents_pgbouncer_exporter_package: pgbouncer_exporter
-monitoring_agents_pgbackrest_exporter_package: pgbackrest_exporter
+# Exporters - install
+# None of the four are packaged for EL10 by PGDG, the vendor repos, or EPEL
+# (see docs/reference/pgdg-packages.md), so they install from pinned upstream
+# release tarballs. Versions and checksums: vars/exporter_versions.yml.
+monitoring_agents_exporter_bin_dir: /usr/bin
+monitoring_agents_exporter_download_timeout: 60
+# systemd unit names use dashes; the exporter keys (and binaries) use
+# underscores. This maps one to the other for the install task's handler.
+monitoring_agents_exporter_units:
+  node_exporter: node-exporter
+  postgres_exporter: postgres-exporter
+  pgbouncer_exporter: pgbouncer-exporter
+  pgbackrest_exporter: pgbackrest-exporter
 # dnf id of the EPEL repo; shared across roles, overridable in group_vars.
 epel_repo_id: epel
 

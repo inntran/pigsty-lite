@@ -3,12 +3,22 @@
 # only on postgres hosts. Each exporter gets its own systemd unit and
 # binds network_any_address (firewalled to the monitor host in
 # _firewall.yml).
+#
+# All four install from pinned upstream release tarballs -- none are packaged
+# for EL10 by PGDG, the vendor repos, or EPEL. Versions and checksums live in
+# vars/exporter_versions.yml; refresh them with
+# ./bin/check_exporter_releases.py --update.
+
+# Ansible auto-loads only vars/main.yml, and this record is deliberately kept
+# under its own name (bin/check_exporter_releases.py writes it).
+- name: Load the pinned exporter releases
+  ansible.builtin.include_vars:
+    file: exporter_versions.yml
 
 - name: Install node_exporter
-  ansible.builtin.dnf:
-    name: "{{ monitoring_agents_node_exporter_package }}"
-    state: present
-    enablerepo: "{{ epel_repo_id }}"
+  ansible.builtin.include_tasks: _install_exporter.yml
+  vars:
+    exporter_name: node_exporter
 
 - name: Ensure the node_exporter system user exists
   ansible.builtin.user:
@@ -30,13 +40,13 @@
     - Restart node-exporter
 
 - name: Install the PostgreSQL-side exporters
-  ansible.builtin.dnf:
-    name:
-      - "{{ monitoring_agents_postgres_exporter_package }}"
-      - "{{ monitoring_agents_pgbouncer_exporter_package }}"
-      - "{{ monitoring_agents_pgbackrest_exporter_package }}"
-    state: present
-    enablerepo: "{{ epel_repo_id }}"
+  ansible.builtin.include_tasks: _install_exporter.yml
+  vars:
+    exporter_name: "{{ item }}"
+  loop:
+    - postgres_exporter
+    - pgbouncer_exporter
+    - pgbackrest_exporter
   when: inventory_hostname in groups.get('postgres', [])
 
 - name: Render the PostgreSQL-side exporter systemd units

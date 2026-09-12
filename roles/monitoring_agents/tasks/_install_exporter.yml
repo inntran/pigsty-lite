@@ -1,0 +1,82 @@
+---
+# Install one exporter from its pinned upstream release tarball.
+#
+# Included per exporter from _exporters.yml with `exporter_name` set to a key
+# of monitoring_agents_exporter_releases. None of the four are packaged for
+# EL10 by PGDG, the vendor repos, or EPEL (docs/reference/pgdg-packages.md),
+# so they are fetched and unpacked rather than installed with dnf.
+#
+# Idempotence comes from checking the installed binary's version before
+# downloading anything: a converged host does no network I/O at all, and only
+# a changed pin triggers a fetch. This deliberately does not use `creates:`
+# on the unarchive, which would skip re-installing when the pin moves but the
+# path stays the same.
+
+- name: Select the pinned release for {{ exporter_name }}
+  ansible.builtin.set_fact:
+    monitoring_agents_exporter: "{{ monitoring_agents_exporter_releases[exporter_name] }}"
+
+- name: Check the installed version of {{ exporter_name }}
+  ansible.builtin.command:
+    cmd: "{{ monitoring_agents_exporter_bin_dir }}/{{ exporter_name }} --version"
+  register: monitoring_agents_exporter_installed
+  changed_when: false
+  failed_when: false
+
+# All four print "<name>, version X.Y.Z (...)", but not on the same stream:
+# node_exporter uses stdout, the other three use stderr. Concatenate both
+# rather than guessing per exporter.
+- name: Decide whether to install {{ exporter_name }}
+  ansible.builtin.set_fact:
+    monitoring_agents_exporter_needed: >-
+      {{ monitoring_agents_exporter_installed.rc != 0
+         or monitoring_agents_exporter.version not in
+            (monitoring_agents_exporter_installed.stdout
+             ~ monitoring_agents_exporter_installed.stderr) }}
+
+- name: Install {{ exporter_name }}
+  when: monitoring_agents_exporter_needed | bool
+  block:
+    - name: Create a staging directory for {{ exporter_name }}
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: "-{{ exporter_name }}"
+      register: monitoring_agents_exporter_stage
+
+    # get_url verifies the checksum before the file is put in place, so a
+    # corrupted or substituted artifact fails here rather than being installed.
+    - name: Download and verify the release tarball for {{ exporter_name }}
+      ansible.builtin.get_url:
+        url: "{{ monitoring_agents_exporter.url }}"
+        dest: "{{ monitoring_agents_exporter_stage.path }}/{{ monitoring_agents_exporter.asset }}"
+        checksum: "sha256:{{ monitoring_agents_exporter.sha256 }}"
+        mode: "0640"
+        timeout: "{{ monitoring_agents_exporter_download_timeout }}"
+
+    - name: Unpack the release tarball for {{ exporter_name }}
+      ansible.builtin.unarchive:
+        src: "{{ monitoring_agents_exporter_stage.path }}/{{ monitoring_agents_exporter.asset }}"
+        dest: "{{ monitoring_agents_exporter_stage.path }}"
+        remote_src: true
+
+    # All four tarballs hold a single versioned top directory containing the
+    # binary; the directory name is the asset name minus the .tar.gz.
+    - name: Install the binary for {{ exporter_name }}
+      ansible.builtin.copy:
+        src: >-
+          {{ monitoring_agents_exporter_stage.path }}/{{
+             monitoring_agents_exporter.asset | regex_replace('\.tar\.gz$', '')
+          }}/{{ exporter_name }}
+        dest: "{{ monitoring_agents_exporter_bin_dir }}/{{ exporter_name }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: "Restart {{ monitoring_agents_exporter_units[exporter_name] }}"
+
+  always:
+    - name: Remove the staging directory for {{ exporter_name }}
+      ansible.builtin.file:
+        path: "{{ monitoring_agents_exporter_stage.path }}"
+        state: absent
+      when: monitoring_agents_exporter_stage.path is defined

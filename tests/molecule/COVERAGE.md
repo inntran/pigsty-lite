@@ -122,22 +122,27 @@ image, not on a baked first-party image:
 These run in parallel with `build-common`/`build-data`/`build-infra` in
 CI (see `.github/workflows/molecule.yml`).
 
-`monitoring_agents/default` and `monitoring_agents/external_pull` are both
-excluded from CI, for the same reason: the role's `_exporters.yml` and
-`_firewall.yml` imports are commented out, so no exporter is installed, while
-both scenarios' verify steps assert on exporter endpoints. `default` checks
-9100/9187/9127/9854 directly; `external_pull` gets a 502 from the nginx
-frontend proxying to a node_exporter that is not running.
+`monitoring_agents/default` and `monitoring_agents/external_pull` were both
+excluded from CI because the role's `_exporters.yml` and `_firewall.yml`
+imports were commented out — none of the four exporters are packaged for
+Oracle Linux 10 by PGDG, the vendor repos, or EPEL, so the `dnf` install they
+used could not resolve.
 
-The blocker is packaging, not wiring: `node_exporter`, `postgres_exporter`,
-`pgbouncer_exporter` and `pgbackrest_exporter` are not present in the
-Oracle Linux 10 + EPEL repo set these images build from, so restoring the
-imports as-is would fail at the `dnf` task. Re-enabling either scenario means
-first choosing a package source for the exporters.
+That is fixed: the exporters now install from pinned upstream release
+tarballs (`roles/monitoring_agents/vars/exporter_versions.yml`, refreshed by
+`./bin/check_exporter_releases.py`), and both imports are re-enabled. The
+install path was verified directly in a `molecule-base-data` container — all
+four install at their pinned versions, a second run is `changed=0` with every
+download skipped, and a corrupted binary triggers a reinstall of only that
+exporter.
 
-`external_pull` otherwise converges, is idempotent, and its auth assertions
-pass: the frontend rejects unauthenticated requests and accepts the generated
-htpasswd credentials.
+`external_pull` should now converge end to end.
+
+`default` remains blocked, but on an unrelated pre-existing bug rather than
+packaging: its `molecule.yml` places hosts in `monitor`/`backup_server` and
+`postgres` but none in `etcd`, so `prepare` fails at `patroni : Fail if etcd
+group is empty` before the role under test ever runs. Compare `backup/ha`,
+which uses `groups: [etcd, postgres]`. Fixing that is a separate change.
 
 `monitoring_agents/external_push` does run in CI. It covers the path where the
 role handles secrets: remote_write credentials are staged as root-owned `0640`
