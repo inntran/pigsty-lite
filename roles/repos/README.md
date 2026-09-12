@@ -17,6 +17,16 @@ and pigsty (opt-in).
 - `repos_pigsty_packages` (list, default `[]`) - only install pigsty packages
   when this is non-empty. The actual `dnf install` happens in dependent roles.
 
+## What PGDG actually ships
+
+[`docs/reference/pgdg-packages.md`](../../docs/reference/pgdg-packages.md) is a
+snapshot of every package in the PGDG repos this role configures. Consult it
+before reaching for EPEL, the pigsty repo, or an upstream tarball -- PGDG
+carries more than it looks like (`patroni`, `pgbackrest`, `pgbouncer`,
+`pgexporter`).
+
+Regenerate with `./bin/snapshot_pgdg_packages.py`.
+
 ## Tags
 
 None.
