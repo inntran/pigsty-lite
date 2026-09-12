@@ -60,7 +60,10 @@ def test_molecule_scenarios_do_not_pin_epel_repo_state():
     for path in scenario_files:
         molecule = _load_yaml(path)
         group_vars = (
-            molecule.get("provisioner", {}).get("inventory", {}).get("group_vars", {}).get("all", {})
+            molecule.get("provisioner", {})
+            .get("inventory", {})
+            .get("group_vars", {})
+            .get("all", {})
         )
         assert "repos_epel_enabled" not in group_vars, path
         assert "repos_pigsty_enabled" not in group_vars, path

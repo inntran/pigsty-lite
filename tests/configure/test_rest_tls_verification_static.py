@@ -41,8 +41,16 @@ def _uri_calls(tasks) -> list[dict]:
 
 def test_rest_defaults_enable_verification_and_name_the_ca():
     cases = (
-        ("roles/cluster_ops/defaults/main.yml", "cluster_ops_rest_validate_certs", "cluster_ops_rest_ca_file"),
-        ("roles/provision/defaults/main.yml", "provision_patroni_rest_validate_certs", "provision_patroni_rest_ca_file"),
+        (
+            "roles/cluster_ops/defaults/main.yml",
+            "cluster_ops_rest_validate_certs",
+            "cluster_ops_rest_ca_file",
+        ),
+        (
+            "roles/provision/defaults/main.yml",
+            "provision_patroni_rest_validate_certs",
+            "provision_patroni_rest_ca_file",
+        ),
     )
     for path, verify_key, ca_key in cases:
         defaults = _load_yaml(path)

@@ -60,8 +60,16 @@ def test_ipv6_single_stack_rejects_ipv4_hba_source():
 
 @pytest.mark.parametrize(
     "source",
-    ["10.20.40.0/24", "10.0.0.1", "all", "samehost", "samenet", "localhost",
-     "db.example.com", ".example.com"],
+    [
+        "10.20.40.0/24",
+        "10.0.0.1",
+        "all",
+        "samehost",
+        "samenet",
+        "localhost",
+        "db.example.com",
+        ".example.com",
+    ],
 )
 def test_hba_source_accepts_cidrs_keywords_and_hostnames(source):
     data = _load("ha.rsp.yml")
@@ -72,12 +80,12 @@ def test_hba_source_accepts_cidrs_keywords_and_hostnames(source):
 @pytest.mark.parametrize(
     "source",
     [
-        "not-a-cidr",      # bare word typo
-        "smaenet",         # misspelled keyword
-        "10.20.40.0/99",   # prefix out of range
-        "999.1.1.1/24",    # octet out of range
-        "10.20.40.o/24",   # letter o for zero
-        "",                # empty
+        "not-a-cidr",  # bare word typo
+        "smaenet",  # misspelled keyword
+        "10.20.40.0/99",  # prefix out of range
+        "999.1.1.1/24",  # octet out of range
+        "10.20.40.o/24",  # letter o for zero
+        "",  # empty
     ],
 )
 def test_hba_source_rejects_malformed_values(source):
