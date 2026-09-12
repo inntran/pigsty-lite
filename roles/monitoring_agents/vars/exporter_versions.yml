@@ -16,6 +16,11 @@
 #   - A fetched artifact needs a checksum to be verifiable, and a checksum
 #     only means something against a fixed version.
 #
+# Every entry is a linux/amd64 tarball. pgbackrest_exporter also publishes an
+# RPM, but installing three exporters one way and the fourth another buys
+# nothing: the RPM's unit file and user would be overridden by this role
+# regardless, so it would be a second code path for no gain.
+#
 # sha256 values are the upstream-published checksums for the exact artifact
 # named in `asset`, taken from each release's checksums file -- not computed
 # locally from a download, which would only prove the download matched itself.
@@ -30,7 +35,6 @@ monitoring_agents_exporter_releases:
     tag: v1.12.1
     released: "2026-07-14"
     license: Apache-2.0
-    kind: tarball
     asset: node_exporter-1.12.1.linux-amd64.tar.gz
     sha256: b51d8a76aa2a9156a55d501aca6276fae09e262259a5e4e831d2c2222f084e63
     url: https://github.com/prometheus/node_exporter/releases/download/v1.12.1/node_exporter-1.12.1.linux-amd64.tar.gz
@@ -41,7 +45,6 @@ monitoring_agents_exporter_releases:
     tag: v0.20.1
     released: "2026-07-08"
     license: Apache-2.0
-    kind: tarball
     asset: postgres_exporter-0.20.1.linux-amd64.tar.gz
     sha256: 89d4f7e7920cad48fdc3133f789556ef5253c330a9f5fdace3bdb6344c0a8b5a
     url: https://github.com/prometheus-community/postgres_exporter/releases/download/v0.20.1/postgres_exporter-0.20.1.linux-amd64.tar.gz
@@ -52,20 +55,18 @@ monitoring_agents_exporter_releases:
     tag: v0.12.1
     released: "2026-06-26"
     license: MIT
-    kind: tarball
     asset: pgbouncer_exporter-0.12.1.linux-amd64.tar.gz
     sha256: fa391b513d3a3f03843a6e0d64e711fda1f057dc43133db5c1b130ba38767857
     url: https://github.com/prometheus-community/pgbouncer_exporter/releases/download/v0.12.1/pgbouncer_exporter-0.12.1.linux-amd64.tar.gz
 
-  # The only one of the four published as an RPM, so it installs with dnf
-  # instead of the unpack-and-place path the other three use.
+  # Also published as .rpm and .deb; we take the tarball like the other three.
+  # Note the asset naming differs -- `linux-x86_64`, not `linux-amd64`.
   pgbackrest_exporter:
     repo: woblerr/pgbackrest_exporter
     version: "0.24.0"
     tag: v0.24.0
     released: "2026-07-30"
     license: MIT
-    kind: rpm
-    asset: pgbackrest_exporter_0.24.0_linux_x86_64.rpm
-    sha256: 7f994fbd109bf93d292de827714041f245702a0ad8c9e003f1ffc7c243c96e56
-    url: https://github.com/woblerr/pgbackrest_exporter/releases/download/v0.24.0/pgbackrest_exporter_0.24.0_linux_x86_64.rpm
+    asset: pgbackrest_exporter-0.24.0-linux-x86_64.tar.gz
+    sha256: a6e6a5adf85fb7c46dc3a3212efcba2045b9c543a1d162ddc868b821bd1d0f10
+    url: https://github.com/woblerr/pgbackrest_exporter/releases/download/v0.24.0/pgbackrest_exporter-0.24.0-linux-x86_64.tar.gz

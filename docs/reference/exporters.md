@@ -66,8 +66,16 @@ decision is worth revisiting.
 
 ## How they install
 
-`pgbackrest_exporter` publishes an RPM, so it installs with `dnf`. The other
-three publish only tarballs and are unpacked into place.
+All four are linux/amd64 tarballs, unpacked into place by the role.
+
+`pgbackrest_exporter` also publishes `.rpm` and `.deb`, and pinning the RPM
+was the initial choice. It was reversed: the role overrides the unit file and
+service user for every exporter anyway, so a `dnf` path for one of the four
+would be a second code path buying nothing. One install path is worth more
+than dnf's bookkeeping on a single binary.
+
+Watch the asset naming when updating by hand — the prometheus projects use
+`linux-amd64`, `woblerr` uses `linux-x86_64`.
 
 Each pin carries the upstream-published `sha256` for its exact artifact, taken
 from the release's own checksums file — not computed by hashing a local

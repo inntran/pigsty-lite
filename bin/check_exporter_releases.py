@@ -37,11 +37,12 @@ RECORD = ROOT / "roles/monitoring_agents/vars/exporter_versions.yml"
 class Target:
     key: str
     repo: str
-    # Picks the artifact to pin out of the release's asset list.
+    # Picks the artifact to pin out of the release's asset list. Every target
+    # is a linux/amd64 tarball, but the projects spell that differently --
+    # the prometheus ones use `linux-amd64`, woblerr uses `linux-x86_64`.
     asset_pattern: str
     # Names the release's checksums file.
     checksums_pattern: str
-    kind: str
 
 
 TARGETS = (
@@ -50,28 +51,27 @@ TARGETS = (
         "prometheus/node_exporter",
         r"^node_exporter-[\d.]+\.linux-amd64\.tar\.gz$",
         r"sha256sums?\.txt$",
-        "tarball",
     ),
     Target(
         "postgres_exporter",
         "prometheus-community/postgres_exporter",
         r"^postgres_exporter-[\d.]+\.linux-amd64\.tar\.gz$",
         r"sha256sums?\.txt$",
-        "tarball",
     ),
     Target(
         "pgbouncer_exporter",
         "prometheus-community/pgbouncer_exporter",
         r"^pgbouncer_exporter-[\d.]+\.linux-amd64\.tar\.gz$",
         r"sha256sums?\.txt$",
-        "tarball",
     ),
+    # woblerr also publishes .rpm and .deb. We take the tarball anyway: one
+    # install path for all four exporters is worth more than dnf handling a
+    # single one of them.
     Target(
         "pgbackrest_exporter",
         "woblerr/pgbackrest_exporter",
-        r"^pgbackrest_exporter_[\d.]+_linux_x86_64\.rpm$",
+        r"^pgbackrest_exporter-[\d.]+-linux-x86_64\.tar\.gz$",
         r"checksums?\.txt$",
-        "rpm",
     ),
 )
 
@@ -143,7 +143,6 @@ def latest(target: Target) -> dict:
         "version": version,
         "tag": tag,
         "released": release["publishedAt"][:10],
-        "kind": target.kind,
         "asset": asset,
         "sha256": digest,
         "url": f"https://github.com/{target.repo}/releases/download/{tag}/{asset}",

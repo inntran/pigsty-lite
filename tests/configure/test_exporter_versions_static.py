@@ -47,7 +47,6 @@ def test_each_pin_is_complete():
             "tag",
             "released",
             "license",
-            "kind",
             "asset",
             "sha256",
             "url",
@@ -84,13 +83,13 @@ def test_tags_and_versions_agree():
         assert entry["tag"].lstrip("v") == entry["version"], f"{name}: tag/version mismatch"
 
 
-def test_only_pgbackrest_exporter_installs_from_an_rpm():
-    """The other three publish tarballs only; if that changes the install
-    path in the role has to change with it."""
-    record = _record()
-    assert record["pgbackrest_exporter"]["kind"] == "rpm"
-    for name in EXPECTED - {"pgbackrest_exporter"}:
-        assert record[name]["kind"] == "tarball", f"{name} is no longer a tarball"
+def test_every_exporter_installs_from_a_tarball():
+    """One install path for all four. pgbackrest_exporter also publishes an
+    RPM, and pinning it would reintroduce a second code path in the role."""
+    for name, entry in _record().items():
+        assert entry["asset"].endswith(".tar.gz"), (
+            f"{name}: {entry['asset']} is not a tarball; the role unpacks all four"
+        )
 
 
 def test_licenses_are_compatible_with_this_project():
