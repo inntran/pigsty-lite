@@ -55,20 +55,56 @@
           - q_db.rowcount == 1
         fail_msg: "Database 'app' not visible on {{ inventory_hostname }}"
 
-- name: Verify pg_hba on the leader contains the app rule
+- name: Verify every member has the same, error-free pg_hba with the app rule
   hosts: postgres
   ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
-  run_once: true
+  gather_facts: false
   tasks:
-    - name: Grep app rule on the leader's pg_hba
+    # pg_hba.conf is a file, not replicated data: a rule written only on
+    # the leader would be missing on the member promoted after a failover.
+    - name: Grep the app rule on this member
       ansible.builtin.command: >-
         grep -E "^hostssl[[:space:]]+app[[:space:]]+app[[:space:]]+0\.0\.0\.0/0"
         /var/lib/pgsql/18/data/pg_hba.conf
       register: hba_grep
       changed_when: false
-      delegate_to: "{{ leader_host }}"
       failed_when: hba_grep.rc != 0
+
+    - name: Fingerprint pg_hba.conf on this member
+      ansible.builtin.command: sha256sum /var/lib/pgsql/18/data/pg_hba.conf
+      register: hba_sum
+      changed_when: false
+
+    - name: Record this member's fingerprint
+      ansible.builtin.set_fact:
+        hba_sha: "{{ hba_sum.stdout.split()[0] }}"
+
+    - name: Assert every member has an identical pg_hba.conf
+      ansible.builtin.assert:
+        that:
+          - groups['postgres'] | map('extract', hostvars, 'hba_sha') | unique | length == 1
+        fail_msg: >-
+          pg_hba.conf differs across members:
+          {{ dict(groups['postgres'] | zip(groups['postgres'] | map('extract', hostvars, 'hba_sha'))) }}
+      run_once: true
+
+    # The file hash proves convergence on disk; pg_hba_file_rules proves
+    # PostgreSQL can parse every line it would load.
+    - name: Count pg_hba lines PostgreSQL rejects on this member
+      community.postgresql.postgresql_query:
+        query: "SELECT count(*) AS bad FROM pg_hba_file_rules WHERE error IS NOT NULL"
+        login_unix_socket: /var/run/postgresql
+        login_user: postgres
+        login_db: postgres
+      become: true
+      become_user: postgres
+      register: hba_errors
+
+    - name: Assert PostgreSQL accepts every pg_hba line
+      ansible.builtin.assert:
+        that:
+          - hba_errors.query_result[0].bad == 0
 
 - name: Probe psql 5433 (HAProxy not in this scenario; use leader directly)
   hosts: postgres

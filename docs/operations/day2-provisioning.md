@@ -3,7 +3,9 @@
 All provisioning is declarative. Edit `responses/site.rsp.yml`, then
 `make deploy`. The `provision` role runs once per deploy on whichever
 host is the current Patroni leader; replicas pick up the changes via
-streaming replication. To target only the provisioning step, pass
+streaming replication. (Roles, databases and extensions replicate;
+`pg_hba.conf` does not, so HBA rules are applied by Patroni on every member
+instead — see below.) To target only the provisioning step, pass
 `--tags provision`.
 
 ## Add a database
@@ -62,12 +64,17 @@ postgres:
     - { db: app, user: app, source: 10.20.41.0/24, method: scram-sha-256 } # added
 ```
 
-The `provision` role rewrites `pg_hba.conf` and signals
-`pg_reload_conf()`. No restart, no client disruption.
+`make deploy` re-renders `patroni.yml` on every member and reloads Patroni
+(SIGHUP), which rewrites `pg_hba.conf` and reloads PostgreSQL. No restart, no
+client disruption. To apply only this step, run
+`ansible-playbook playbooks/site.yml --tags patroni` (`make deploy` does
+not forward tags).
+Every member gets the same file, so the rules survive a failover.
 
 ## Common gotchas
 
 - **Extension missing at OS level**: install the RPM (`dnf install postgresql18-contrib`) and re-deploy.
 - **Vault password unavailable**: `make deploy` fails at variable templating with a clear error before any task runs.
-- **Hand-edited `pg_hba.conf` reverts**: that's intentional. The role owns the file.
+- **Hand-edited `pg_hba.conf` reverts**: that's intentional. Patroni owns the
+  file and rewrites it on every reload.
 - **Per-table grants**: out of scope. Issue them by hand or via a future migration tool; we won't manage them.

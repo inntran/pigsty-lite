@@ -45,3 +45,33 @@
     fail_msg: >-
       Expected postgres binary at /usr/pgsql-{{ postgres_version }}/bin/postgres;
       ensure the postgres role ran first (_postgres_install.yml).
+
+# Each rule becomes one whitespace-separated pg_hba.conf line, so a missing
+# field or one containing whitespace would silently shift the columns. The
+# response-file schema validates only `source`; catch the rest before
+# Patroni writes the file on every member.
+# null counts as missing: default(..., true) replaces None and ''.
+- name: Fail if a pg_hba rule is incomplete or would break its line
+  ansible.builtin.assert:
+    that:
+      - hba_contype in ['local', 'host', 'hostssl', 'hostnossl', 'hostgssenc', 'hostnogssenc']
+      - hba_db | length > 0 and hba_db is not search('\s')
+      - hba_user | length > 0 and hba_user is not search('\s')
+      - hba_contype == 'local' or (hba_source | length > 0 and hba_source is not search('\s'))
+      - hba_method | length > 0
+    fail_msg: >-
+      pg_hba rule {{ item }} is invalid: it needs contype (local/host/hostssl/...),
+      db and user, and a source unless contype is local, with no whitespace in
+      db, user or source.
+    quiet: true
+  vars:
+    hba_contype: "{{ item.contype | default('hostssl', true) | string }}"
+    hba_db: "{{ item.databases | default(item.db, true) | default('', true) | string }}"
+    hba_user: "{{ item.users | default(item.user, true) | default('', true) | string }}"
+    hba_source: "{{ item.source | default('', true) | string }}"
+    hba_method: "{{ item.method | default('scram-sha-256', true) | string }}"
+  loop: "{{ patroni_hba_monitor_rules + patroni_hba_operator_rules }}"
+  loop_control:
+    label: "{{ item.db | default(item.databases) | default('?') }} {{ item.user | default(item.users) | default('?') }} {{ item.source | default('') }}"
+  run_once: true
+  delegate_to: localhost

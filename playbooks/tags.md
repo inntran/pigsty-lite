@@ -36,12 +36,11 @@
 - `--tags etcd` - install/configure the etcd cluster.
 - `--tags postgres` - install PG, prepare fs, mask vendor unit.
 - `--tags patroni` - configure and start Patroni; safe re-run.
-- `--tags patroni,config` - render patroni.yml without restart; handlers still flush if files changed.
+- `--tags patroni` also re-renders patroni.yml (including pg_hba) and applies it with a Patroni reload (SIGHUP), never a restart. `--tags patroni,config` is not narrower: tags are a union, and every patroni task carries `patroni`.
 - `--tags pgbouncer` - reconfigure pgBouncer (reload, not restart).
 - `--tags haproxy` - reconfigure HAProxy (reload). Use `haproxy,restart` to bounce the service.
 - `--tags vip_manager` - re-render vip-manager config and restart (only when enabled).
-- `--tags provision` - re-apply HBA / users / dbs / extensions on the leader.
-- `--tags provision,hba` - re-render pg_hba.conf only.
+- `--tags provision` - re-apply users / dbs / extensions on the leader.
 - `--tags provision,users` - reconcile roles only.
 - `--tags monitoring` - install/reconfigure the full metrics+logs+dashboards stack.
 - `--tags monitoring,config` - re-render monitoring configs only (no service installs).

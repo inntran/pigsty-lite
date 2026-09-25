@@ -34,11 +34,6 @@
   ansible.builtin.import_tasks: _assert.yml
   tags: [provision, assert]
 
-- name: Manage pg_hba.conf
-  ansible.builtin.import_tasks: _hba.yml
-  when: provision_pg_hba_managed | bool
-  tags: [provision, hba, config]
-
 - name: Create / update PostgreSQL roles
   community.postgresql.postgresql_user:
     name: "{{ item.name }}"

@@ -2,24 +2,17 @@
 # Rendered by roles/patroni. Do not edit by hand. To change tunables,
 # edit inventory variables and re-run `make deploy`.
 {#
-  The bootstrap and postgresql pg_hba blocks are identical; define them once.
-  `patroni_hba_any_cidr` follows the deployment's address family — an IPv4
-  `0.0.0.0/0` never matches an IPv6 peer, so single-stack v6 clusters would
-  otherwise be unable to authenticate replication or rewind connections.
-  Loopback `trust` rules cover both families so local tooling works either way.
+  One pg_hba rule dict -> one pg_hba.conf line. Accepts the role spelling
+  (databases/users) and the response-file spelling (db/user). The system
+  rules' CIDRs come from patroni_hba_{any,loopback}_cidr, which follow the
+  deployment's address family: an IPv4 0.0.0.0/0 never matches an IPv6 peer.
 #}
-{%- set hba_rules = [
-      'local all all peer',
-      'host all postgres ' ~ patroni_hba_loopback_cidr ~ ' trust',
-      'host replication ' ~ patroni_replication_user ~ ' ' ~ patroni_hba_loopback_cidr ~ ' trust',
-      'hostssl replication ' ~ patroni_replication_user ~ ' ' ~ patroni_hba_any_cidr ~ ' scram-sha-256',
-      'host postgres ' ~ patroni_rewind_user ~ ' ' ~ patroni_hba_loopback_cidr ~ ' trust',
-      'hostssl postgres ' ~ patroni_rewind_user ~ ' ' ~ patroni_hba_any_cidr ~ ' scram-sha-256',
-    ] -%}
-{%- set patroni_hba_lines -%}
-{% for rule in hba_rules %}    - {{ rule }}
-{% endfor %}
-{%- endset -%}
+{%- macro hba_line(rule) -%}
+{%-   set contype = rule.contype | default('hostssl', true) -%}
+{%-   set columns = [contype, rule.databases | default(rule.db, true), rule.users | default(rule.user, true)] -%}
+{%-   if contype != 'local' -%}{%- set columns = columns + [rule.source] -%}{%- endif -%}
+{{ (columns + [rule.method | default('scram-sha-256', true)]) | join(' ') }}
+{%- endmacro -%}
 
 scope: {{ patroni_scope | to_json }}
 namespace: {{ patroni_namespace | to_json }}
@@ -81,18 +74,20 @@ bootstrap:
     - data-checksums
     - locale: C.UTF-8
 
-  pg_hba:
-{{ patroni_hba_lines }}
+  # No bootstrap.pg_hba: Patroni ignores it whenever postgresql.pg_hba is set
+  # (append_pg_hba is a no-op then), and postgresql.pg_hba is always set.
 
   # Patroni >= 4.0.0 removed the `bootstrap.users` block; superuser,
   # replication, and rewind roles are created from
   # `postgresql.authentication.*` below at initdb time.
 
 postgresql:
-{% if patroni_pg_hba_managed | bool %}
+  # The whole pg_hba.conf. Patroni writes it on every member at start and on
+  # every reload; hand edits are reverted. Order: system, monitor, operator.
   pg_hba:
-{{ patroni_hba_lines }}
-{%- endif %}
+{% for rule in patroni_hba_system_rules + patroni_hba_monitor_rules + patroni_hba_operator_rules %}
+    - {{ hba_line(rule) | to_json }}
+{% endfor %}
   listen: {{ patroni_postgres_listen_address }}:{{ patroni_postgres_port }}
   connect_address: {{ patroni_advertise_address }}:{{ patroni_postgres_port }}
   data_dir: {{ patroni_postgres_data_dir }}

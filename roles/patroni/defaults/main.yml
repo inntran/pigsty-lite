@@ -95,10 +95,24 @@ patroni_systemd_dropin_file: "{{ patroni_systemd_dropin_dir }}/10-pigsty-lite.co
 patroni_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 patroni_firewalld_service_name: patroni-rest
 
-# pg_hba management
-# When true, Patroni writes pg_hba.conf via postgresql.pg_hba on every
-# reconcile loop. Set to false (default) to let roles/provision manage it.
-patroni_pg_hba_managed: false
+# pg_hba.conf
+# Patroni is the only writer of pg_hba.conf, on every member: it renders
+# postgresql.pg_hba from these three lists, in this order, and rewrites the
+# file on each reload. The file is not replicated, so a rule written on the
+# leader alone would be missing after a failover.
+# Rule keys: contype (default hostssl), databases|db, users|user, source
+# (omitted for contype local), method (default scram-sha-256).
+patroni_hba_system_rules:
+  - {contype: local, databases: all, users: all, method: peer}
+  - {contype: host, databases: all, users: "{{ patroni_superuser }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
+  - {contype: host, databases: replication, users: "{{ patroni_replication_user }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
+  - {contype: hostssl, databases: replication, users: "{{ patroni_replication_user }}", source: "{{ patroni_hba_any_cidr }}", method: scram-sha-256}
+  - {contype: host, databases: postgres, users: "{{ patroni_rewind_user }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
+  - {contype: hostssl, databases: postgres, users: "{{ patroni_rewind_user }}", source: "{{ patroni_hba_any_cidr }}", method: scram-sha-256}
+# Monitoring access; empty until a monitoring role supplies rules.
+patroni_hba_monitor_rules: "{{ postgres_hba_monitor_rules | default([]) }}"
+# Operator rules from the response file (postgres.hba_rules), keys db/user/source/method.
+patroni_hba_operator_rules: "{{ postgres_hba_rules | default([]) }}"
 
 # Health gates
 patroni_leader_wait_retries: "{{ (patroni_bootstrap_timeout_seconds | int) // 5 }}"
