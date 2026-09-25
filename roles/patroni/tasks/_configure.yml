@@ -1,4 +1,14 @@
 ---
+- name: Record whether patroni was already running before this play
+  # Handlers only act on a cluster that was already up. On a fresh install
+  # _service.yml starts patroni with the new config and drop-in, so a reload
+  # or restart afterwards would be redundant -- and a restart would bounce
+  # every node at once.
+  ansible.builtin.systemd:
+    name: "{{ patroni_service_name }}"
+  register: patroni_was_active
+  check_mode: false
+
 - name: Render patroni.yml
   ansible.builtin.template:
     src: patroni.yml.j2
@@ -6,7 +16,9 @@
     owner: root
     group: "{{ patroni_postgres_group }}"
     mode: "0640"
-  notify: Restart patroni
+  # SIGHUP, not restart: Patroni re-reads patroni.yml, rewrites pg_hba.conf
+  # and reloads PostgreSQL. A restart stops PostgreSQL (KillMode=process).
+  notify: Reload patroni
 
 - name: Ensure patroni systemd drop-in dir exists
   ansible.builtin.file:
@@ -23,4 +35,4 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart patroni
+  notify: patroni drop-in changed

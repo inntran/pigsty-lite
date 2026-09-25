@@ -1,6 +1,65 @@
 ---
-- name: Restart patroni
+- name: Reload patroni
   ansible.builtin.systemd:
     name: "{{ patroni_service_name }}"
-    state: restarted
+    state: reloaded
+  when: (patroni_was_active.status.ActiveState | default('')) == 'active'
+
+# SIGHUP applies pg_hba and reloadable settings, but PostgreSQL parameters
+# that need a postmaster restart only become pending_restart. Surface that
+# instead of restarting: a restart here would hit every member at once.
+# Best-effort and advisory: Patroni handles SIGHUP at its next HA loop, so a
+# slow loop can outlast the settle time. `patronictl list` is authoritative.
+- name: Give Patroni one HA loop to apply the reload
+  ansible.builtin.pause:
+    seconds: "{{ patroni_reload_settle_seconds }}"
+  listen: Reload patroni
+
+- name: Check whether the reload left a PostgreSQL restart pending
+  ansible.builtin.uri:
+    url: "https://{{ patroni_advertise_address }}:{{ patroni_rest_port }}/patroni"
+    method: GET
+    return_content: true
+    validate_certs: "{{ patroni_rest_validate_certs }}"
+    ca_path: "{{ patroni_trusted_ca_file }}"
+    status_code: 200
+  register: patroni_after_reload
+  when: (patroni_was_active.status.ActiveState | default('')) == 'active'
+  retries: 3
+  delay: 5
+  until: patroni_after_reload.status == 200
+  failed_when: false
+  listen: Reload patroni
+
+- name: Warn that a PostgreSQL restart is pending
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} has PostgreSQL settings pending a restart
+      ({{ patroni_after_reload.json.pending_restart_reason | default('see patronictl list') }}).
+      Apply them with a rolling restart, one member at a time
+      (for example: patronictl restart --pending, or playbooks/minor_upgrade.yml).
+      Confirm with `patronictl list`.
+  when:
+    - (patroni_was_active.status.ActiveState | default('')) == 'active'
+    - (patroni_after_reload.json.pending_restart | default(false)) | bool
+  listen: Reload patroni
+
+# A drop-in change is never applied by restarting here: handlers flush on
+# every postgres host together, and restarting patroni stops PostgreSQL
+# (KillMode=process). systemd picks up the new unit now; the settings take
+# effect at the member's next restart, which must be done one member at a time
+# (playbooks/minor_upgrade.yml rolls the cluster safely).
+- name: Reload systemd for the patroni drop-in
+  ansible.builtin.systemd:
     daemon_reload: true
+  listen: patroni drop-in changed
+
+- name: Warn that the patroni drop-in applies at the next restart
+  ansible.builtin.debug:
+    msg: >-
+      The patroni systemd drop-in changed on {{ inventory_hostname }} while
+      Patroni was running. The new unit settings take effect at its next
+      restart. Restart members one at a time (for example with
+      playbooks/minor_upgrade.yml), never all at once.
+  when: (patroni_was_active.status.ActiveState | default('')) == 'active'
+  listen: patroni drop-in changed

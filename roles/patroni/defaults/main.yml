@@ -103,3 +103,6 @@ patroni_pg_hba_managed: false
 # Health gates
 patroni_leader_wait_retries: "{{ (patroni_bootstrap_timeout_seconds | int) // 5 }}"
 patroni_leader_wait_delay: 5
+# Seconds to wait after SIGHUP before checking pending_restart: one Patroni
+# HA loop (loop_wait: 10 in patroni.yml.j2) plus slack. Best-effort only.
+patroni_reload_settle_seconds: 15
