@@ -58,6 +58,38 @@
     - haproxy_vip_sysctl_file.changed
   tags: [haproxy, install, sysctl]
 
+# haproxy.cfg's server lines and the backend firewall rule must agree on each
+# member's address, so resolve it once. Each lookup step is guarded with
+# `is defined`: a missing ansible_host falls through to the member's gathered
+# facts instead of failing eagerly, and members outside --limit still resolve
+# via inventory (ansible_host). Includes this host: both consumers loop over
+# every member.
+- name: Resolve each postgres member's backend address
+  ansible.builtin.set_fact:
+    haproxy_backend_addresses: >-
+      {{ haproxy_backend_addresses | default({}) | combine({item: (
+           hostvars[item].patroni_advertise_address
+             if hostvars[item].patroni_advertise_address is defined
+           else hostvars[item].ansible_host
+             if hostvars[item].ansible_host is defined
+           else ((hostvars[item].ansible_facts | default({}))
+                  .get('default_ipv6' if (network_ipv6_single_stack | default(false) | bool) else 'default_ipv4', {})
+                  .get('address'))
+         ) | default('', true) | string}) }}
+  loop: "{{ groups['postgres'] | default([]) }}"
+  tags: [haproxy, config, firewall]
+
+- name: Fail if a postgres member has no backend address
+  ansible.builtin.assert:
+    that:
+      - haproxy_backend_addresses | dict2items | selectattr('value', 'equalto', '') | list | length == 0
+    fail_msg: >-
+      No address for postgres member(s)
+      {{ haproxy_backend_addresses | dict2items | selectattr('value', 'equalto', '') | map(attribute='key') | join(', ') }}:
+      set ansible_host or patroni_advertise_address for them, or gather their facts in this run.
+  when: haproxy_backend_addresses is defined
+  tags: [haproxy, config, firewall]
+
 - name: Render haproxy.cfg
   ansible.builtin.template:
     src: haproxy.cfg.j2
@@ -103,25 +135,26 @@
 
 # Each haproxy instance dials its backend (pgbouncer 6432 by default,
 # postgres 5432 when haproxy_backend_target=postgres) on every postgres
-# peer. The backend role only opens its port to loopback in the default
-# topology, so without this rule haproxy can health-check peer B on 8008
+# member. The backend role only opens its port to loopback in the default
+# topology, so without this rule haproxy can health-check member B on 8008
 # (already opened by patroni) but the data plane to B:6432 silently dies.
-# patroni_advertise_address is the exact string haproxy.cfg renders into
-# 'server' lines, so it's also what arrives as the source IP. Detect
-# family by ':' to handle IPv4, IPv6, and dual-stack peers.
+# Sources come from haproxy_backend_addresses, the same map haproxy.cfg's
+# server lines use. Using a member's address as the source is valid because
+# cluster members share one network: no NAT or multi-homing between peers.
+# Family is derived from the address.
 - name: Open haproxy backend port from postgres peer hosts
   ansible.posix.firewalld:
     rich_rule: >-
-      rule family="{{ 'ipv6' if ':' in (hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host'])) else 'ipv4' }}"
-      source address="{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}"
+      rule family="{{ 'ipv6' if ':' in item.value else 'ipv4' }}"
+      source address="{{ item.value }}"
       port port="{{ haproxy_backend_port }}" protocol="tcp" accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ haproxy_firewalld_zone }}"
-  loop: "{{ groups['postgres'] | default([]) }}"
+  loop: "{{ haproxy_backend_addresses | default({}) | dict2items }}"
   loop_control:
-    label: "{{ item }}"
+    label: "{{ item.key }} {{ item.value }}"
   tags: [haproxy, firewall]
 
 - name: Enable and start haproxy

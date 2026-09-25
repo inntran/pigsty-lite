@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def _render_haproxy_config(
     *,
     haproxy_client_listen_addresses: list[str] | None = None,
+    haproxy_backend_addresses: dict[str, str] | None = None,
 ) -> str:
     template = Environment(trim_blocks=False, lstrip_blocks=False).from_string(
         (ROOT / "roles/haproxy/templates/haproxy.cfg.j2").read_text()
@@ -23,6 +24,8 @@ def _render_haproxy_config(
             "pgnode01": {"ansible_host": "10.0.0.11"},
             "pgnode02": {"ansible_host": "10.0.0.12"},
         },
+        haproxy_backend_addresses=haproxy_backend_addresses
+        or {"pgnode01": "10.0.0.11", "pgnode02": "10.0.0.12"},
         haproxy_maxconn=4096,
         haproxy_stats_listen_address="127.0.0.1",
         haproxy_stats_port=7000,
@@ -70,3 +73,17 @@ def test_haproxy_binds_client_services_to_all_client_addresses():
     assert "bind 127.0.0.2:5434" in rendered
     assert "bind [2001:db8::11]:5434" in rendered
     assert "bind [2001:db8::20]:5434" in rendered
+
+
+def test_ipv6_backend_addresses_are_bracketed():
+    """HAProxy also accepts the bare form (it splits on the last colon), but
+    [addr]:port is the unambiguous spelling and matches the bind lines."""
+    rendered = _render_haproxy_config(
+        haproxy_backend_addresses={
+            "pgnode01": "2001:db8:10::11",
+            "pgnode02": "2001:db8:10::12",
+        }
+    )
+
+    assert "[2001:db8:10::12]:6432" in rendered
+    assert "2001:db8:10::12:6432" not in rendered
