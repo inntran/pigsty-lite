@@ -57,7 +57,7 @@ can be run locally via `make test-role ROLE=<name>` but do not run in CI.
 | `etcd / spof`             |    | `etcd`                        | `ca`, `repos`, `node`, `certs`                                                                              |
 | `etcd / ha`               |    | `etcd`                        | `ca`, `repos`, `node`, `certs`                                                                              |
 | `postgres / default`      |    | `postgres`                    | `ca`, `repos`, `node`, `certs`                                                                              |
-| `patroni / spof`          |    | `patroni`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`                                                          |
+| `patroni / default`       |    | `patroni`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`                                                          |
 | `patroni / ha`            |    | `patroni`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`                                                          |
 | `pgbouncer / default`     |    | `pgbouncer`                   | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `haproxy / default`       |    | `haproxy`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`                                  |
@@ -96,7 +96,7 @@ breakage is still caught, but the role's own `verify.yml` does not run).
 | `certs`            | `certs/default`                                        | prepare of all five                                              |
 | `etcd`             | `etcd/spof`, `etcd/ha`                                 | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
 | `postgres`         | `postgres/default`                                     | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
-| `patroni`          | `patroni/spof`, `patroni/ha`                           | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
+| `patroni`          | `patroni/default`, `patroni/ha`                        | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
 | `pgbouncer`        | `pgbouncer/default`                                    | prepare of `haproxy/ha`, `monitoring_agents/default`             |
 | `haproxy`          | `haproxy/default`, `haproxy/ha`                        | ✓ converge: `haproxy/ha`                                         |
 | `provision`        | `provision/default`, `provision/ha`                    | not in CI                                                        |
