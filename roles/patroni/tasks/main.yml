@@ -64,18 +64,51 @@
     zone: "{{ patroni_firewalld_zone }}"
   tags: [patroni, firewall]
 
+# The rule's family must match the peer's address: firewalld never matches an
+# IPv4 rule against an IPv6 source. Each lookup step is guarded with
+# `is defined`, so a missing ansible_host (e.g. molecule inventories) falls
+# through to the peer's gathered facts instead of failing eagerly. Peers
+# outside --limit still resolve via inventory (ansible_host).
+- name: Resolve each postgres peer's address for its firewall rule
+  ansible.builtin.set_fact:
+    patroni_peer_addresses: >-
+      {{ patroni_peer_addresses | default({}) | combine({item: (
+           hostvars[item].patroni_advertise_address
+             if hostvars[item].patroni_advertise_address is defined
+           else hostvars[item].ansible_host
+             if hostvars[item].ansible_host is defined
+           else ((hostvars[item].ansible_facts | default({}))
+                  .get('default_ipv6' if (network_ipv6_single_stack | default(false) | bool) else 'default_ipv4', {})
+                  .get('address'))
+         ) | default('', true) | string}) }}
+  loop: "{{ groups['postgres'] | difference([inventory_hostname]) }}"
+  tags: [patroni, firewall]
+
+- name: Fail if a postgres peer has no address
+  ansible.builtin.assert:
+    that:
+      - patroni_peer_addresses | dict2items | selectattr('value', 'equalto', '') | list | length == 0
+    fail_msg: >-
+      No address for postgres peer(s)
+      {{ patroni_peer_addresses | dict2items | selectattr('value', 'equalto', '') | map(attribute='key') | join(', ') }}:
+      set ansible_host or patroni_advertise_address for them, or gather their facts in this run.
+  when: patroni_peer_addresses is defined
+  tags: [patroni, firewall]
+
 - name: Open PostgreSQL port to other cluster members (replication + pg_basebackup)
   ansible.posix.firewalld:
     rich_rule: >-
-      rule family='ipv4'
-      source address='{{ hostvars[item]['patroni_advertise_address'] | default(hostvars[item]['ansible_host']) }}'
+      rule family='{{ 'ipv6' if ':' in item.value else 'ipv4' }}'
+      source address='{{ item.value }}'
       service name='postgresql'
       accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ patroni_firewalld_zone }}"
-  loop: "{{ groups['postgres'] | difference([inventory_hostname]) }}"
+  loop: "{{ patroni_peer_addresses | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }} {{ item.value }}"
   tags: [patroni, firewall]
 
 - name: Start Patroni and wait for healthy cluster
