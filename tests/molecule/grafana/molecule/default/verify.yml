@@ -29,11 +29,21 @@
       ansible.builtin.assert:
         that:
           - (grafana_ds.json | map(attribute='name') | list) is superset(['VictoriaMetrics', 'VictoriaLogs'])
+          - (grafana_ds.json | selectattr('name', 'equalto', 'VictoriaMetrics') | map(attribute='uid') | first) == 'VictoriaMetrics'
         fail_msg: "Expected VictoriaMetrics and VictoriaLogs datasources"
 
     - name: The overview dashboard is provisioned
       ansible.builtin.uri:
         url: "http://127.0.0.1:3000/api/dashboards/uid/pigsty-lite-overview"
+        method: GET
+        url_username: admin
+        url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"
+        force_basic_auth: true
+        status_code: [200]
+
+    - name: The PostgreSQL exporter dashboard is provisioned
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000/api/dashboards/uid/pgsql-exporter"
         method: GET
         url_username: admin
         url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"

@@ -13,6 +13,24 @@ and VictoriaLogs datasources and provisions dashboards via
 - The VictoriaMetrics (Prometheus-type) and VictoriaLogs datasources.
 - Dashboards provisioned from `roles/grafana/files/dashboards/`.
 
+## PGSQL Exporter dashboard
+
+`pgsql-exporter.json` adapts upstream Pigsty's `files/grafana/pgsql/pgsql-exporter.json`
+for the `prometheus-community/postgres_exporter` deployed by this project. It
+keeps the exporter health, database scrape, collector, and process panels.
+Pigsty-specific query cache, per-database exporter, and log panels have no
+equivalent in the installed exporter or this monitoring stack.
+
+The dashboard selects `job="postgres"` and the `cluster` and `instance` labels
+set by `vmagent-scrape.yml.j2`. That template creates the job only for hosts in
+the `postgres` inventory group and targets their `postgres_exporter` endpoint.
+The overview distinguishes `up` (vmagent can scrape the exporter) from `pg_up`
+(the exporter can connect to PostgreSQL). Its
+`pg_exporter_last_scrape_duration_seconds`, `pg_exporter_last_scrape_error`,
+and `pg_exporter_scrapes_total` queries use metrics emitted by
+`postgres_exporter`. Grafana provisions the dashboard automatically with the
+VictoriaMetrics datasource.
+
 ## What this role does NOT own
 
 - vmsingle/vlsingle — that's `monitoring_server`.

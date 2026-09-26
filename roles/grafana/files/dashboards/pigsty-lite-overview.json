@@ -10,7 +10,7 @@
       {
         "name": "cluster",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+        "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "VictoriaMetrics" },
         "query": "label_values(pg_up, cluster)",
         "refresh": 2
       }
@@ -21,7 +21,7 @@
       "id": 1,
       "title": "PostgreSQL instances up",
       "type": "stat",
-      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "VictoriaMetrics" },
       "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
       "targets": [
         { "expr": "sum(pg_up{cluster=\"$cluster\"})", "refId": "A" }
@@ -31,7 +31,7 @@
       "id": 2,
       "title": "Replication lag (bytes)",
       "type": "timeseries",
-      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "VictoriaMetrics" },
       "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
       "targets": [
         {
@@ -45,7 +45,7 @@
       "id": 3,
       "title": "Active connections",
       "type": "timeseries",
-      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "VictoriaMetrics" },
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
       "targets": [
         {
@@ -59,7 +59,7 @@
       "id": 4,
       "title": "Node CPU / memory / disk",
       "type": "timeseries",
-      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "VictoriaMetrics" },
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
       "targets": [
         {
