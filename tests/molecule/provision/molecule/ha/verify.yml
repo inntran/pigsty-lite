@@ -31,7 +31,7 @@
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_roles WHERE rolname = 'app'"
         login_db: postgres
-        login_unix_socket: /var/run/postgresql
+        login_unix_socket: /run/postgresql
       register: q_role
       changed_when: false
 
@@ -45,7 +45,7 @@
       community.postgresql.postgresql_query:
         query: "SELECT 1 FROM pg_database WHERE datname = 'app'"
         login_db: postgres
-        login_unix_socket: /var/run/postgresql
+        login_unix_socket: /run/postgresql
       register: q_db
       changed_when: false
 
@@ -94,7 +94,7 @@
     - name: Count pg_hba lines PostgreSQL rejects on this member
       community.postgresql.postgresql_query:
         query: "SELECT count(*) AS bad FROM pg_hba_file_rules WHERE error IS NOT NULL"
-        login_unix_socket: /var/run/postgresql
+        login_unix_socket: /run/postgresql
         login_user: postgres
         login_db: postgres
       become: true

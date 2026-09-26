@@ -196,8 +196,6 @@
       ansible.builtin.command:
         argv:
           - /usr/pgsql-18/bin/psql
-          - -h
-          - /var/run/postgresql
           - -d
           - postgres
           - -c
@@ -255,8 +253,6 @@
       ansible.builtin.command:
         argv:
           - /usr/pgsql-18/bin/psql
-          - -h
-          - /var/run/postgresql
           - -d
           - postgres
           - -c

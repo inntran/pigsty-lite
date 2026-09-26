@@ -17,7 +17,8 @@ provision_patroni_rest_timeout: 5
 # Avoids password-on-the-wire. `postgres_osdba` is defined in
 # group_vars/all.yml; the default below is a safety net only.
 provision_osdba: "{{ postgres_osdba | default('postgres') }}"
-provision_osdba_socket_dir: /var/run/postgresql
+# PGDG's default socket directory; the socket file is .s.PGSQL.<port>.
+provision_osdba_socket_dir: /run/postgresql
 
 # Where to install extensions when the response file doesn't say.
 # Most cluster-level extensions (pg_stat_statements) live in `postgres`;

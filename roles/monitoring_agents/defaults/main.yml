@@ -32,16 +32,16 @@ monitoring_agents_pgbackrest_exporter_port: "{{ pgbackrest_exporter_port | defau
 
 # postgres_exporter / pgbouncer_exporter connect locally
 monitoring_agents_postgres_exporter_dsn: >-
-  host=/var/run/postgresql
+  host=/run/postgresql
   port={{ postgres_port | default(5432) }}
   user={{ postgres_osdba | default('postgres') }}
   dbname=postgres sslmode=disable
 # pgBouncer's socket is not in PostgreSQL's socket directory: roles/pgbouncer
-# puts it under pgbouncer_unix_socket_dir (/var/run/pgbouncer). Pointing the
-# exporter at /var/run/postgresql leaves it logging "connect: no such file or
+# puts it under pgbouncer_unix_socket_dir (/run/pgbouncer). Pointing the
+# exporter at /run/postgresql leaves it logging "connect: no such file or
 # directory" every scrape and publishing pgbouncer_up 0 forever.
 monitoring_agents_pgbouncer_exporter_dsn: >-
-  host={{ pgbouncer_unix_socket_dir | default('/var/run/pgbouncer') }}
+  host={{ pgbouncer_unix_socket_dir | default('/run/pgbouncer') }}
   port={{ pgbouncer_port | default(6432) }}
   user={{ monitoring_agents_pgbouncer_console_user }}
   dbname=pgbouncer sslmode=disable

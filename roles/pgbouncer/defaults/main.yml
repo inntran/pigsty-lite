@@ -12,7 +12,7 @@ pgbouncer_config_dir: /etc/pgbouncer
 pgbouncer_config_file: "{{ pgbouncer_config_dir }}/pgbouncer.ini"
 pgbouncer_userlist_file: "{{ pgbouncer_config_dir }}/userlist.txt"
 pgbouncer_log_dir: /var/log/pgbouncer
-pgbouncer_run_dir: /var/run/pgbouncer
+pgbouncer_run_dir: /run/pgbouncer
 pgbouncer_pid_file: "{{ pgbouncer_run_dir }}/pgbouncer.pid"
 pgbouncer_user: pgbouncer
 pgbouncer_group: pgbouncer

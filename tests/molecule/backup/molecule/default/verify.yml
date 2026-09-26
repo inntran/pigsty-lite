@@ -53,7 +53,7 @@
       community.postgresql.postgresql_query:
         query: "SELECT pg_switch_wal()"
         login_db: postgres
-        login_unix_socket: /var/run/postgresql
+        login_unix_socket: /run/postgresql
       become: true
       become_user: postgres
 
