@@ -8,10 +8,13 @@
 # which queries each project's latest GitHub release via `gh` and rewrites
 # this file. Run it without --update (or with --check) to report drift
 # without writing.
+# Optional archive_member: path of the binary inside the tarball. Defaults to
+# <asset minus .tar.gz>/<name>; set it when the archive layout differs.
 #
 # Why these are pinned rather than floated:
-#   - None of the four are packaged in PGDG or the vendor repos for EL10
-#     (see docs/reference/pgdg-packages.md), so they are fetched as release
+#   - The four exporters and the exporter_exporter front door are not
+#     packaged in PGDG or the vendor repos for EL10 (see
+#     docs/reference/pgdg-packages.md), so they are fetched as release
 #     artifacts rather than installed with dnf.
 #   - A fetched artifact needs a checksum to be verifiable, and a checksum
 #     only means something against a fixed version.
@@ -70,3 +73,16 @@ monitoring_agents_exporter_releases:
     asset: pgbackrest_exporter-0.24.0-linux-x86_64.tar.gz
     sha256: a6e6a5adf85fb7c46dc3a3212efcba2045b9c543a1d162ddc868b821bd1d0f10
     url: https://github.com/woblerr/pgbackrest_exporter/releases/download/v0.24.0/pgbackrest_exporter-0.24.0-linux-x86_64.tar.gz
+
+  # Not an exporter itself: the authenticated TLS front door for external_pull
+  # (see docs/reference/exporters.md). Its tarball is flat, hence archive_member.
+  exporter_exporter:
+    repo: tcolgate/exporter_exporter
+    version: "0.6.1"
+    tag: v0.6.1
+    released: "2026-02-15"
+    license: Apache-2.0
+    asset: exporter_exporter_0.6.1_Linux_x86_64.tar.gz
+    archive_member: exporter_exporter
+    sha256: 79e1ac1363f1daecfc12a3f07e3ad6edfc4af99695bd5b23aa831ebe4512ad3a
+    url: https://github.com/tcolgate/exporter_exporter/releases/download/v0.6.1/exporter_exporter_0.6.1_Linux_x86_64.tar.gz

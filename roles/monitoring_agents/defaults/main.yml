@@ -5,8 +5,7 @@
 # and vlagent bind loopback-only and remote_write/ship to the monitor.
 
 # Exporters - install
-# None of the four are packaged for EL10 by PGDG, the vendor repos, or EPEL
-# (see docs/reference/pgdg-packages.md), so they install from pinned upstream
+# Exporters and the external_pull front door install from pinned upstream
 # release tarballs. Versions and checksums: vars/exporter_versions.yml.
 monitoring_agents_exporter_bin_dir: /usr/bin
 monitoring_agents_exporter_download_timeout: 60
@@ -17,6 +16,7 @@ monitoring_agents_exporter_units:
   postgres_exporter: postgres-exporter
   pgbouncer_exporter: pgbouncer-exporter
   pgbackrest_exporter: pgbackrest-exporter
+  exporter_exporter: exporter-exporter
 # dnf id of the EPEL repo; shared across roles, overridable in group_vars.
 epel_repo_id: epel
 
@@ -112,22 +112,22 @@ monitoring_agents_haproxy_stats_port: "{{ haproxy_stats_port | default(7000) }}"
 monitoring_agents_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 monitoring_agents_systemd_dir: /etc/systemd/system
 
-# External pull nginx metrics frontend
-monitoring_agents_nginx_package: nginx
-# openssl is the CLI package (openssl-libs is the library and is not enough);
-# _nginx_metrics.yml shells out to `openssl passwd` for the htpasswd hash.
-monitoring_agents_openssl_package: openssl
-monitoring_agents_nginx_metrics_packages:
-  - "{{ monitoring_agents_nginx_package }}"
-  - "{{ monitoring_agents_openssl_package }}"
-monitoring_agents_nginx_metrics_config: /etc/nginx/conf.d/pigsty-metrics.conf
-monitoring_agents_nginx_metrics_htpasswd: /etc/nginx/pigsty-metrics.htpasswd
-monitoring_agents_pull_metrics_port: "{{ monitoring_pull_metrics_port | default(9965) }}"
+# External pull endpoint (exporter_exporter)
+monitoring_agents_pull_listen_address: "{{ network_any_address | default('0.0.0.0') }}"
+monitoring_agents_pull_metrics_port: "{{ monitoring_pull_metrics_port | default(9999) }}"
 monitoring_agents_pull_tls: "{{ monitoring_pull_tls | default(true) }}"
 monitoring_agents_pull_source_cidrs: "{{ monitoring_pull_source_cidrs | default([]) }}"
-monitoring_agents_pull_auth_username: "{{ monitoring_pull_auth_username | default('pigsty') }}"
 monitoring_agents_pull_tls_cert: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt"
 monitoring_agents_pull_tls_key: "{{ pigsty_pki_dir }}/{{ inventory_hostname }}.key"
-monitoring_agents_pull_password: >-
-  {{ vault_monitoring_pull_password
-     | mandatory('vault_monitoring_pull_password not set; run ./configure to bootstrap the vault') }}
+monitoring_agents_exporter_exporter_user: exporter_exporter
+monitoring_agents_exporter_exporter_config_dir: /etc/exporter_exporter
+monitoring_agents_exporter_exporter_config: "{{ monitoring_agents_exporter_exporter_config_dir }}/expexp.yaml"
+monitoring_agents_exporter_exporter_token_file: "{{ monitoring_agents_secrets_dir }}/exporter_exporter.token"
+# Pre-exporter_exporter frontend, removed on upgrade.
+monitoring_agents_legacy_nginx_metrics_files:
+  - /etc/nginx/conf.d/pigsty-metrics.conf
+  - /etc/nginx/pigsty-metrics.htpasswd
+monitoring_agents_legacy_pull_metrics_port: 9965
+monitoring_agents_pull_token: >-
+  {{ vault_monitoring_pull_token
+     | mandatory('vault_monitoring_pull_token not set; run ./configure to bootstrap the vault') }}

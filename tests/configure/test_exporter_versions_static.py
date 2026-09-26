@@ -1,7 +1,7 @@
 """The pinned exporter record must stay internally consistent.
 
-roles/monitoring_agents/vars/exporter_versions.yml pins four exporters that
-are fetched as GitHub release artifacts rather than installed from a repo.
+roles/monitoring_agents/vars/exporter_versions.yml pins four exporters and
+the external_pull front door as GitHub release artifacts rather than packages.
 Because nothing resolves them at deploy time, a typo in a URL or a checksum
 that no longer matches its version would surface only as a failed download --
 or, worse, as a silently unverified one.
@@ -27,6 +27,7 @@ EXPECTED = {
     "postgres_exporter",
     "pgbouncer_exporter",
     "pgbackrest_exporter",
+    "exporter_exporter",
 }
 
 
@@ -84,12 +85,21 @@ def test_tags_and_versions_agree():
 
 
 def test_every_exporter_installs_from_a_tarball():
-    """One install path for all four. pgbackrest_exporter also publishes an
+    """One install path for all entries. pgbackrest_exporter also publishes an
     RPM, and pinning it would reintroduce a second code path in the role."""
     for name, entry in _record().items():
         assert entry["asset"].endswith(".tar.gz"), (
-            f"{name}: {entry['asset']} is not a tarball; the role unpacks all four"
+            f"{name}: {entry['asset']} is not a tarball; the role unpacks all pinned binaries"
         )
+
+
+def test_archive_member_only_where_the_tarball_is_flat():
+    releases = _record()
+    assert {
+        name: entry["archive_member"]
+        for name, entry in releases.items()
+        if "archive_member" in entry
+    } == {"exporter_exporter": "exporter_exporter"}
 
 
 def test_licenses_are_compatible_with_this_project():

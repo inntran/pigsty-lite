@@ -121,7 +121,6 @@ def generate(response: dict[str, Any]) -> str:
     else:
         pull = monitoring["external_pull"]
         out["monitoring_pull_metrics_port"] = pull["metrics_port"]
-        out["monitoring_pull_auth_username"] = pull["auth"]["username"]
         out["monitoring_pull_source_cidrs"] = pull["source_cidrs"]
         out["monitoring_pull_tls"] = bool(pull.get("tls", True))
 

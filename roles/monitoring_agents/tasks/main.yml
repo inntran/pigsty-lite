@@ -282,10 +282,10 @@
       ansible.builtin.command: restorecon -v /usr/local/bin/vlagent-prod
       changed_when: false
 
-- name: Install nginx metrics frontend for external pull
-  ansible.builtin.import_tasks: _nginx_metrics.yml
+- name: Install the exporter_exporter endpoint for external pull
+  ansible.builtin.import_tasks: _exporter_exporter.yml
   when: (monitoring_mode | default('self_hosted')) == 'external_pull'
-  tags: [monitoring, nginx]
+  tags: [monitoring, install, config]
 
 - name: Open firewalld for exporters
   ansible.builtin.import_tasks: _firewall.yml

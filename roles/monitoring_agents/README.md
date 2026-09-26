@@ -1,12 +1,12 @@
 # monitoring_agents
 
 Per-node telemetry. Targets `all` hosts. Installs `node_exporter`
-everywhere, the PostgreSQL/pgBouncer/pgBackRest exporters on postgres
-hosts, and `vmagent` + `vlagent` to scrape locally and ship to the
-monitor host.
+everywhere and the PostgreSQL/pgBouncer/pgBackRest exporters on postgres
+hosts. In modes that use local agents, `vmagent` + `vlagent` scrape and
+ship to the monitor or external ingest endpoints.
 
-Exporter package installs explicitly enable the disabled-by-default `epel`
-repository for those tasks only.
+The four exporters and the `external_pull` front door install from pinned
+upstream release tarballs with sha256 verification.
 
 ## What this role owns
 
@@ -14,10 +14,19 @@ repository for those tasks only.
 - `postgres_exporter` (9187), `pgbouncer_exporter` (9127),
   `pgbackrest_exporter` (9854) on postgres hosts only.
 - `vmagent` (`network_loopback_address:8429`) — scrapes local exporters,
-  Patroni REST, and (outside the `spof` profile) HAProxy stats,
-  `remote_write`s to the monitor.
+  Patroni REST, and (outside the `spof` profile) HAProxy stats; sends
+  metrics to the monitor or external ingest endpoint according to
+  monitoring mode.
 - `vlagent` (`network_loopback_address:9429`) — tails journald + PG
-  logs + Patroni logs, ships to the monitor.
+  logs + Patroni logs; ships to the monitor or external ingest endpoint
+  according to monitoring mode.
+- `exporter_exporter` in `external_pull` mode — one TLS-enabled-by-default
+  endpoint per host (port 9999 by default), bearer-protected and proxied to
+  loopback exporter listeners. It proxies `node` on every host and
+  `postgres`, `pgbouncer`, and `pgbackrest` only on postgres hosts; firewalld
+  allows the configured source CIDRs. Its token is read from
+  `/etc/pigsty/monitoring/exporter_exporter.token`, mode `0640` and owned by
+  `root:exporter_exporter`.
 - The `postgres-exporter`, `pgbouncer-exporter`, `pgbackrest-exporter`
   custom firewalld services.
 
@@ -86,18 +95,25 @@ removes the corresponding files.
 ## What this role does NOT own
 
 - vmsingle/vlsingle/vmalert/Alertmanager — that's `monitoring_server`.
-- Grafana / nginx — separate roles.
+- Grafana and nginx proxy — separate roles. The external_pull nginx
+  frontend was replaced by `exporter_exporter`; nginx remains owned by
+  `roles/nginx_proxy`.
 
 ## Ordering
 
-`_assert` → `_exporters` → `_vmagent` → `_vlagent` → `_firewall`.
-Exporters must listen before vmagent's scrape config references them.
+`_assert` → `_exporters` → agent service accounts → external-push credentials
+→ agent buffer directories → `_vmagent` → `_vlagent` → `_exporter_exporter`
+→ `_firewall`. `_exporters` and `_firewall` run in every mode. Agent service
+accounts, buffer directories, `_vmagent`, and `_vlagent` are skipped only in
+`external_pull`; external-push credentials are staged only in
+`external_push`; `_exporter_exporter` runs only in `external_pull`.
 
 ## Exporter versions
 
-None of the four exporters are packaged for EL10 by PGDG, the vendor repos, or
-EPEL, so `_install_exporter.yml` fetches each one's release tarball, verifies
-its sha256, and installs the binary to `/usr/bin`. Versions and checksums are
+The four exporters and the `exporter_exporter` front door are not packaged
+for EL10 by PGDG, the vendor repos, or EPEL, so
+`_install_exporter.yml` fetches each pinned release tarball, verifies its
+sha256, and installs the binary to `/usr/bin`. Versions and checksums are
 pinned in [`vars/exporter_versions.yml`](vars/exporter_versions.yml).
 
 Re-running is a no-op: the installed binary's `--version` is checked first, so
@@ -110,8 +126,8 @@ To update, query upstream first, then update the record:
 ./bin/check_exporter_releases.py --update   # rewrite the pins
 ```
 
-[`docs/reference/exporters.md`](../../docs/reference/exporters.md) covers what
-each exporter is and why these were chosen over `pgexporter` and Percona PMM.
+[`docs/reference/exporters.md`](../../docs/reference/exporters.md) covers
+the four exporters and the separate `exporter_exporter` front door.
 
 ## Idempotence
 

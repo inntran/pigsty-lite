@@ -1,0 +1,110 @@
+---
+# Ansible auto-loads only vars/main.yml; exporter pins are kept in their
+# generated record so include it here like _exporters.yml does.
+- name: Load the pinned exporter releases
+  ansible.builtin.include_vars:
+    file: exporter_versions.yml
+
+- name: Install exporter_exporter
+  ansible.builtin.include_tasks: _install_exporter.yml
+  vars:
+    exporter_name: exporter_exporter
+
+# Remove the nginx frontend this replaces before exporter_exporter starts:
+# upgraded hosts often keep the old port, so nginx must release it first.
+# Nginx itself stays installed and running because roles/nginx_proxy uses it
+# on monitor hosts.
+- name: Remove legacy nginx metrics files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ monitoring_agents_legacy_nginx_metrics_files }}"
+  register: monitoring_agents_legacy_nginx_removed
+
+# This immediate status query gates the following validation and reload.
+- name: Check whether nginx is active after removing the legacy frontend  # noqa: no-handler
+  ansible.builtin.systemd:
+    name: nginx
+  register: monitoring_agents_legacy_nginx_status
+  changed_when: false
+  when: monitoring_agents_legacy_nginx_removed.changed
+
+- name: Validate nginx config after removing the legacy frontend
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+  when:
+    - monitoring_agents_legacy_nginx_removed.changed
+    - monitoring_agents_legacy_nginx_status.status.ActiveState == 'active'
+
+- name: Reload nginx after removing the legacy frontend
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+  when:
+    - monitoring_agents_legacy_nginx_removed.changed
+    - monitoring_agents_legacy_nginx_status.status.ActiveState == 'active'
+
+- name: Ensure the exporter_exporter system user exists
+  ansible.builtin.user:
+    name: "{{ monitoring_agents_exporter_exporter_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    groups: pigsty
+    append: true
+
+- name: Ensure the exporter_exporter config directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_agents_exporter_exporter_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render the exporter_exporter module config
+  ansible.builtin.template:
+    src: expexp.yaml.j2
+    dest: "{{ monitoring_agents_exporter_exporter_config }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart exporter-exporter
+
+- name: Ensure the monitoring secrets directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_agents_secrets_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the exporter_exporter bearer token
+  ansible.builtin.copy:
+    content: "{{ monitoring_agents_pull_token }}"
+    dest: "{{ monitoring_agents_exporter_exporter_token_file }}"
+    owner: root
+    group: "{{ monitoring_agents_exporter_exporter_user }}"
+    mode: "0640"
+  no_log: true
+  notify: Restart exporter-exporter
+
+- name: Install the exporter_exporter systemd unit
+  ansible.builtin.template:
+    src: exporter-exporter.service.j2
+    dest: "{{ monitoring_agents_systemd_dir }}/exporter-exporter.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd for monitoring_agents
+    - Restart exporter-exporter
+
+- name: Flush handlers so the exporter_exporter unit is registered before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start exporter-exporter
+  ansible.builtin.systemd:
+    name: exporter-exporter
+    enabled: true
+    state: started

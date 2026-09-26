@@ -10,8 +10,8 @@ the monitoring step, pass `--tags monitoring`.
 
 - `self_hosted` keeps the built-in monitor host stack.
 - `external_push` sends local vmagent/vlagent data to external ingest URLs.
-- `external_pull` exposes an authenticated HAProxy metrics frontend for an
-  external scraper.
+- `external_pull` exposes an authenticated, TLS-enabled-by-default
+  `exporter_exporter` endpoint for an external scraper.
 
 See [external-monitoring.md](external-monitoring.md) for endpoint shapes,
 auth, TLS, and generated scraper snippets.

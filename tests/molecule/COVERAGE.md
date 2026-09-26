@@ -36,7 +36,7 @@ These are the building blocks the import-based scenarios pull in:
 
 `CI` column: ✓ = currently in `.github/workflows/molecule.yml` matrix.
 
-The CI matrix is five derived-image scenarios plus the two raw bootstrap
+The CI matrix is six derived-image scenarios plus the two raw bootstrap
 scenarios chosen to collectively exercise every role as either a converge
 target or via production-playbook prepare. Other scenarios remain in-tree and
 can be run locally via `make test-role ROLE=<name>` but do not run in CI.
@@ -49,6 +49,7 @@ can be run locally via `make test-role ROLE=<name>` but do not run in CI.
 | `nginx_proxy / default`   | ✓  | `nginx_proxy`                 | `preflight`, `ca`, `repos`, `node`, `certs`, `monitoring_server`, `grafana`                                 |
 | `monitoring_agents / default` |    | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `pgbackrest`, `monitoring_server`, `grafana` |
 | `monitoring_agents / external_push` | ✓ | `monitoring_agents`    | `preflight`, `ca`, `repos`, `node`, `certs`                                                                 |
+| `monitoring_agents / external_pull` | ✓ | `monitoring_agents`   | `preflight`, `ca`, `repos`, `node`, `certs`                                                                 |
 | `preflight / default`     |    | `preflight`                   | —                                                                                                           |
 | `repos / default`         |    | `repos`                       | —                                                                                                           |
 | `node / default`          |    | `repos`, `node`               | —                                                                                                           |
@@ -89,22 +90,22 @@ breakage is still caught, but the role's own `verify.yml` does not run).
 
 | Role               | Verified by (converge target)                          | Exercised in CI                                                  |
 |--------------------|--------------------------------------------------------|------------------------------------------------------------------|
-| `preflight`        | `preflight/default`                                    | prepare of `cluster_ops/default`, `nginx_proxy/default`, `monitoring_agents/default` |
-| `repos`            | `repos/default`, `node/default`                        | prepare of all five                                              |
-| `node`             | `node/default`                                         | prepare of all five                                              |
-| `ca`               | `ca/default`                                           | prepare of all five                                              |
-| `certs`            | `certs/default`                                        | prepare of all five                                              |
-| `etcd`             | `etcd/spof`, `etcd/ha`                                 | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
-| `postgres`         | `postgres/default`                                     | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
-| `patroni`          | `patroni/default`, `patroni/ha`                        | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
-| `pgbouncer`        | `pgbouncer/default`                                    | prepare of `haproxy/ha`, `monitoring_agents/default`             |
-| `haproxy`          | `haproxy/default`, `haproxy/ha`                        | ✓ converge: `haproxy/ha`                                         |
+| `preflight`        | `preflight/default`                                    | prepare of `cluster_ops/default`, `nginx_proxy/default`, `monitoring_agents/external_push`, `monitoring_agents/external_pull` |
+| `repos`            | `repos/default`, `node/default`                        | prepare of all six                                              |
+| `node`             | `node/default`                                         | prepare of all six                                              |
+| `ca`               | `ca/default`                                           | prepare of all six                                              |
+| `certs`            | `certs/default`                                         | prepare of all six                                              |
+| `etcd`             | `etcd/spof`, `etcd/ha`                                 | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`    |
+| `postgres`         | `postgres/default`                                     | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`    |
+| `patroni`          | `patroni/default`, `patroni/ha`                        | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`    |
+| `pgbouncer`        | `pgbouncer/default`                                    | prepare of `haproxy/ha`                                         |
+| `haproxy`          | `haproxy/default`, `haproxy/ha`                        | ✓ converge: `haproxy/ha`                                        |
 | `provision`        | `provision/default`, `provision/ha`                    | not in CI                                                        |
-| `pgbackrest`       | `backup/default`, `backup/ha`                          | ✓ converge: `backup/ha`; prepare of `monitoring_agents/default`  |
-| `cluster_ops`      | `cluster_ops/default`                                  | ✓ converge: `cluster_ops/default`                                |
-| `grafana`          | `grafana/default`, `monitoring_agents/default`†        | prepare of `nginx_proxy/default`, `monitoring_agents/default`    |
-| `monitoring_server`| `monitoring_server/default`                            | prepare of `nginx_proxy/default`, `monitoring_agents/default`    |
-| `monitoring_agents`| `monitoring_agents/default`                            | not in CI                                                        |
+| `pgbackrest`       | `backup/default`, `backup/ha`                          | ✓ converge: `backup/ha`                                         |
+| `cluster_ops`      | `cluster_ops/default`                                  | ✓ converge: `cluster_ops/default`                               |
+| `grafana`          | `grafana/default`, `monitoring_agents/default`†        | prepare of `nginx_proxy/default`                                 |
+| `monitoring_server`| `monitoring_server/default`                            | prepare of `nginx_proxy/default`                                 |
+| `monitoring_agents`| `monitoring_agents/default`, `monitoring_agents/external_push`, `monitoring_agents/external_pull` | ✓ converge: `monitoring_agents/external_push`, `monitoring_agents/external_pull` |
 | `nginx_proxy`      | `nginx_proxy/default`                                  | ✓ converge: `nginx_proxy/default`                                |
 | `vip_manager`      | `vip_manager/default`                                  | not in CI                                                        |
 
@@ -122,24 +123,16 @@ image, not on a baked first-party image:
 These run in parallel with `build-common`/`build-data`/`build-infra` in
 CI (see `.github/workflows/molecule.yml`).
 
-`monitoring_agents/default` and `monitoring_agents/external_pull` were both
-excluded from CI because the role's `_exporters.yml` and `_firewall.yml`
-imports were commented out — none of the four exporters are packaged for
-Oracle Linux 10 by PGDG, the vendor repos, or EPEL, so the `dnf` install they
-used could not resolve.
+The four exporters and the `external_pull` front door now install from pinned
+upstream release tarballs with sha256 verification.
+`monitoring_agents/external_pull` is included in CI and verifies the endpoint
+end to end, including TLS, bearer authentication, 401/404/400 responses,
+token-file permissions, and that the token is not on argv. Its single test
+host is not a PostgreSQL host, so this scenario exercises only the node
+module; template tests cover the other modules.
 
-That is fixed: the exporters now install from pinned upstream release
-tarballs (`roles/monitoring_agents/vars/exporter_versions.yml`, refreshed by
-`./bin/check_exporter_releases.py`), and both imports are re-enabled. The
-install path was verified directly in a `molecule-base-data` container — all
-four install at their pinned versions, a second run is `changed=0` with every
-download skipped, and a corrupted binary triggers a reinstall of only that
-exporter.
-
-`external_pull` should now converge end to end.
-
-`default` was separately blocked on a scenario bug rather than packaging: its
-`molecule.yml` placed hosts in `monitor`/`backup_server` and `postgres` but
+`monitoring_agents/default` was separately blocked on a scenario bug rather
+than packaging: its `molecule.yml` placed hosts in `monitor`/`backup_server` and `postgres` but
 none in `etcd`, so `prepare` failed at `patroni : Fail if etcd group is empty`
 before the role under test ever ran. That is fixed — the data host is now
 `groups: [postgres, etcd]`, matching the SPOF topology where the single etcd
@@ -160,7 +153,7 @@ if you touch the scenario:
   `roles/pgbackrest` and `roles/monitoring_agents` fall back to *different*
   defaults and pgbackrest_exporter reports on a stanza that was never created.
 
-`monitoring_agents/external_push` does run in CI. It covers the path where the
+`monitoring_agents/external_push` also runs in CI. It covers the path where the
 role handles secrets: remote_write credentials are staged as root-owned `0640`
 files under `/etc/pigsty/monitoring` and passed to vmagent/vlagent as
 `-remoteWrite.basicAuth.passwordFile` / `-remoteWrite.bearerTokenFile`. The

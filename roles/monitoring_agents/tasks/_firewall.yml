@@ -68,7 +68,7 @@
     - (monitoring_mode | default('self_hosted')) == 'self_hosted'
     - inventory_hostname in groups.get('postgres', [])
 
-- name: Open external pull HAProxy metrics frontend to configured CIDRs
+- name: Open external pull exporter_exporter endpoint to configured CIDRs
   ansible.posix.firewalld:
     rich_rule: >-
       rule family="{{ 'ipv6' if ':' in (item | string) else 'ipv4' }}"
@@ -80,3 +80,19 @@
     zone: "{{ monitoring_agents_firewalld_zone }}"
   loop: "{{ monitoring_agents_pull_source_cidrs }}"
   when: (monitoring_mode | default('self_hosted')) == 'external_pull'
+
+# The old nginx frontend defaulted to 9965; close it when the endpoint moves.
+- name: Remove the legacy external pull port
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in (item | string) else 'ipv4' }}"
+      source address="{{ item }}"
+      port port="{{ monitoring_agents_legacy_pull_metrics_port }}" protocol="tcp" accept
+    permanent: true
+    state: disabled
+    immediate: true
+    zone: "{{ monitoring_agents_firewalld_zone }}"
+  loop: "{{ monitoring_agents_pull_source_cidrs }}"
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'external_pull'
+    - (monitoring_agents_pull_metrics_port | int) != (monitoring_agents_legacy_pull_metrics_port | int)

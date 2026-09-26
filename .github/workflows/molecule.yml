@@ -183,6 +183,9 @@ jobs:
           - role: monitoring_agents
             scenario: external_push
             images: infra
+          - role: monitoring_agents
+            scenario: external_pull
+            images: data
     steps:
       - uses: actions/checkout@v6
 

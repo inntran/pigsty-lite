@@ -461,8 +461,7 @@ def test_monitoring_external_pull_validates_without_monitor_or_retention():
         "mode": "external_pull",
         "scrape_interval": "15s",
         "external_pull": {
-            "metrics_port": 9965,
-            "auth": {"username": "pigsty"},
+            "metrics_port": 9999,
             "source_cidrs": ["10.0.0.0/8"],
             "tls": False,
         },
@@ -470,23 +469,32 @@ def test_monitoring_external_pull_validates_without_monitor_or_retention():
     validate(response)
 
 
-def test_monitoring_external_pull_rejects_bad_port_empty_auth_and_empty_cidrs():
+def test_monitoring_external_pull_rejects_auth():
+    response = _minimal_spof_response()
+    response["monitoring"] = {
+        "mode": "external_pull",
+        "external_pull": {
+            "metrics_port": 9999,
+            "auth": {"username": "pigsty"},
+            "source_cidrs": ["10.0.0.0/8"],
+        },
+    }
+    with pytest.raises(SchemaError, match="bearer token"):
+        validate(response)
+
+
+def test_monitoring_external_pull_rejects_bad_port_and_empty_cidrs():
     response = _minimal_spof_response()
     response["monitoring"] = {
         "mode": "external_pull",
         "external_pull": {
             "metrics_port": 70000,
-            "auth": {"username": "pigsty"},
             "source_cidrs": ["10.0.0.0/8"],
         },
     }
     with pytest.raises(SchemaError, match=r"metrics_port"):
         validate(response)
-    response["monitoring"]["external_pull"]["metrics_port"] = 9965
-    response["monitoring"]["external_pull"]["auth"]["username"] = ""
-    with pytest.raises(SchemaError, match=r"auth\.username"):
-        validate(response)
-    response["monitoring"]["external_pull"]["auth"]["username"] = "pigsty"
+    response["monitoring"]["external_pull"]["metrics_port"] = 9999
     response["monitoring"]["external_pull"]["source_cidrs"] = []
     with pytest.raises(SchemaError, match=r"source_cidrs"):
         validate(response)
@@ -497,8 +505,7 @@ def test_monitoring_external_pull_cidrs_follow_ip_version():
     response["monitoring"] = {
         "mode": "external_pull",
         "external_pull": {
-            "metrics_port": 9965,
-            "auth": {"username": "pigsty"},
+            "metrics_port": 9999,
             "source_cidrs": ["10.0.0.0/8"],
         },
     }

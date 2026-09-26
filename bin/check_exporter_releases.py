@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Query the latest upstream exporter releases and update the pinned record.
 
-The four exporters monitoring_agents installs are not packaged for EL10 by
-PGDG or the vendor repos (see docs/reference/pgdg-packages.md), so they are
-fetched as GitHub release artifacts and pinned by version + sha256 in
+The exporters and external_pull front door monitoring_agents installs are not
+packaged for EL10 by PGDG or the vendor repos (see docs/reference/pgdg-packages.md),
+so they are fetched as GitHub release artifacts and pinned by version + sha256 in
 roles/monitoring_agents/vars/exporter_versions.yml.
 
 The update workflow is: query GitHub first, then update the record.
@@ -39,7 +39,8 @@ class Target:
     repo: str
     # Picks the artifact to pin out of the release's asset list. Every target
     # is a linux/amd64 tarball, but the projects spell that differently --
-    # the prometheus ones use `linux-amd64`, woblerr uses `linux-x86_64`.
+    # the prometheus ones use `linux-amd64`, woblerr uses `linux-x86_64`, and
+    # exporter_exporter uses `Linux_x86_64`.
     asset_pattern: str
     # Names the release's checksums file.
     checksums_pattern: str
@@ -72,6 +73,12 @@ TARGETS = (
         "woblerr/pgbackrest_exporter",
         r"^pgbackrest_exporter-[\d.]+-linux-x86_64\.tar\.gz$",
         r"checksums?\.txt$",
+    ),
+    Target(
+        "exporter_exporter",
+        "tcolgate/exporter_exporter",
+        r"^exporter_exporter_[\d.]+_Linux_x86_64\.tar\.gz$",
+        r"checksums\.txt$",
     ),
 )
 

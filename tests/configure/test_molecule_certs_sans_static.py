@@ -48,8 +48,7 @@ def test_molecule_scenarios_do_not_pin_epel_repo_state():
     shared config) should pin repos_epel_enabled — molecule must exercise the
     same disabled-by-default state production uses."""
     # Globbed rather than listed, so a new scenario cannot slip past this.
-    # external_pull predates the rule and is grandfathered in.
-    grandfathered = {"tests/molecule/monitoring_agents/molecule/external_pull/molecule.yml"}
+    grandfathered = set()
     scenario_files = [
         path
         for path in sorted((ROOT / "tests/molecule").glob("*/molecule/*/molecule.yml"))

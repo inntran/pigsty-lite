@@ -28,10 +28,10 @@
     name: firewalld
     state: reloaded
 
-- name: Reload nginx for monitoring_agents
+- name: Restart exporter-exporter
   ansible.builtin.systemd:
-    name: nginx
-    state: reloaded
+    name: exporter-exporter
+    state: restarted
 
 # The agents read the CA once at startup. A rotated CA is a new file but the
 # same ExecStart line, so the upstream vmagent/vlagent roles see nothing to

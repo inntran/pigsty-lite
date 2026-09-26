@@ -65,9 +65,8 @@ monitoring:
   #     bearer: false
   #   tls_skip_verify: false
   # external_pull:
-  #   metrics_port: 9965
-  #   auth:
-  #     username: pigsty
+  #   metrics_port: 9999
+  #   (auth: bearer token from the vault, vault_monitoring_pull_token)
   #   source_cidrs: ["10.0.0.0/8"]
   #   tls: true
 repos:

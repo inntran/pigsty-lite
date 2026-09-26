@@ -23,9 +23,8 @@
   changed_when: false
   failed_when: false
 
-# All four print "<name>, version X.Y.Z (...)", but not on the same stream:
-# node_exporter uses stdout, the other three use stderr. Concatenate both
-# rather than guessing per exporter.
+# Exporter versions may be reported on stdout or stderr. Concatenate both
+# rather than guessing per binary.
 - name: Decide whether to install {{ exporter_name }}
   ansible.builtin.set_fact:
     monitoring_agents_exporter_needed: >-
@@ -59,14 +58,15 @@
         dest: "{{ monitoring_agents_exporter_stage.path }}"
         remote_src: true
 
-    # All four tarballs hold a single versioned top directory containing the
-    # binary; the directory name is the asset name minus the .tar.gz.
+    # Most tarballs hold the binary in a single versioned top directory;
+    # archive_member selects the binary directly for flat tarballs.
     - name: Install the binary for {{ exporter_name }}
       ansible.builtin.copy:
         src: >-
           {{ monitoring_agents_exporter_stage.path }}/{{
-             monitoring_agents_exporter.asset | regex_replace('\.tar\.gz$', '')
-          }}/{{ exporter_name }}
+             monitoring_agents_exporter.archive_member
+             | default((monitoring_agents_exporter.asset | regex_replace('\.tar\.gz$', '')) ~ '/' ~ exporter_name)
+          }}
         dest: "{{ monitoring_agents_exporter_bin_dir }}/{{ exporter_name }}"
         remote_src: true
         owner: root

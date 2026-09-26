@@ -20,38 +20,42 @@ def _external_pull(response: dict[str, Any]) -> str:
     pull = response["monitoring"]["external_pull"]
     scheme = "https" if pull.get("tls", True) else "http"
     port = pull["metrics_port"]
-    username = pull["auth"]["username"]
     nodes = response["nodes"]
     jobs = [
-        ("pigsty-node", "/metrics/node", _target_names(nodes)),
-        ("pigsty-postgres", "/metrics/postgres", _target_names(nodes, postgres_only=True)),
-        ("pigsty-pgbouncer", "/metrics/pgbouncer", _target_names(nodes, postgres_only=True)),
-        ("pigsty-pgbackrest", "/metrics/pgbackrest", _target_names(nodes, postgres_only=True)),
+        ("pigsty-node", "node", _target_names(nodes)),
+        ("pigsty-postgres", "postgres", _target_names(nodes, postgres_only=True)),
+        ("pigsty-pgbouncer", "pgbouncer", _target_names(nodes, postgres_only=True)),
+        ("pigsty-pgbackrest", "pgbackrest", _target_names(nodes, postgres_only=True)),
     ]
     scrape_configs = []
-    for job_name, metrics_path, targets in jobs:
+    for job_name, module, targets in jobs:
         if not targets:
             continue
-        scrape_configs.append(
-            {
-                "job_name": job_name,
-                "scheme": scheme,
-                "metrics_path": metrics_path,
-                "basic_auth": {
-                    "username": username,
-                    "password": "<from vault: vault_monitoring_pull_password>",
-                },
-                "static_configs": [
-                    {"targets": [f"{target}:{port}" for target in targets]},
-                ],
+        scrape_config = {
+            "job_name": job_name,
+            "scheme": scheme,
+            "metrics_path": "/proxy",
+            "params": {"module": [module]},
+            "authorization": {
+                "type": "Bearer",
+                "credentials": "<from vault: vault_monitoring_pull_token>",
+            },
+            "static_configs": [
+                {"targets": [f"{target}:{port}" for target in targets]},
+            ],
+        }
+        if pull.get("tls", True):
+            scrape_config["tls_config"] = {
+                "ca_file": "<pigsty-lite CA: pki/ca/ca.crt on the control node>"
             }
-        )
+        scrape_configs.append(scrape_config)
 
     block = yaml.safe_dump({"scrape_configs": scrape_configs}, sort_keys=False)
     return (
         "# External monitoring scrape config\n\n"
-        "Paste this into a Prometheus- or vmagent-style scraper. The password is stored in "
-        "`vault_monitoring_pull_password` and is intentionally not rendered here.\n\n"
+        "Paste this into a Prometheus- or vmagent-style scraper. The bearer token is stored in "
+        "`vault_monitoring_pull_token` and is intentionally not rendered here. "
+        "The endpoint is exporter_exporter on the configured port.\n\n"
         "```yaml\n"
         f"{block}"
         "```\n"

@@ -104,21 +104,20 @@ def test_external_push_monitoring_vars_promoted_without_self_hosted_retention():
     assert "vlsingle_retention" not in out
 
 
-def test_external_pull_monitoring_vars_promoted():
+def test_external_pull_monitoring_vars_promoted_without_basic_auth_username():
     data = _load("spof.rsp.yml")
     data["monitoring"] = {
         "mode": "external_pull",
         "external_pull": {
-            "metrics_port": 9965,
-            "auth": {"username": "pigsty"},
+            "metrics_port": 9999,
             "source_cidrs": ["10.0.0.0/8"],
             "tls": False,
         },
     }
     out = yaml.safe_load(generate(data))
     assert out["monitoring_mode"] == "external_pull"
-    assert out["monitoring_pull_metrics_port"] == 9965
-    assert out["monitoring_pull_auth_username"] == "pigsty"
+    assert out["monitoring_pull_metrics_port"] == 9999
+    assert "monitoring_pull_auth_username" not in out
     assert out["monitoring_pull_source_cidrs"] == ["10.0.0.0/8"]
     assert out["monitoring_pull_tls"] is False
 

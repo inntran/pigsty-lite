@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# exporter_exporter modules: one per loopback exporter on this host.
+modules:
+  node:
+    method: http
+    http:
+      address: {{ network_loopback_address | default('127.0.0.1') }}
+      port: {{ monitoring_agents_node_exporter_port }}
+{% if inventory_hostname in groups.get('postgres', []) %}
+  postgres:
+    method: http
+    http:
+      address: {{ network_loopback_address | default('127.0.0.1') }}
+      port: {{ monitoring_agents_postgres_exporter_port }}
+  pgbouncer:
+    method: http
+    http:
+      address: {{ network_loopback_address | default('127.0.0.1') }}
+      port: {{ monitoring_agents_pgbouncer_exporter_port }}
+  pgbackrest:
+    method: http
+    http:
+      address: {{ network_loopback_address | default('127.0.0.1') }}
+      port: {{ monitoring_agents_pgbackrest_exporter_port }}
+{% endif %}

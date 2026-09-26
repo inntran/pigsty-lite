@@ -1,6 +1,7 @@
 ---
-# Testing goal: verify external_pull installs the nginx metrics frontend
-# without a monitor host, requires basic auth, and serves exporter metrics.
+# Testing goal: verify external_pull installs the exporter_exporter endpoint
+# without a monitor host, requires the bearer token over TLS, and proxies
+# exporter metrics.
 driver:
   name: podman
 platforms:
@@ -26,15 +27,12 @@ provisioner:
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
         node_sysctl_apply: false
-        repos_epel_enabled: true
         postgres_version: 18
         monitoring_mode: external_pull
-        monitoring_pull_metrics_port: 9965
-        monitoring_pull_auth_username: pigsty
+        monitoring_pull_metrics_port: 9999
         monitoring_pull_source_cidrs: ["127.0.0.1/32", "10.0.0.0/8"]
-        monitoring_pull_tls: false
-        monitoring_agents_node_exporter_package: node-exporter
-        vault_monitoring_pull_password: pull-test-pw
+        monitoring_pull_tls: true
+        vault_monitoring_pull_token: pull-test-token
 verifier:
   name: ansible
 scenario:

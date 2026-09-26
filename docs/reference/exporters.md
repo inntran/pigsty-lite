@@ -19,6 +19,28 @@ That file is the record; this document is the reasoning.
 All four are permissively licensed and compatible with this project's
 Apache-2.0 licence.
 
+## exporter_exporter (external_pull front door)
+
+`exporter_exporter` is the fifth pinned binary installed by
+`roles/monitoring_agents`, but it is not an exporter. It is the
+`external_pull` front door: one endpoint per host on port `9999` by default
+(the `exporter_exporter` Prometheus-registry port), proxying requests to
+loopback-only exporter listeners. It is the maintained continuation of
+`QubitProducts/exporter_exporter`, published at
+[`tcolgate/exporter_exporter`](https://github.com/tcolgate/exporter_exporter).
+Version `0.6.1` is pinned as a tarball with its upstream sha256, like the
+four exporters.
+
+It replaces the nginx metrics frontend without adding nginx, OpenSSL, or
+htpasswd setup for this endpoint. The token is bearer authentication, not
+basic auth, and is read from a protected file rather than the command line.
+The binary runs unconfined (`bin_t` to `unconfined_service_t`), so it needs no
+SELinux port label. The replaced nginx frontend could not bind unreserved
+port `9965` under SELinux enforcing because `httpd_t` may not bind that
+port; Molecule did not catch this because its containers disable SELinux
+labelling. This replaces only the `external_pull` frontend; nginx remains
+available to `roles/nginx_proxy`.
+
 ## Why these, and not the alternatives
 
 ### Not PGDG
@@ -66,7 +88,9 @@ decision is worth revisiting.
 
 ## How they install
 
-All four are linux/amd64 tarballs, unpacked into place by the role.
+The four exporters are linux/amd64 tarballs, unpacked into place by the
+role. The role also installs the `exporter_exporter` tarball for
+`external_pull`.
 
 `pgbackrest_exporter` also publishes `.rpm` and `.deb`, and pinning the RPM
 was the initial choice. It was reversed: the role overrides the unit file and
@@ -104,11 +128,11 @@ the dashboards query metric names directly.
 
 ## Install path
 
-`_install_exporter.yml` handles all four identically:
+`_install_exporter.yml` handles the four exporters and the
+`exporter_exporter` front door through the same pinned tarball path:
 
-1. Run the installed binary's `--version`. All four print
-   `<name>, version X.Y.Z`, though `node_exporter` uses stdout and the other
-   three use stderr.
+1. Run the installed binary's `--version` and compare its output with the
+   pinned version.
 2. If it is missing or the version does not match the pin, fetch the tarball
    into a staging directory with `get_url`, which verifies the sha256 *before*
    putting the file in place — a substituted artifact fails there and never
@@ -130,8 +154,12 @@ buys nothing here, since Ansible already templates the arguments.
 
 ## Current status
 
-The role installs and firewalls all four. `monitoring_agents/external_pull`
-should now converge fully; `monitoring_agents/default` is blocked by an
-unrelated pre-existing bug — its `molecule.yml` puts no host in the `etcd`
-group, so `prepare` fails at Patroni's assert before the role runs. See
+The role installs and firewalls the four exporters in self-hosted mode, and
+installs the front door in `external_pull` mode. The external_pull Molecule
+scenario is in CI and verifies TLS, bearer authentication, and node-module
+proxying; only the node module is exercised there. The template tests cover
+the other module configurations. `monitoring_agents/default` remains out of
+CI: its `molecule.yml` has no host in the `etcd` group, so prepare reaches
+Patroni's etcd assertion before the role runs. That scenario has not been
+re-verified after the exporters switched to tarball installs. See
 [`tests/molecule/COVERAGE.md`](../../tests/molecule/COVERAGE.md).
