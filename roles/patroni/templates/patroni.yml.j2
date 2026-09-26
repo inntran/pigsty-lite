@@ -4,8 +4,8 @@
 {#
   One pg_hba rule dict -> one pg_hba.conf line. Accepts the role spelling
   (databases/users) and the response-file spelling (db/user). The system
-  rules' CIDRs come from patroni_hba_{any,loopback}_cidr, which follow the
-  deployment's address family: an IPv4 0.0.0.0/0 never matches an IPv6 peer.
+  remote rules use patroni_hba_any_cidr, which follows the deployment's
+  address family. Both IPv4 and IPv6 loopbacks are always present.
 #}
 {%- macro hba_line(rule) -%}
 {%-   set contype = rule.contype | default('hostssl', true) -%}

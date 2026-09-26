@@ -71,11 +71,15 @@
               | selectattr('role', 'equalto', 'leader')
               | list | first).name }}
 
+    # postgres connects over the default Unix socket by OS identity (peer);
+    # loopback TCP requires a password.
     - name: Write a probe row on the leader
       ansible.builtin.command: >
-        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres
+        /usr/pgsql-18/bin/psql -d postgres
         -c "create table if not exists probe_p2a (id int); insert into probe_p2a values (42);"
       register: probe_write
+      become: true
+      become_user: postgres
       changed_when: "'CREATE TABLE' in probe_write.stdout or 'INSERT 0 1' in probe_write.stdout"
       delegate_to: "{{ patroni_leader_host }}"
 
@@ -85,9 +89,11 @@
   tasks:
     - name: Read probe row on this host
       ansible.builtin.command: >
-        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres
+        /usr/pgsql-18/bin/psql -d postgres
         -tAc "select id from probe_p2a where id=42 limit 1"
       register: probe_read
+      become: true
+      become_user: postgres
       retries: 12
       delay: 5
       changed_when: false

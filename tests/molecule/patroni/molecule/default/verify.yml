@@ -54,11 +54,13 @@
           - cluster_state.json.members | length == 1
           - (cluster_state.json.members | selectattr('role', 'equalto', 'leader') | list | length) == 1
 
-    - name: Connect to postgres over loopback
+    - name: Connect to postgres over the Unix socket (peer)
       ansible.builtin.command: >
-        /usr/pgsql-18/bin/psql -h 127.0.0.1 -U postgres -d postgres -c "select 1"
+        /usr/pgsql-18/bin/psql -h /var/run/postgresql -U postgres -d postgres -c "select 1"
       register: psql_probe
       changed_when: false
+      become: true
+      become_user: postgres
 
     - name: Assert psql returned 1
       ansible.builtin.assert:

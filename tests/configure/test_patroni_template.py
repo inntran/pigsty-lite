@@ -69,7 +69,6 @@ def _render_patroni_config(
         patroni_replication_user="replicator",
         patroni_rewind_user="rewind_user",
         patroni_hba_any_cidr="::/0" if ipv6 else "0.0.0.0/0",
-        patroni_hba_loopback_cidr="::1/128" if ipv6 else "127.0.0.1/32",
         patroni_postgres_listen_address="::" if ipv6 else "0.0.0.0",
         patroni_postgres_port=5432,
         patroni_postgres_data_dir="/var/lib/pgsql/18/data",
@@ -125,20 +124,35 @@ def test_patroni_hba_uses_ipv6_wildcard_in_single_stack_v6():
     assert "hostssl replication replicator ::/0 scram-sha-256" in rules
     assert "hostssl postgres rewind_user ::/0 scram-sha-256" in rules
     assert not any("0.0.0.0/0" in rule for rule in rules)
-    assert not any("127.0.0.1/32" in rule for rule in rules)
 
 
-def test_system_rules_are_unchanged_by_the_move_into_defaults():
-    """The system rules moved from template literals into role defaults;
-    the rendered lines must be exactly what the template produced before."""
+def test_system_rules_render_exactly():
     assert _hba() == [
-        "local all all peer",
-        "host all postgres 127.0.0.1/32 trust",
-        "host replication replicator 127.0.0.1/32 trust",
+        "local all postgres peer",
+        "host all all 127.0.0.1/32 scram-sha-256",
+        "host all all ::1/128 scram-sha-256",
+        "host replication replicator 127.0.0.1/32 scram-sha-256",
+        "host replication replicator ::1/128 scram-sha-256",
         "hostssl replication replicator 0.0.0.0/0 scram-sha-256",
-        "host postgres rewind_user 127.0.0.1/32 trust",
         "hostssl postgres rewind_user 0.0.0.0/0 scram-sha-256",
     ]
+
+
+def test_system_rules_have_no_trust():
+    assert not any(rule.endswith(" trust") for rule in _hba())
+
+
+def test_only_postgres_uses_the_socket_by_os_identity():
+    local_rules = [rule for rule in _hba() if rule.startswith("local ")]
+
+    assert local_rules == ["local all postgres peer"]
+
+
+def test_every_user_may_use_loopback_with_a_password():
+    rules = _hba()
+
+    assert "host all all 127.0.0.1/32 scram-sha-256" in rules
+    assert "host all all ::1/128 scram-sha-256" in rules
 
 
 def test_replication_authenticates_with_scram_not_cert():

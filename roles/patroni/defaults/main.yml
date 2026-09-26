@@ -48,7 +48,6 @@ patroni_advertise_address: >-
 
 # pg_hba source CIDRs, address-family aware (see patroni.yml.j2).
 patroni_hba_any_cidr: "{{ '::/0' if (network_ipv6_single_stack | default(false) | bool) else '0.0.0.0/0' }}"
-patroni_hba_loopback_cidr: "{{ '::1/128' if (network_ipv6_single_stack | default(false) | bool) else '127.0.0.1/32' }}"
 patroni_rest_port: 8008
 
 # Patroni REST probes verify against the pigsty-lite CA distributed by
@@ -102,12 +101,16 @@ patroni_firewalld_service_name: patroni-rest
 # leader alone would be missing after a failover.
 # Rule keys: contype (default hostssl), databases|db, users|user, source
 # (omitted for contype local), method (default scram-sha-256).
+# postgres uses the Unix socket by OS identity (peer); any user may use
+# loopback TCP with a password, which pooled connections through pgBouncer
+# need. There are no trust rules.
 patroni_hba_system_rules:
-  - {contype: local, databases: all, users: all, method: peer}
-  - {contype: host, databases: all, users: "{{ patroni_superuser }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
-  - {contype: host, databases: replication, users: "{{ patroni_replication_user }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
+  - {contype: local, databases: all, users: "{{ patroni_superuser }}", method: peer}
+  - {contype: host, databases: all, users: all, source: "127.0.0.1/32", method: scram-sha-256}
+  - {contype: host, databases: all, users: all, source: "::1/128", method: scram-sha-256}
+  - {contype: host, databases: replication, users: "{{ patroni_replication_user }}", source: "127.0.0.1/32", method: scram-sha-256}
+  - {contype: host, databases: replication, users: "{{ patroni_replication_user }}", source: "::1/128", method: scram-sha-256}
   - {contype: hostssl, databases: replication, users: "{{ patroni_replication_user }}", source: "{{ patroni_hba_any_cidr }}", method: scram-sha-256}
-  - {contype: host, databases: postgres, users: "{{ patroni_rewind_user }}", source: "{{ patroni_hba_loopback_cidr }}", method: trust}
   - {contype: hostssl, databases: postgres, users: "{{ patroni_rewind_user }}", source: "{{ patroni_hba_any_cidr }}", method: scram-sha-256}
 # Monitoring access; empty until a monitoring role supplies rules.
 patroni_hba_monitor_rules: "{{ postgres_hba_monitor_rules | default([]) }}"

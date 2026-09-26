@@ -31,6 +31,12 @@ Patroni rewrites the file at start and on every reload, so hand edits revert.
 The file is not replicated: a rule written on one member only would be
 missing after a failover.
 
+The system rules allow `postgres` over the Unix socket via `peer` (OS
+identity), and any user over loopback (`127.0.0.1`, `::1`) with
+`scram-sha-256`; pooled connections through pgBouncer rely on loopback TCP.
+Replication and rewind from other members use TLS with `scram-sha-256`.
+There are no `trust` rules.
+
 A changed `patroni.yml` is applied with `systemctl reload patroni` (SIGHUP),
 never a restart. If a reload leaves PostgreSQL settings pending a restart,
 the play warns; apply them one member at a time.

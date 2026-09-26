@@ -113,6 +113,10 @@
          | selectattr('role', 'equalto', 'leader')
          | map(attribute='name') | list | first) == candidate_host
 
+    - name: Update leader hostname after switchover
+      ansible.builtin.set_fact:
+        leader_host: "{{ candidate_host }}"
+
 - name: 5433 follows the new leader
   hosts: postgres
   ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
@@ -160,3 +164,106 @@
         that:
           - vip_probe_5433.stdout.strip() in ['f', 'false']
         fail_msg: "VIP {{ cluster_vip }}:5433 did not reach a primary. Got: {{ vip_probe_5433.stdout }}"
+
+- name: Assert no PostgreSQL member has a trust rule
+  hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  tasks:
+    - name: Count trust rules in pg_hba.conf
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -cE
+          - '\strust$'
+          - /var/lib/pgsql/18/data/pg_hba.conf
+      register: trust_rule_count
+      changed_when: false
+      failed_when: trust_rule_count.rc not in [0, 1]
+
+    - name: Assert pg_hba.conf has no trust rules
+      ansible.builtin.assert:
+        that:
+          - trust_rule_count.stdout | int == 0
+        fail_msg: "{{ inventory_hostname }} has trust rules in pg_hba.conf"
+
+- name: Verify pooled and direct loopback password access
+  hosts: postgres
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  tasks:
+    - name: Create pooled probe role over the Unix socket
+      ansible.builtin.command:
+        argv:
+          - /usr/pgsql-18/bin/psql
+          - -h
+          - /var/run/postgresql
+          - -d
+          - postgres
+          - -c
+          - >-
+            DO $$ BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pooled_probe') THEN
+            CREATE ROLE pooled_probe LOGIN PASSWORD 'pooled-probe-pw';
+            END IF;
+            END $$;
+      register: create_probe_role
+      changed_when: false
+      become: true
+      become_user: postgres
+      run_once: true
+      delegate_to: "{{ leader_host }}"
+
+    - name: Connect pooled probe through HAProxy and pgBouncer
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.2 port=5433 dbname=postgres user=pooled_probe password=pooled-probe-pw sslmode=disable"
+        -tAc "select current_user"
+      register: pooled_probe
+      changed_when: false
+      retries: 10
+      delay: 3
+      until: pooled_probe.rc == 0
+      run_once: true
+      delegate_to: "{{ leader_host }}"
+
+    - name: Assert pooled probe connected as pooled_probe
+      ansible.builtin.assert:
+        that:
+          - pooled_probe.stdout == "pooled_probe"
+      run_once: true
+      delegate_to: "{{ leader_host }}"
+
+    - name: Connect pooled probe directly over loopback
+      ansible.builtin.command: >
+        /usr/pgsql-18/bin/psql
+        "host=127.0.0.1 port=5432 dbname=postgres user=pooled_probe password=pooled-probe-pw sslmode=disable"
+        -tAc "select current_user"
+      register: direct_probe
+      changed_when: false
+      run_once: true
+      delegate_to: "{{ leader_host }}"
+
+    - name: Assert direct probe connected as pooled_probe
+      ansible.builtin.assert:
+        that:
+          - direct_probe.stdout == "pooled_probe"
+      run_once: true
+      delegate_to: "{{ leader_host }}"
+
+    - name: Drop pooled probe role over the Unix socket
+      ansible.builtin.command:
+        argv:
+          - /usr/pgsql-18/bin/psql
+          - -h
+          - /var/run/postgresql
+          - -d
+          - postgres
+          - -c
+          - DROP ROLE IF EXISTS pooled_probe
+      register: drop_probe_role
+      changed_when: false
+      become: true
+      become_user: postgres
+      run_once: true
+      delegate_to: "{{ leader_host }}"
