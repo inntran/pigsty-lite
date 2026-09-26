@@ -40,6 +40,7 @@ MinIO, Redis, MongoDB, FerretDB, Citus, MSSQL/MySQL compatibility, Docker apps, 
 - All cluster hosts on one network: peers reach each other directly, with no
   NAT and no multi-homing for peer traffic (firewall rules admit each peer
   by its address)
+- Ports and firewall rules: [docs/reference/ports.md](docs/reference/ports.md)
 - Storage layout pre-provisioned by the operator:
   - PostgreSQL data dir on its own LV/PV
   - etcd data dir on a *different* block device than PG data

@@ -156,15 +156,28 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
 Try the cluster:
 
 ```bash
-# Generic (5432) - routes to leader
-psql "host=pgnode01 port=5432 dbname=postgres user=postgres"
+# On a node, use its local-only HAProxy frontends:
+psql "host=127.0.0.2 port=5432 dbname=postgres user=postgres"   # leader
+psql "host=127.0.0.2 port=5433 dbname=postgres user=postgres"   # RW
+psql "host=127.0.0.2 port=5434 dbname=postgres user=postgres"   # RO
 
-# Explicit RW (5433) - leader only
-psql "host=pgnode01 port=5433 dbname=postgres user=postgres"
+# From a client when a VIP is enabled:
+psql "host=<VIP> port=5432 dbname=<db> user=<user>"   # leader
+psql "host=<VIP> port=5433 dbname=<db> user=<user>"   # RW
+psql "host=<VIP> port=5434 dbname=<db> user=<user>"   # RO
 
-# Explicit RO (5434) - replicas (round-robin)
-psql "host=pgnode01 port=5434 dbname=postgres user=postgres"
+# Without a VIP, connect directly to the leader node's PostgreSQL:
+psql "host=<leader-node> port=5432 dbname=<db> user=<user>"
 ```
+
+Port 5434 needs at least one replica, so it has no backend in the `spof`
+profile. Direct connections to 5432 need a `postgres.hba_rules` entry for the
+client's address. Through the VIP, pgBouncer authenticates the client and then
+connects to PostgreSQL from loopback, so the user also needs a rule admitting
+it from `127.0.0.1` (or `::1`); the default rules admit only `postgres`,
+replication and rewind from loopback. See the
+[ports and firewall reference](../reference/ports.md) for listener and
+firewall details.
 
 A failover triggered by `patronictl switchover` is invisible to clients
 hitting 5432 or 5433 after a few seconds (HAProxy detects the leader
