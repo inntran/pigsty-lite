@@ -93,13 +93,11 @@ def _ensure_vault_interactive(monitoring: dict | None = None) -> int:
 
     if _vault.vault_exists(VAULT_PATH):
         existing = _vault.vault_read(VAULT_PATH, VAULT_PASSPHRASE_PATH)
-        updated = _passwords.migrate_renamed_secrets(existing)
     else:
         existing = {}
-        updated = existing
 
     import getpass
-    updated = _passwords.ensure_machine_secrets(updated)
+    updated = _passwords.ensure_machine_secrets(existing)
     updated = _passwords.ensure_human_secrets(
         updated,
         prompter=lambda label: getpass.getpass(f"Password for {label}: "),
@@ -137,8 +135,7 @@ def _ensure_vault_silent(monitoring: dict | None = None) -> int:
         print(f"Wrote {VAULT_PATH.relative_to(ROOT)} (machine secrets only)")
         return 0
     existing = _vault.vault_read(VAULT_PATH, VAULT_PASSPHRASE_PATH)
-    updated = _passwords.migrate_renamed_secrets(existing)
-    updated = _passwords.ensure_machine_secrets(updated)
+    updated = _passwords.ensure_machine_secrets(existing)
     missing = _passwords.missing_human_secrets(updated, monitoring)
     if missing:
         keys = ", ".join(secret.key for secret in missing)
@@ -213,9 +210,7 @@ def cmd_rotate(args: argparse.Namespace) -> int:
     if not _vault.vault_exists(VAULT_PATH):
         print(f"ERROR: no vault at {VAULT_PATH}", file=sys.stderr)
         return 1
-    existing = _passwords.migrate_renamed_secrets(
-        _vault.vault_read(VAULT_PATH, VAULT_PASSPHRASE_PATH)
-    )
+    existing = _vault.vault_read(VAULT_PATH, VAULT_PASSPHRASE_PATH)
     try:
         updated = _passwords.rotate(existing, args.rotate)
     except ValueError as exc:

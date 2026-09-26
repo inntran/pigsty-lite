@@ -95,9 +95,7 @@ removes the corresponding files.
 ## What this role does NOT own
 
 - vmsingle/vlsingle/vmalert/Alertmanager — that's `monitoring_server`.
-- Grafana and nginx proxy — separate roles. The external_pull nginx
-  frontend was replaced by `exporter_exporter`; nginx remains owned by
-  `roles/nginx_proxy`.
+- Grafana and the nginx proxy are separate roles.
 
 ## Ordering
 

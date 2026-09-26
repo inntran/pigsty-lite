@@ -31,15 +31,9 @@ loopback-only exporter listeners. It is the maintained continuation of
 Version `0.6.1` is pinned as a tarball with its upstream sha256, like the
 four exporters.
 
-It replaces the nginx metrics frontend without adding nginx, OpenSSL, or
-htpasswd setup for this endpoint. The token is bearer authentication, not
-basic auth, and is read from a protected file rather than the command line.
-The binary runs unconfined (`bin_t` to `unconfined_service_t`), so it needs no
-SELinux port label. The replaced nginx frontend could not bind unreserved
-port `9965` under SELinux enforcing because `httpd_t` may not bind that
-port; Molecule did not catch this because its containers disable SELinux
-labelling. This replaces only the `external_pull` frontend; nginx remains
-available to `roles/nginx_proxy`.
+The endpoint uses bearer authentication, with its token read from a protected
+file rather than the command line, and TLS. The binary runs unconfined
+(`bin_t` to `unconfined_service_t`), so it needs no SELinux port label.
 
 ## Why these, and not the alternatives
 

@@ -123,11 +123,6 @@ monitoring_agents_exporter_exporter_user: exporter_exporter
 monitoring_agents_exporter_exporter_config_dir: /etc/exporter_exporter
 monitoring_agents_exporter_exporter_config: "{{ monitoring_agents_exporter_exporter_config_dir }}/expexp.yaml"
 monitoring_agents_exporter_exporter_token_file: "{{ monitoring_agents_secrets_dir }}/exporter_exporter.token"
-# Pre-exporter_exporter frontend, removed on upgrade.
-monitoring_agents_legacy_nginx_metrics_files:
-  - /etc/nginx/conf.d/pigsty-metrics.conf
-  - /etc/nginx/pigsty-metrics.htpasswd
-monitoring_agents_legacy_pull_metrics_port: 9965
 monitoring_agents_pull_token: >-
   {{ vault_monitoring_pull_token
      | mandatory('vault_monitoring_pull_token not set; run ./configure to bootstrap the vault') }}

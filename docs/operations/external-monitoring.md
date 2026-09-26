@@ -82,29 +82,6 @@ endpoint port in firewalld only to the configured
 `root:exporter_exporter`; it is read from that file, not passed on the
 command line.
 
-## Upgrading from the nginx frontend
-
-Before running `./configure`, remove `monitoring.external_pull.auth` from
-the response file. The response schema rejects that block because the
-endpoint now uses a vault bearer token. `./configure` copies an existing
-`vault_monitoring_pull_password` value to `vault_monitoring_pull_token`;
-the old key remains in the vault, and the old password becomes the bearer
-token.
-
-Existing response files retain their explicit `metrics_port` value, commonly
-`9965`. Change it to `9999` if desired. When the configured port changes,
-the role disables the legacy `9965` firewalld rule for the configured source
-CIDRs. On deployment, the role removes
-`/etc/nginx/conf.d/pigsty-metrics.conf` and
-`/etc/nginx/pigsty-metrics.htpasswd`, then reloads nginx if it is running.
-It does not remove nginx, which is still used by `roles/nginx_proxy`.
-
-Update the external scraper too: replace `basic_auth` with bearer
-`authorization`, and replace `/metrics/<module>` with `metrics_path:
-/proxy` plus `params: {module: [<module>]}`. Configure its TLS trust for the
-pigsty-lite CA. Regenerate the operator scrape notes from the updated
-response file with `./configure -s -f <response-file>`.
-
 ## Generated snippet
 
 Silent configure (`./configure -s -f <response-file>`) writes

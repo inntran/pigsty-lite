@@ -47,23 +47,9 @@ CONDITIONAL_HUMAN_SECRETS: dict[str, Secret] = {
     ),
 }
 
-RENAMED_SECRETS = {"vault_monitoring_pull_password": "vault_monitoring_pull_token"}
-
 ALL_SECRETS: tuple[Secret, ...] = (
     MACHINE_SECRETS + HUMAN_SECRETS + tuple(CONDITIONAL_HUMAN_SECRETS.values())
 )
-
-
-def migrate_renamed_secrets(vault: dict[str, str]) -> dict[str, str]:
-    """Existing external_pull deployments keep working; the old basic-auth password
-    becomes the bearer token.
-    """
-    result = dict(vault)
-    for old_key, new_key in RENAMED_SECRETS.items():
-        old_value = result.get(old_key)
-        if (new_key not in result or not result[new_key]) and old_value:
-            result[new_key] = old_value
-    return result
 
 
 def required_human_secrets(

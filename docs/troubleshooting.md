@@ -379,7 +379,7 @@ tail -F /var/lib/pgsql/18/data/log/postgresql-*.log | grep -i archive
 
 | Symptom | Likely cause | Action |
 | --- | --- | --- |
-| Scraper gets `401 Unauthorized` | Its bearer token is missing or does not match the endpoint's token. Old basic-auth credentials no longer work. | Compare the scraper token with `vault_monitoring_pull_token` and send it as `Authorization: Bearer <token>`. |
+| Scraper gets `401 Unauthorized` | Its bearer token is missing or does not match the endpoint's token. | Compare the scraper token with `vault_monitoring_pull_token` and send it as `Authorization: Bearer <token>`. |
 | Scraper gets `404 Not Found` | The requested module is not configured on that host (for example, `postgres` on a non-PostgreSQL host). | Use `node` on any host; use `postgres`, `pgbouncer`, or `pgbackrest` only on PostgreSQL hosts. |
 | Scraper reports a TLS certificate error | It does not trust the pigsty-lite CA, or the CA file is incorrect. | Configure its TLS trust with the pigsty-lite CA at `pki/ca/ca.crt` (for example, Prometheus `tls_config.ca_file`). |
 

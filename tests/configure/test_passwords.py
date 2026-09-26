@@ -75,7 +75,6 @@ def test_external_push_human_secrets_are_conditional():
     assert "vault_grafana_admin_password" in keys
     assert "vault_monitoring_external_password" in keys
     assert "vault_monitoring_external_bearer_token" in keys
-    assert "vault_monitoring_pull_password" not in keys
 
 
 def test_external_pull_human_secret_is_required():
@@ -92,50 +91,6 @@ def test_missing_human_secrets_reports_external_requirements():
         monitoring,
     )
     assert [secret.key for secret in missing] == ["vault_monitoring_pull_token"]
-
-
-def test_migrate_renamed_secrets_copies_old_value_and_keeps_old_key():
-    existing = {"vault_monitoring_pull_password": "old-token"}
-
-    updated = _passwords.migrate_renamed_secrets(existing)
-
-    assert updated == {
-        "vault_monitoring_pull_password": "old-token",
-        "vault_monitoring_pull_token": "old-token",
-    }
-    assert existing == {"vault_monitoring_pull_password": "old-token"}
-
-
-def test_migrate_renamed_secrets_replaces_empty_new_value():
-    existing = {
-        "vault_monitoring_pull_password": "old-token",
-        "vault_monitoring_pull_token": "",
-    }
-
-    updated = _passwords.migrate_renamed_secrets(existing)
-
-    assert updated["vault_monitoring_pull_token"] == "old-token"
-
-
-def test_migrate_renamed_secrets_does_not_overwrite_existing_new_value():
-    existing = {
-        "vault_monitoring_pull_password": "old-token",
-        "vault_monitoring_pull_token": "new-token",
-    }
-
-    updated = _passwords.migrate_renamed_secrets(existing)
-
-    assert updated["vault_monitoring_pull_token"] == "new-token"
-    assert updated["vault_monitoring_pull_password"] == "old-token"
-
-
-def test_migrate_renamed_secrets_is_noop_without_old_value():
-    existing = {"unrelated": "value"}
-
-    updated = _passwords.migrate_renamed_secrets(existing)
-
-    assert updated == existing
-    assert updated is not existing
 
 
 def test_missing_human_secrets_does_not_require_base_human_secrets_by_default():

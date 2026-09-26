@@ -78,54 +78,11 @@ def test_service_listen_flags_follow_tls_and_address_family():
     assert "-web.listen-address=[::]:9999" in ipv6_service
 
 
-def test_legacy_frontend_references_are_limited_to_upgrade_cleanup():
-    legacy_paths = ROLE / "defaults/main.yml"
-    cleanup_tasks = ROLE / "tasks/_exporter_exporter.yml"
-    obsolete_paths = {
-        ROLE / "tasks/_nginx_metrics.yml",
-        ROLE / "templates/nginx-metrics.conf.j2",
-    }
-    assert all(not path.exists() for path in obsolete_paths)
+def test_role_has_no_nginx_frontend():
+    forbidden = ("nginx" + "-metrics", "ht" + "passwd", "99" + "65")
     references = {
-        path: {term for term in ("nginx-metrics", "htpasswd") if term in path.read_text()}
+        path: [term for term in forbidden if term in path.read_text()]
         for path in ROLE.rglob("*")
         if path.is_file()
     }
-    assert not any("nginx-metrics" in terms for terms in references.values())
-    assert {path for path, terms in references.items() if "htpasswd" in terms} == {legacy_paths}
-    assert "monitoring_agents_legacy_nginx_metrics_files" in legacy_paths.read_text()
-    assert "monitoring_agents_legacy_nginx_metrics_files" in cleanup_tasks.read_text()
-    assert "monitoring_agents_nginx_metrics_config" not in legacy_paths.read_text()
-    assert "monitoring_agents_nginx_metrics_htpasswd" not in legacy_paths.read_text()
-
-
-def test_legacy_nginx_frontend_is_retired_before_exporter_exporter_starts():
-    tasks = yaml.safe_load((ROLE / "tasks/_exporter_exporter.yml").read_text())
-    task_indexes = {task["name"]: index for index, task in enumerate(tasks)}
-
-    assert (
-        task_indexes["Reload nginx after removing the legacy frontend"]
-        < task_indexes["Enable and start exporter-exporter"]
-    )
-    assert (
-        task_indexes["Remove legacy nginx metrics files"]
-        < task_indexes["Flush handlers so the exporter_exporter unit is registered before enabling"]
-    )
-
-
-def test_legacy_firewall_rule_is_removed_only_when_port_changes():
-    firewall = yaml.safe_load((ROLE / "tasks/_firewall.yml").read_text())
-    task = next(
-        task for task in firewall if task.get("name") == "Remove the legacy external pull port"
-    )
-
-    assert task["ansible.posix.firewalld"]["state"] == "disabled"
-    assert task["ansible.posix.firewalld"]["permanent"] is True
-    assert task["ansible.posix.firewalld"]["immediate"] is True
-    assert (
-        "monitoring_agents_legacy_pull_metrics_port" in task["ansible.posix.firewalld"]["rich_rule"]
-    )
-    assert (
-        "(monitoring_agents_pull_metrics_port | int) "
-        "!= (monitoring_agents_legacy_pull_metrics_port | int)" in task["when"]
-    )
+    assert not {path: terms for path, terms in references.items() if terms}

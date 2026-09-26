@@ -469,20 +469,6 @@ def test_monitoring_external_pull_validates_without_monitor_or_retention():
     validate(response)
 
 
-def test_monitoring_external_pull_rejects_auth():
-    response = _minimal_spof_response()
-    response["monitoring"] = {
-        "mode": "external_pull",
-        "external_pull": {
-            "metrics_port": 9999,
-            "auth": {"username": "pigsty"},
-            "source_cidrs": ["10.0.0.0/8"],
-        },
-    }
-    with pytest.raises(SchemaError, match="bearer token"):
-        validate(response)
-
-
 def test_monitoring_external_pull_rejects_bad_port_and_empty_cidrs():
     response = _minimal_spof_response()
     response["monitoring"] = {

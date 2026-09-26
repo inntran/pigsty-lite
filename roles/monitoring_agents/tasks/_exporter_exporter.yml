@@ -10,41 +10,6 @@
   vars:
     exporter_name: exporter_exporter
 
-# Remove the nginx frontend this replaces before exporter_exporter starts:
-# upgraded hosts often keep the old port, so nginx must release it first.
-# Nginx itself stays installed and running because roles/nginx_proxy uses it
-# on monitor hosts.
-- name: Remove legacy nginx metrics files
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop: "{{ monitoring_agents_legacy_nginx_metrics_files }}"
-  register: monitoring_agents_legacy_nginx_removed
-
-# This immediate status query gates the following validation and reload.
-- name: Check whether nginx is active after removing the legacy frontend  # noqa: no-handler
-  ansible.builtin.systemd:
-    name: nginx
-  register: monitoring_agents_legacy_nginx_status
-  changed_when: false
-  when: monitoring_agents_legacy_nginx_removed.changed
-
-- name: Validate nginx config after removing the legacy frontend
-  ansible.builtin.command:
-    cmd: nginx -t
-  changed_when: false
-  when:
-    - monitoring_agents_legacy_nginx_removed.changed
-    - monitoring_agents_legacy_nginx_status.status.ActiveState == 'active'
-
-- name: Reload nginx after removing the legacy frontend
-  ansible.builtin.systemd:
-    name: nginx
-    state: reloaded
-  when:
-    - monitoring_agents_legacy_nginx_removed.changed
-    - monitoring_agents_legacy_nginx_status.status.ActiveState == 'active'
-
 - name: Ensure the exporter_exporter system user exists
   ansible.builtin.user:
     name: "{{ monitoring_agents_exporter_exporter_user }}"

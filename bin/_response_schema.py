@@ -411,14 +411,6 @@ def _validate_monitoring_pull(monitoring: dict, ip_version: str) -> None:
     if not isinstance(pull, dict):
         raise SchemaError("monitoring.external_pull: must be a mapping")
 
-    if "auth" in pull:
-        raise SchemaError(
-            "monitoring.external_pull.auth: no longer supported; external_pull now "
-            "authenticates with a bearer token stored in the vault as "
-            "vault_monitoring_pull_token (./configure migrates an existing "
-            "vault_monitoring_pull_password). Remove this block."
-        )
-
     port = _require_int(pull, "metrics_port", "monitoring.external_pull")
     if port < 1 or port > 65535:
         raise SchemaError("monitoring.external_pull.metrics_port: must be in 1..65535")
