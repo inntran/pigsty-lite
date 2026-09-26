@@ -35,6 +35,16 @@ A changed `patroni.yml` is applied with `systemctl reload patroni` (SIGHUP),
 never a restart. If a reload leaves PostgreSQL settings pending a restart,
 the play warns; apply them one member at a time.
 
+## Firewall
+
+The role opens `patroni-rest` (8008/tcp) and admits PostgreSQL (5432) from
+each other cluster member with a firewalld rich rule. Each member's address
+is resolved from `patroni_advertise_address`, then `ansible_host`, then its
+gathered IP, and the rule's family (IPv4 or IPv6) follows that address. A
+member with no address fails the play and is named. Using a member's address
+as the rule's source relies on cluster members sharing one network, with no
+NAT or multi-homing between peers.
+
 ## systemd customizations
 
 The role installs a drop-in at
@@ -51,6 +61,11 @@ Since the drop-in lives in a subdirectory, `systemctl status patroni`
 won't show our additions inline. Use `systemctl cat patroni` to see
 the merged unit, or `systemctl show patroni | grep -E '^(After|Requires)='`
 to inspect ordering directly.
+
+The role never restarts Patroni for a drop-in change: handlers run on every
+member together, and a restart stops PostgreSQL. It reloads systemd and
+warns; the new settings apply at each member's next restart, done one member
+at a time.
 
 ## What this role does NOT do
 

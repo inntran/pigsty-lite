@@ -56,3 +56,15 @@ hosts (the per-node Patroni REST on 8008). Enable
 
 Config changes trigger `systemctl reload`. HAProxy supports zero-drop
 reload via socat / runtime API; the systemd unit handles the dance.
+
+## Backend addresses and firewall
+
+Every postgres member's address is resolved once per run into
+`haproxy_backend_addresses`: `patroni_advertise_address` if set, else
+`ansible_host`, else the member's gathered IP. A member with none fails the
+play and is named. The `server` lines in `haproxy.cfg` and the firewalld rule
+that opens the backend port from each member both read that map, so they
+cannot disagree. IPv6 addresses are written `[addr]:port`, and each rule's
+family follows its address. Using a member's address as the rule's source
+relies on cluster members sharing one network, with no NAT or multi-homing
+between peers.

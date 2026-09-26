@@ -152,6 +152,9 @@ patronictl -c /etc/patroni/patroni.yml reinit ${CLUSTER} <replica-name> --force
 | Replica `streaming` but `Lag` grows | Replica I/O bound, or `wal_keep_size` too small and replica fell behind. | `iostat -x 1`, raise `wal_keep_size`, or `patronictl reinit`. |
 | REST returns 503 on all members for `/leader` | No node is the leader (election in progress, or quorum lost). | `patronictl list` to see state; check etcd health. |
 | REST returns 503 on `/leader` from the leader itself, but `GET /cluster` shows it as Leader | Patroni considers itself unsafe (e.g. failed sync standby check). | `curl https://${HOST}:8008/patroni \| jq` shows the unsafe reason. |
+| Deploy fails `No address for postgres peer(s) <names>: set ansible_host or patroni_advertise_address for them, or gather their facts in this run.` | The named peer has no `patroni_advertise_address`, no `ansible_host`, and no gathered facts in this run (e.g. excluded by `--limit` in an inventory without `ansible_host`). | Set `ansible_host` for it in inventory, or run without `--limit` so its facts are gathered. |
+| Deploy warns `<host> has PostgreSQL settings pending a restart` | A changed parameter needs a postmaster restart. The play reloads Patroni and never restarts it, because a restart stops PostgreSQL on every member at once. | Apply one member at a time, checking health between them: `patronictl restart <cluster> <member> --pending`, or `playbooks/minor_upgrade.yml`. Confirm with `patronictl list`. |
+| Deploy warns `The patroni systemd drop-in changed on <host>` | Unit settings (limits, restart policy, etcd ordering) changed; they apply at Patroni's next restart. | Restart members one at a time, never all at once. |
 
 ---
 
@@ -220,6 +223,7 @@ against `/leader` and vice versa.
 | All backends `DOWN` with `Layer7 wrong status, code: 503` everywhere — including on the actual leader | Patroni REST is up but the L7 check URL/method is wrong, or Patroni considers every node unsafe. | `curl -k -X OPTIONS https://${HOST}:8008/leader` from a peer; should return 200 on the leader, 503 elsewhere. |
 | All backends `DOWN` with `Layer7 invalid response` | TLS handshake to Patroni REST failing (cert path, CA, hostname). | `openssl s_client -connect ${HOST}:8008 -CAfile /etc/pki/pigsty/ca.crt`. |
 | HAProxy fails to bind to a VIP IP | `net.ipv4.ip_nonlocal_bind` not set (vip-manager hasn't parked the IP yet, but HAProxy must be able to bind anyway). | `sysctl net.ipv4.ip_nonlocal_bind` should be `1`; reload `/etc/sysctl.d/90-pigsty-lite-haproxy-vip.conf`. |
+| Deploy fails `No address for postgres member(s) <names>: set ansible_host or patroni_advertise_address for them, or gather their facts in this run.` | Same cause as the Patroni peer error: the member has no advertise address, `ansible_host`, or gathered facts. | Set `ansible_host` for it, or run without `--limit`. |
 
 ---
 

@@ -19,8 +19,9 @@ userlist entries only if you intentionally bypass `auth_query`.
 ## Firewall
 
 The `pgbouncer` firewalld service ships with the project but is
-**disabled by default**. Clients connect via HAProxy on 5432; pgBouncer
-is reached only locally over `127.0.0.1:6432`. If you really want
+**disabled by default**. Clients connect via HAProxy. The haproxy role
+admits 6432 only from the postgres members, because HAProxy on each member
+dials every member's pgBouncer; nothing else reaches it. If you really want
 external pgBouncer access, set `pgbouncer_firewalld_enabled: true`.
 
 ## Reload vs restart

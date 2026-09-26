@@ -34,4 +34,8 @@ rule and runs `restorecon`. We never `setenforce 0`.
 ## Firewalld
 
 This role opens nothing. The `patroni-rest` service is opened by the patroni
-role. Postgres port 5432 is exposed via HAProxy in P2b.
+role. The haproxy role opens the `postgresql` firewalld service (5432) to all
+sources, and PostgreSQL listens on the host's routable address, so clients can
+reach PostgreSQL directly as well as through HAProxy's frontends;
+`pg_hba.conf` is what restricts them. The patroni role also admits 5432 from
+the other cluster members for replication.

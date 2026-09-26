@@ -96,8 +96,9 @@ After `_etcd.yml` succeeds, two playbooks run against the `postgres` group:
   masks `postgresql-18.service` so Patroni owns the PostgreSQL lifecycle.
 - `_postgres_bootstrap.yml` installs Patroni, renders `/etc/patroni/patroni.yml`
   with etcd/REST/PostgreSQL TLS backed by the pigsty-lite CA, opens firewalld
-  `patroni-rest` on 8008/tcp, starts `patroni.service`, and gates on a running
-  member plus exactly one cluster leader.
+  `patroni-rest` on 8008/tcp and PostgreSQL (5432) to each other cluster
+  member (IPv4 or IPv6 rule per member address), starts `patroni.service`,
+  and gates on a running member plus exactly one cluster leader.
 
 Profile mapping:
 
@@ -134,7 +135,9 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
   health-checked against Patroni REST (`/leader` for 5432/5433,
   `/replica` for 5434), enables `haproxy.service`, opens the built-in
   `postgresql` firewalld service (5432) and the custom `haproxy-postgres`
-  service (5433+5434), binds dedicated local service address
+  service (5433+5434), opens the backend port (`haproxy_backend_port`, 6432 by default) from every postgres
+  member using the same addresses as the `server` lines, binds dedicated
+  local service address
   `127.0.0.2`, and toggles the `haproxy_connect_any` SELinux boolean so
   HAProxy can reach Patroni REST on peer hosts. Tests and local clients
   that intentionally target HAProxy should use this dedicated local

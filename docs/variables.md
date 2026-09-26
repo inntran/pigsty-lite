@@ -99,6 +99,9 @@ when you add a variable so the next reader knows why it isn't a role default.
 Identity, not configuration. Each host gets:
 
 - `ansible_host` — its real IP. Used everywhere as the canonical address.
+  Peer lookups (Patroni's replication firewall rule, HAProxy's backends)
+  try `patroni_advertise_address` first, then `ansible_host`, then the
+  peer's gathered IP; a peer with none fails the play and is named.
 - `postgres_role` — `primary` or `replica`. The patroni role's `_assert.yml`
   fails the play if exactly one primary isn't declared.
 - `postgres_seq`, `etcd_seq` — stable ordinals for log/identifier naming.
@@ -252,12 +255,15 @@ pre_tasks:
       postgres_listen_address: "{{ ansible_facts['default_ipv4']['address'] }}"
 ```
 
-This pattern exists because under molecule + podman, `ansible_host` is
-the **container name** (e.g. `pigsty-lite-backup-ha-1`), not an IP. Any
-variable that defaults to `ansible_host` for its IP (advertise addresses,
-listen addresses) renders garbage unless explicitly pinned to
+This pattern exists because molecule's podman inventory does not set
+`ansible_host`: the connection reaches each container by name. Variables
+that derive an IP from `ansible_host` (advertise and listen addresses)
+therefore need an explicit value, and scenarios pin them to
 `ansible_facts['default_ipv4']['address']`. In production, `ansible_host`
 is a real IP and no such pin is needed.
+
+The peer lookups in roles/patroni and roles/haproxy do not need this pin:
+they fall back to each peer's gathered facts.
 
 `set_fact` runs per-host and wins over every other layer, which is exactly
 what's needed here — but it also means a forgotten pin in one play and
