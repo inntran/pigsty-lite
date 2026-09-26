@@ -174,11 +174,10 @@ psql "host=<leader-node> port=5432 dbname=<db> user=<user>"
 Port 5434 needs at least one replica, so it has no backend in the `spof`
 profile. Direct connections to 5432 need a `postgres.hba_rules` entry for the
 client's address. Through the VIP, pgBouncer authenticates the client and then
-connects to PostgreSQL from loopback, so the user also needs a rule admitting
-it from `127.0.0.1` (or `::1`); the default rules admit only `postgres`,
-replication and rewind from loopback. See the
-[ports and firewall reference](../reference/ports.md) for listener and
-firewall details.
+connects to PostgreSQL from loopback; the default rules admit every user on
+`127.0.0.1` and `::1` with a password, so pooled logins need no extra rule.
+See the [ports and firewall reference](../reference/ports.md) for listener
+and firewall details.
 
 A failover triggered by `patronictl switchover` is invisible to clients
 hitting 5432 or 5433 after a few seconds (HAProxy detects the leader
