@@ -69,3 +69,6 @@ haproxy_maxconn: 4096
 
 # Firewalld
 haproxy_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
+# Database clients (firewall.postgres_client_cidrs). Only these sources may
+# reach the client ports; cluster members keep their own rules.
+haproxy_client_cidrs: "{{ postgres_client_cidrs | default([]) }}"

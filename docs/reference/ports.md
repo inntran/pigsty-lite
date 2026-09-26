@@ -66,11 +66,11 @@ flowchart LR
 | 2379 | tcp | etcd client (`etcd`) | `network_any_address` | `etcd` and `postgres` hosts (rich rules) | unconfined | `etcd_client_port` |
 | 2380 | tcp | etcd peer (`etcd`) | `network_any_address` | other `etcd` hosts | unconfined | `etcd_peer_port` |
 | 3000 | tcp | Grafana (`grafana`) | loopback | none (reached through `nginx_proxy`) | unconfined | `grafana_default_port` |
-| 5432 | tcp | PostgreSQL (`patroni`) | node address and loopback | any (service `postgresql`, opened by `haproxy`); also rich rules from other `postgres` members (`patroni`). Client access is restricted by `pg_hba.conf`, not the firewall. | unconfined (child of Patroni) | `postgres_port` |
-| 5432 | tcp | HAProxy default frontend → leader (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | same port/firewall as above | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_default_port` |
-| 5433 | tcp | HAProxy primary (RW) frontend (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | any (service `haproxy-postgres`); outside access only via the VIP | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_primary_port` |
-| 5434 | tcp | HAProxy replica (RO) frontend (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | any (service `haproxy-postgres`); outside access only via the VIP | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_replica_port` |
-| 6432 | tcp | pgBouncer (`pgbouncer`) | `network_any_address` | every `postgres` member, including itself (HAProxy backend rich rules); zone-wide if `pgbouncer_firewalld_enabled` enables the `pgbouncer` service (off by default) | unconfined | `pgbouncer_listen_port` (HAProxy backend: `haproxy_backend_port`) |
+| 5432 | tcp | PostgreSQL (`patroni`) | node address and loopback | `postgres_client_cidrs` (service `postgresql` rich rules); other cluster members via roles/patroni's replication rule | unconfined (child of Patroni) | `postgres_port` |
+| 5432 | tcp | HAProxy default frontend → leader (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | `postgres_client_cidrs` (service `postgresql` rich rules); other cluster members via roles/patroni's replication rule | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_default_port` |
+| 5433 | tcp | HAProxy primary (RW) frontend (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | `postgres_client_cidrs` (service `haproxy-postgres` rich rules); outside access only via the VIP (HAProxy binds 127.0.0.2 and the VIP) | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_primary_port` |
+| 5434 | tcp | HAProxy replica (RO) frontend (`haproxy`) | `127.0.0.2` and VIP when `vip_manager` is enabled | `postgres_client_cidrs` (service `haproxy-postgres` rich rules); outside access only via the VIP (HAProxy binds 127.0.0.2 and the VIP) | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_replica_port` |
+| 6432 | tcp | pgBouncer (`pgbouncer`) | `network_any_address` | every `postgres` member, including itself (HAProxy backend rich rules); `postgres_client_cidrs` only when `pgbouncer_firewalld_enabled` | unconfined | `pgbouncer_listen_port` (HAProxy backend: `haproxy_backend_port`) |
 | 7000 | tcp | HAProxy stats (`haproxy`) | loopback | none (loopback) | `haproxy_t`; requires `haproxy_connect_any` | `haproxy_stats_port` |
 | 8008 | tcp | Patroni REST (`patroni`) | `network_any_address` | any (service `patroni-rest`) | unconfined | `patroni_rest_port` |
 | 8428 | tcp | VictoriaMetrics vmsingle (`monitoring_server`, `monitor` host) | `network_any_address` | `postgres` and `monitor` hosts | unconfined | `vmsingle_port` |
@@ -86,10 +86,11 @@ flowchart LR
 
 ## Client access
 
-With a VIP, connect to `VIP:5432` for the leader, `VIP:5433` for RW, or
-`VIP:5434` for RO. Without a VIP, HAProxy is local-only on `127.0.0.2`;
-remote clients connect directly to the leader node's PostgreSQL on port
-5432, subject to `pg_hba.conf`. On a node, the HAProxy frontends are
+With a VIP, clients in `firewall.postgres_client_cidrs` can connect to
+`VIP:5432` for the leader, `VIP:5433` for RW, or `VIP:5434` for RO. Without
+a VIP, HAProxy is local-only on `127.0.0.2`; remote clients can connect
+directly to the leader node's PostgreSQL on port 5432 if their source is in
+`firewall.postgres_client_cidrs`, subject to `pg_hba.conf`. On a node, the HAProxy frontends are
 available at `127.0.0.2:5432`, `:5433`, and `:5434`. `vip-manager` listens
 on nothing; it moves the VIP to the leader.
 
@@ -103,8 +104,14 @@ are SELinux-confined; everything else runs as `unconfined_service_t`.
 
 ## Firewall scope
 
-`firewall.postgres_client_cidrs` in the response file is currently not used
-by any role. PostgreSQL client access is governed by `pg_hba.conf`
-(`postgres.hba_rules`), not by those response-file CIDRs. “Any” in the table
-means any source allowed by the zone-wide firewalld service; peer-specific
-rules are restricted to the listed host groups.
+Client ports admit only `firewall.postgres_client_cidrs`; direct pgBouncer
+access also requires `pgbouncer_firewalld_enabled`. Intra-cluster ports
+(2379/2380, 8432, 6432 backends, and 5432 replication) keep their
+member-scoped rules. Patroni REST on 8008 remains zone-wide. `pg_hba.conf`
+(`postgres.hba_rules`) still decides which users and databases a client may
+use. “Any” in the table means any source allowed by the zone-wide firewalld
+service; peer-specific rules are restricted to the listed host groups.
+
+The roles do not manage the zone's pre-existing services. A stock EL10
+`public` zone also allows `cockpit` (9090) and `dhcpv6-client`; remove them
+by hand if the host does not need them.

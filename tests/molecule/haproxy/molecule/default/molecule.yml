@@ -21,6 +21,8 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # podman's default network range; verify reaches the VIP from members as a client
+        postgres_client_cidrs: ["10.0.0.0/8"]
         network_ip_version: ipv4
         cluster_name: pigsty-lite-test
         cluster_domain: test.local

@@ -115,22 +115,23 @@
   ansible.builtin.meta: flush_handlers
   tags: [haproxy, firewall]
 
-- name: Open built-in postgresql service (5432)
+# Client ports: PostgreSQL/HAProxy default (5432, service postgresql) and
+# HAProxy RW/RO (5433/5434, service haproxy-postgres), from client CIDRs only.
+# Members reach 5432 through roles/patroni's replication rule and 6432 through
+# the backend rule below; neither is opened to clients.
+- name: Open client ports to postgres_client_cidrs
   ansible.posix.firewalld:
-    service: postgresql
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in item.0 else 'ipv4' }}"
+      source address="{{ item.0 }}"
+      service name="{{ item.1 }}" accept
     permanent: true
     state: enabled
     immediate: true
     zone: "{{ haproxy_firewalld_zone }}"
-  tags: [haproxy, firewall]
-
-- name: Open custom haproxy-postgres service (5433, 5434)
-  ansible.posix.firewalld:
-    service: haproxy-postgres
-    permanent: true
-    state: enabled
-    immediate: true
-    zone: "{{ haproxy_firewalld_zone }}"
+  loop: "{{ haproxy_client_cidrs | product(['postgresql', 'haproxy-postgres']) | list }}"
+  loop_control:
+    label: "{{ item.0 }} {{ item.1 }}"
   tags: [haproxy, firewall]
 
 # Each haproxy instance dials its backend (pgbouncer 6432 by default,

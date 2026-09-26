@@ -53,6 +53,8 @@ pgbouncer_log_pooler_errors: 1
 pgbouncer_firewalld_enabled: false
 pgbouncer_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 pgbouncer_firewalld_service_name: pgbouncer
+# Allowed client CIDRs when direct pgBouncer access is enabled.
+pgbouncer_client_cidrs: "{{ postgres_client_cidrs | default([]) }}"
 
 # Userlist content. Operators add business users by overriding
 # pgbouncer_userlist_extra; the system entries below are always present.

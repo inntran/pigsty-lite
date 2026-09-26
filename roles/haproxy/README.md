@@ -68,3 +68,7 @@ cannot disagree. IPv6 addresses are written `[addr]:port`, and each rule's
 family follows its address. Using a member's address as the rule's source
 relies on cluster members sharing one network, with no NAT or multi-homing
 between peers.
+
+The client-facing `postgresql` (5432) and `haproxy-postgres` (5433/5434)
+services are admitted only from `postgres_client_cidrs`. Cluster members
+retain their own PostgreSQL replication and HAProxy backend rich rules.

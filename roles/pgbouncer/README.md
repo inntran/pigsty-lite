@@ -19,10 +19,11 @@ userlist entries only if you intentionally bypass `auth_query`.
 ## Firewall
 
 The `pgbouncer` firewalld service ships with the project but is
-**disabled by default**. Clients connect via HAProxy. The haproxy role
-admits 6432 only from the postgres members, because HAProxy on each member
-dials every member's pgBouncer; nothing else reaches it. If you really want
-external pgBouncer access, set `pgbouncer_firewalld_enabled: true`.
+**kept disabled zone-wide**. Clients normally connect via HAProxy; the
+haproxy role admits 6432 only from postgres members because HAProxy on each
+member dials every member's pgBouncer. To allow direct client access, set
+`pgbouncer_firewalld_enabled: true`; the role then adds service rich rules
+for `pgbouncer_client_cidrs`, which defaults to `postgres_client_cidrs`.
 
 ## Reload vs restart
 

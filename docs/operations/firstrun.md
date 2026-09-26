@@ -133,9 +133,10 @@ After `_postgres_bootstrap.yml` succeeds, three playbooks run on the
 - `_haproxy.yml` (haproxy role) installs HAProxy from the vendor repo,
   renders `/etc/haproxy/haproxy.cfg` with three frontend/backend pairs
   health-checked against Patroni REST (`/leader` for 5432/5433,
-  `/replica` for 5434), enables `haproxy.service`, opens the built-in
-  `postgresql` firewalld service (5432) and the custom `haproxy-postgres`
-  service (5433+5434), opens the backend port (`haproxy_backend_port`, 6432 by default) from every postgres
+  `/replica` for 5434), enables `haproxy.service`, opens the `postgresql`
+  (5432) and `haproxy-postgres` (5433/5434) services to
+  `firewall.postgres_client_cidrs` only, opens the backend port
+  (`haproxy_backend_port`, 6432 by default) from every postgres
   member using the same addresses as the `server` lines, binds dedicated
   local service address
   `127.0.0.2`, and toggles the `haproxy_connect_any` SELinux boolean so

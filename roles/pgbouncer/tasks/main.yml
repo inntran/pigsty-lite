@@ -92,11 +92,28 @@
   notify: Reload firewalld
   tags: [pgbouncer, firewall]
 
-- name: Open pgbouncer in default zone (only when explicitly enabled)
+- name: Keep the pgbouncer service closed zone-wide
   ansible.posix.firewalld:
     service: "{{ pgbouncer_firewalld_service_name }}"
+    permanent: true
+    state: disabled
+    immediate: true
+    zone: "{{ pgbouncer_firewalld_zone }}"
+  tags: [pgbouncer, firewall]
+
+# Always runs, with the state following the flag, so turning direct access
+# off removes the client rules an earlier run added.
+- name: Admit postgres_client_cidrs to pgBouncer only when explicitly enabled
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in item else 'ipv4' }}"
+      source address="{{ item }}"
+      service name="{{ pgbouncer_firewalld_service_name }}" accept
     permanent: true
     state: "{{ 'enabled' if (pgbouncer_firewalld_enabled | bool) else 'disabled' }}"
     immediate: true
     zone: "{{ pgbouncer_firewalld_zone }}"
+  loop: "{{ pgbouncer_client_cidrs }}"
+  loop_control:
+    label: "{{ item }}"
   tags: [pgbouncer, firewall]
