@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# pgBouncer client authentication (auth_type = hba). First match wins.
+# TYPE  DATABASE   USER                                METHOD / ADDRESS
+local   pgbouncer  {{ pgbouncer_peer_console_user }}   peer
+local   all        all                                 scram-sha-256
+host    all        all        0.0.0.0/0                scram-sha-256
+host    all        all        ::/0                     scram-sha-256

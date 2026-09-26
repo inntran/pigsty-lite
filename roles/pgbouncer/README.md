@@ -10,11 +10,23 @@ PG dies and is recreated when PG comes back.
 
 ## Auth
 
-`scram-sha-256` with `auth_query` against `pg_shadow`, so pgBouncer
-verifies client credentials using the SCRAM verifier stored by
-PostgreSQL. The `auth_user` entry is still rendered into the userlist so
-pgBouncer can connect upstream to run the query. Add additional
-userlist entries only if you intentionally bypass `auth_query`.
+`auth_type = hba`, driven by a rendered `pgbouncer_hba.conf`
+(`auth_hba_file`). The hba file has two kinds of rules:
+
+- A `peer` rule for `pgbouncer_peer_console_user` (defaults to
+  `postgres_osdba`, i.e. the OS user the `pgbouncer_exporter` runs as)
+  connecting to the special `pgbouncer` database over the Unix socket.
+  This lets the exporter authenticate without a password so it can run
+  `SHOW` commands against the admin/stats console. That user must be
+  listed in `pgbouncer_stats_users` or `pgbouncer_admin_users`, or the
+  role fails an assert during configuration.
+- `scram-sha-256` for everything else (all databases, all users, local
+  or remote), verified via `auth_query` against `pg_shadow`, so
+  pgBouncer checks client credentials using the SCRAM verifier stored
+  by PostgreSQL. The `auth_user` entry is still rendered into the
+  userlist so pgBouncer can connect upstream to run the query. Add
+  additional userlist entries only if you intentionally bypass
+  `auth_query`.
 
 ## Firewall
 

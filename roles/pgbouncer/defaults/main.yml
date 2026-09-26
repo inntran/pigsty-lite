@@ -23,7 +23,16 @@ pgbouncer_listen_port: 6432
 pgbouncer_unix_socket_dir: "{{ pgbouncer_run_dir }}"
 
 # Auth
-pgbouncer_auth_type: scram-sha-256
+# `hba` mode lets us combine two auth rules via an hba file: peer auth for
+# the pgbouncer_exporter's OS user over the Unix socket (so it can reach the
+# admin/stats console without a password), and scram-sha-256 for every other
+# client. auth_file/auth_user/auth_query are unchanged -- SCRAM verifiers
+# still come from the userlist and auth_query regardless of auth_type.
+pgbouncer_auth_type: hba
+pgbouncer_auth_hba_file: "{{ pgbouncer_config_dir }}/pgbouncer_hba.conf"
+# OS user allowed into the pgbouncer admin/stats console by peer over the
+# Unix socket: the pgbouncer_exporter's service user.
+pgbouncer_peer_console_user: "{{ postgres_osdba | default('postgres') }}"
 pgbouncer_auth_file: "{{ pgbouncer_userlist_file }}"
 pgbouncer_auth_user: "{{ patroni_superuser | default('postgres') }}"
 pgbouncer_auth_query: "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"

@@ -9,6 +9,17 @@
       response file or group_vars/postgres.yml. See P2a.
   tags: [pgbouncer, assert]
 
+- name: Fail if pgbouncer_peer_console_user cannot reach the admin/stats console
+  ansible.builtin.assert:
+    that:
+      - pgbouncer_peer_console_user in (pgbouncer_stats_users + pgbouncer_admin_users)
+    fail_msg: >-
+      pgbouncer_peer_console_user ({{ pgbouncer_peer_console_user }}) must be
+      listed in pgbouncer_stats_users or pgbouncer_admin_users, otherwise the
+      pgbouncer_exporter cannot SHOW the console it authenticates into via peer.
+  when: pgbouncer_auth_type == 'hba'
+  tags: [pgbouncer, assert]
+
 - name: Fail if postgres binary missing
   ansible.builtin.stat:
     path: "/usr/pgsql-{{ postgres_version }}/bin/postgres"
@@ -55,6 +66,17 @@
     owner: "{{ pgbouncer_user }}"
     group: "{{ pgbouncer_group }}"
     mode: "0640"
+  notify: Reload pgbouncer
+  tags: [pgbouncer, config]
+
+- name: Render pgbouncer_hba.conf
+  ansible.builtin.template:
+    src: pgbouncer_hba.conf.j2
+    dest: "{{ pgbouncer_auth_hba_file }}"
+    owner: root
+    group: "{{ pgbouncer_group }}"
+    mode: "0640"
+  when: pgbouncer_auth_type == 'hba'
   notify: Reload pgbouncer
   tags: [pgbouncer, config]
 
