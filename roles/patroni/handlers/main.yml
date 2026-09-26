@@ -37,7 +37,8 @@
       {{ inventory_hostname }} has PostgreSQL settings pending a restart
       ({{ patroni_after_reload.json.pending_restart_reason | default('see patronictl list') }}).
       Apply them with a rolling restart, one member at a time
-      (for example: patronictl restart --pending, or playbooks/minor_upgrade.yml).
+      (for example: patronictl restart {{ patroni_scope }} {{ inventory_hostname }}
+      --pending, one member at a time, or playbooks/minor_upgrade.yml).
       Confirm with `patronictl list`.
   when:
     - (patroni_was_active.status.ActiveState | default('')) == 'active'
