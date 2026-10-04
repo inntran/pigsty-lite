@@ -132,9 +132,9 @@ def test_preload_libraries_default_to_pg_stat_statements():
 
 
 def test_preload_libraries_merge_in_order_and_add_companions():
-    parameters = _render_patroni_config(
-        preload_prepend=["citus"], preload_append=["timescaledb"]
-    )["postgresql"]["parameters"]
+    parameters = _render_patroni_config(preload_prepend=["citus"], preload_append=["timescaledb"])[
+        "postgresql"
+    ]["parameters"]
 
     assert parameters["shared_preload_libraries"] == "citus,pg_stat_statements,timescaledb"
     assert parameters["max_locks_per_transaction"] == "400"
@@ -142,9 +142,9 @@ def test_preload_libraries_merge_in_order_and_add_companions():
 
 
 def test_preload_libraries_remove_duplicates_preserving_first_occurrence():
-    parameters = _render_patroni_config(preload_append=["pg_stat_statements"])[
-        "postgresql"
-    ]["parameters"]
+    parameters = _render_patroni_config(preload_append=["pg_stat_statements"])["postgresql"][
+        "parameters"
+    ]
 
     assert parameters["shared_preload_libraries"] == "pg_stat_statements"
 
@@ -174,9 +174,9 @@ def test_extra_max_locks_parameter_overrides_derived_companion():
 
 
 def test_citus_companion_uses_tuning_profile_max_connections():
-    parameters = _render_patroni_config(
-        tune_profile="olap", preload_prepend=["citus"]
-    )["postgresql"]["parameters"]
+    parameters = _render_patroni_config(tune_profile="olap", preload_prepend=["citus"])[
+        "postgresql"
+    ]["parameters"]
 
     assert parameters["max_locks_per_transaction"] == "200"
 

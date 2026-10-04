@@ -51,7 +51,9 @@ monitoring_agents_pgbouncer_exporter_dsn: >-
 # postgres_osdba; no password is stored for the exporter.
 # Earlier releases wrote a pgpass file holding the Patroni superuser password;
 # it is removed on converge.
-monitoring_agents_legacy_pgbouncer_exporter_pgpass: "{{ monitoring_agents_pgbouncer_exporter_pgpass | default(monitoring_agents_secrets_dir ~ '/pgbouncer-exporter.pgpass') }}"
+monitoring_agents_legacy_pgbouncer_exporter_pgpass: >-
+  {{ monitoring_agents_pgbouncer_exporter_pgpass
+     | default(monitoring_agents_secrets_dir ~ '/pgbouncer-exporter.pgpass') }}
 monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }}"
 
 # vmagent (metrics scrape + remote_write)
