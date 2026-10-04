@@ -253,7 +253,7 @@ def render(snapshots: list[tuple[Repo, list[Package], int]]) -> str:
     exporters = []
     for repo, found, _total in snapshots:
         for package in found:
-            if "export" in package.name.lower() or "prometheus" in package.name.lower():
+            if "exporter" in package.name.lower() or "prometheus" in package.name.lower():
                 exporters.append((repo.repo_id, package))
     if exporters:
         lines += ["| Package | Version | Arch | Repo | License |", "|---|---|---|---|---|"]

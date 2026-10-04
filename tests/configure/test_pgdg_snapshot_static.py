@@ -89,3 +89,12 @@ def test_snapshot_records_exporter_availability():
     # exporters monitoring_agents installs.
     assert "node_exporter" in text
     assert "pgbackrest_exporter" in text
+
+
+def test_exporter_section_excludes_pgexportdoc():
+    """pgexportdoc exports XML/JSON/BYTEA documents; it is not a monitoring
+    exporter and must not be listed beside them."""
+    text = SNAPSHOT.read_text()
+    section = text.split("## Monitoring exporters", 1)[1].split("\n## ", 1)[0]
+    assert "pgexporter" in section
+    assert "pgexportdoc" not in section
