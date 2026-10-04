@@ -35,7 +35,7 @@
       "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
       "targets": [
         {
-          "expr": "pg_replication_lag_bytes{cluster=\"$cluster\"}",
+          "expr": "pg_stat_replication_pg_wal_lsn_diff{cluster=\"$cluster\"}",
           "refId": "A",
           "legendFormat": "{{instance}}"
         }

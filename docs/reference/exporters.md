@@ -47,7 +47,7 @@ PGDG packages none of them. It ships exactly one exporter, `pgexporter`
 per-PG-version metric definitions. It was rejected on metric naming. It emits
 `pgexporter_*`, while
 [`roles/grafana/files/dashboards/pigsty-lite-overview.json`](../../roles/grafana/files/dashboards/pigsty-lite-overview.json)
-queries `pg_up`, `pg_stat_activity_count` and `pg_replication_lag_bytes`.
+queries `pg_up`, `pg_stat_activity_count` and `pg_stat_replication_pg_wal_lsn_diff`.
 Adopting it means rewriting every panel and alert rule, and it covers only
 PostgreSQL — the other three exporters would still come from elsewhere.
 

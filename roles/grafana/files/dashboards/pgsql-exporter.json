@@ -1,8 +1,8 @@
 {
   "id": null,
   "uid": "pgsql-exporter",
-  "title": "PGSQL Exporter",
-  "description": "Adapted from Pigsty PGSQL Exporter for prometheus-community/postgres_exporter and pigsty-lite scrape labels.",
+  "title": "PostgreSQL Exporter",
+  "description": "Adapted from Pigsty pgsql/pgsql-exporter.json for prometheus-community/postgres_exporter and pigsty-lite scrape labels.",
   "tags": [
     "pigsty",
     "postgresql",
