@@ -106,20 +106,46 @@
   changed_when: false
   when: repos_pgdg_enabled | bool
 
-# CRB and EPEL are always installed: roles such as patroni, pgbackrest and
-# the monitoring stack pull packages (e.g. python3-click) that only exist in
-# EPEL, and reach them via `enablerepo=epel` regardless of repos_epel_enabled.
-# repos_epel_enabled controls only whether EPEL stays enabled for *normal*
-# dependency resolution (the disable step at the end of this file).
+# CRB is best-effort on RHEL: an already-enabled repo id matching
+# codeready/crb (e.g. an internal mirror) is accepted; otherwise
+# subscription-manager is tried and a failure only warns. The tested package
+# set resolved on EL10 without CRB. EPEL is always installed: roles such as
+# patroni, pgbackrest and the monitoring stack pull packages (e.g.
+# python3-click) that only exist in EPEL, and reach them via `enablerepo=epel`
+# regardless of repos_epel_enabled. repos_epel_enabled controls only whether
+# EPEL stays enabled for *normal* dependency resolution (the disable step at
+# the end of this file).
 - name: Enable CodeReady Builder (CRB) repository
   block:
+    - name: Check for an enabled CRB repository (RHEL)
+      ansible.builtin.command:
+        cmd: dnf repolist --enabled -q
+      register: repos_enabled_repolist
+      changed_when: false
+      when: ansible_facts['distribution'] == 'RedHat'
+
     - name: Enable CRB via subscription-manager (RHEL)
       ansible.builtin.command:
         cmd: >-
           subscription-manager repos --enable
           codeready-builder-for-rhel-{{ ansible_facts['distribution_major_version'] }}-{{ ansible_facts['architecture'] }}-rpms
-      when: ansible_facts['distribution'] == 'RedHat'
+      register: repos_crb_subscription
+      failed_when: false
+      when:
+        - ansible_facts['distribution'] == 'RedHat'
+        - repos_enabled_repolist.stdout is not search('(?im)^\S*(codeready|crb)\S*(\s|$)')
       changed_when: false
+
+    - name: Warn that CRB could not be enabled (RHEL)
+      ansible.builtin.debug:
+        msg: >-
+          CRB could not be enabled via subscription-manager and no enabled repo
+          id matches codeready/crb; continuing because the packages pigsty-lite
+          installs do not currently need CRB, but an EPEL package that does
+          will fail at install time.
+          stdout: {{ repos_crb_subscription.stdout }}
+          stderr: {{ repos_crb_subscription.stderr }}
+      when: repos_crb_subscription.rc | default(0) != 0
 
     - name: Enable CRB via dnf config-manager (CentOS/AlmaLinux/Rocky)
       ansible.builtin.command:
