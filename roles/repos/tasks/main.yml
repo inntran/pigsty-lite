@@ -3,6 +3,34 @@
   ansible.builtin.package_facts:
     manager: rpm
 
+# pgdg-redhat-repo >= 42.0-69 builds every baseurl from
+# `rhel-$releasever_major.$releasever_minor-$basearch`. dnf derives both halves
+# by splitting $releasever, which comes from the distro's
+# `system-release(releasever)` provide. RHEL, Rocky and AlmaLinux set that to
+# "10.2", so both halves resolve. Oracle Linux sets it to plain "10", leaving
+# $releasever_minor empty and every PGDG URL 404ing on `rhel-10.-x86_64`.
+#
+# Seed the var from the OS minor version, but only when dnf has none of its
+# own: on an EUS host pinned to an older $releasever, dnf's value is the
+# correct one and must win. PGDG is the only repo that reads it.
+- name: Set up PGDG $releasever_minor shim
+  when: repos_pgdg_enabled | bool
+  block:
+    - name: Check whether dnf resolves $releasever_minor
+      ansible.builtin.command:
+        cmd: dnf config-manager --dump-variables
+      register: repos_dnf_variables
+      changed_when: false
+
+    - name: Seed /etc/dnf/vars/releasever_minor from the OS version
+      ansible.builtin.copy:
+        dest: /etc/dnf/vars/releasever_minor
+        content: "{{ ansible_facts['distribution_version'].split('.')[1] }}"
+        mode: "0644"
+      when:
+        - repos_dnf_variables.stdout is not search('(?m)^releasever_minor\s*=\s*\S')
+        - "'.' in ansible_facts['distribution_version']"
+
 - name: Install PGDG repo RPM
   ansible.builtin.dnf:
     name: "{{ repos_pgdg_rpm_url }}"
@@ -117,9 +145,15 @@
 # Prime EPEL metadata so later `enablerepo=epel` installs (e.g. patroni ->
 # python3-click) do not have to fetch metadata mid-transaction, which fails
 # when that on-the-fly refresh is incomplete.
+#
+# `--disablerepo='*'` keeps this to EPEL, which is all the comment above ever
+# claimed. Without it makecache refreshes every enabled repo, so a third-party
+# repo having a bad day -- Grafana published a repomd.xml that its own
+# repomd.xml.asc does not verify on 2026-10-01 -- fails the OS baseline for
+# every host, nowhere near the role that actually wants that repo.
 - name: Refresh EPEL metadata
   ansible.builtin.command:
-    cmd: "dnf --enablerepo={{ epel_repo_id }} makecache"
+    cmd: "dnf --disablerepo='*' --enablerepo={{ epel_repo_id }} makecache"
   changed_when: false
 
 # repos_epel_enabled selects EPEL's terminal state. When false (the default)

@@ -2,6 +2,18 @@
 ARG OL_IMAGE=container-registry.oracle.com/os/oraclelinux:10
 FROM ${OL_IMAGE}
 
+# --- $releasever_minor shim. pgdg-redhat-repo >= 42.0-69 builds its baseurls
+#     from `rhel-$releasever_major.$releasever_minor-$basearch`. RHEL/Rocky/
+#     AlmaLinux set $releasever to "10.2", so both halves resolve. Oracle Linux
+#     sets it to plain "10", leaving $releasever_minor empty and every PGDG URL
+#     404ing on `rhel-10.-x86_64`. Seed the var from VERSION_ID. Only PGDG reads
+#     it; the ol10_* repos key off $releasever and are unaffected.
+#     roles/repos does the same thing on a live host. ---
+RUN . /etc/os-release \
+    && case "$VERSION_ID" in \
+         *.*) printf '%s' "${VERSION_ID#*.}" > /etc/dnf/vars/releasever_minor ;; \
+       esac
+
 # --- Repos + base packages.
 #     1. Enable CRB and install EPEL + PGDG release RPMs in one transaction.
 #     2. config-manager accepts multiple --setopt at once: leave EPEL
