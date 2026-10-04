@@ -97,7 +97,7 @@
   changed_when: false
 
 - name: Set firewalld default zone
-  ansible.builtin.command: firewall-cmd --set-default-zone={{ node_firewalld_default_zone }}
+  ansible.builtin.command: "firewall-cmd --set-default-zone={{ node_firewalld_default_zone }}"
   changed_when: true
   when: node_firewalld_current_zone.stdout != node_firewalld_default_zone
 

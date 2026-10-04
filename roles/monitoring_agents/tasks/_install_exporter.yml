@@ -12,11 +12,11 @@
 # on the unarchive, which would skip re-installing when the pin moves but the
 # path stays the same.
 
-- name: Select the pinned release for {{ exporter_name }}
+- name: "Select the pinned release for {{ exporter_name }}"
   ansible.builtin.set_fact:
     monitoring_agents_exporter: "{{ monitoring_agents_exporter_releases[exporter_name] }}"
 
-- name: Check the installed version of {{ exporter_name }}
+- name: "Check the installed version of {{ exporter_name }}"
   ansible.builtin.command:
     cmd: "{{ monitoring_agents_exporter_bin_dir }}/{{ exporter_name }} --version"
   register: monitoring_agents_exporter_installed
@@ -25,7 +25,7 @@
 
 # Exporter versions may be reported on stdout or stderr. Concatenate both
 # rather than guessing per binary.
-- name: Decide whether to install {{ exporter_name }}
+- name: "Decide whether to install {{ exporter_name }}"
   ansible.builtin.set_fact:
     monitoring_agents_exporter_needed: >-
       {{ monitoring_agents_exporter_installed.rc != 0
@@ -33,10 +33,10 @@
             (monitoring_agents_exporter_installed.stdout
              ~ monitoring_agents_exporter_installed.stderr) }}
 
-- name: Install {{ exporter_name }}
+- name: "Install {{ exporter_name }}"
   when: monitoring_agents_exporter_needed | bool
   block:
-    - name: Create a staging directory for {{ exporter_name }}
+    - name: "Create a staging directory for {{ exporter_name }}"
       ansible.builtin.tempfile:
         state: directory
         suffix: "-{{ exporter_name }}"
@@ -44,7 +44,7 @@
 
     # get_url verifies the checksum before the file is put in place, so a
     # corrupted or substituted artifact fails here rather than being installed.
-    - name: Download and verify the release tarball for {{ exporter_name }}
+    - name: "Download and verify the release tarball for {{ exporter_name }}"
       ansible.builtin.get_url:
         url: "{{ monitoring_agents_exporter.url }}"
         dest: "{{ monitoring_agents_exporter_stage.path }}/{{ monitoring_agents_exporter.asset }}"
@@ -52,7 +52,7 @@
         mode: "0640"
         timeout: "{{ monitoring_agents_exporter_download_timeout }}"
 
-    - name: Unpack the release tarball for {{ exporter_name }}
+    - name: "Unpack the release tarball for {{ exporter_name }}"
       ansible.builtin.unarchive:
         src: "{{ monitoring_agents_exporter_stage.path }}/{{ monitoring_agents_exporter.asset }}"
         dest: "{{ monitoring_agents_exporter_stage.path }}"
@@ -60,7 +60,7 @@
 
     # Most tarballs hold the binary in a single versioned top directory;
     # archive_member selects the binary directly for flat tarballs.
-    - name: Install the binary for {{ exporter_name }}
+    - name: "Install the binary for {{ exporter_name }}"
       ansible.builtin.copy:
         src: >-
           {{ monitoring_agents_exporter_stage.path }}/{{
@@ -75,7 +75,7 @@
       notify: "Restart {{ monitoring_agents_exporter_units[exporter_name] }}"
 
   always:
-    - name: Remove the staging directory for {{ exporter_name }}
+    - name: "Remove the staging directory for {{ exporter_name }}"
       ansible.builtin.file:
         path: "{{ monitoring_agents_exporter_stage.path }}"
         state: absent

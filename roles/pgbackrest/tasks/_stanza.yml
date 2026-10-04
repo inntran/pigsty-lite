@@ -25,7 +25,7 @@
 # has no stanza yet. stanza-create is safe to re-run against repo1.
 - name: Check whether the stanza exists in the S3 repository
   ansible.builtin.command:
-    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --repo=2 --output=json info
+    cmd: "pgbackrest --stanza={{ pgbackrest_stanza }} --repo=2 --output=json info"
   become: true
   become_user: "{{ pgbackrest_user }}"
   register: _pgbackrest_repo2_info
@@ -34,7 +34,7 @@
 
 - name: Create pgBackRest stanza
   ansible.builtin.command:
-    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --no-online stanza-create
+    cmd: "pgbackrest --stanza={{ pgbackrest_stanza }} --no-online stanza-create"
   become: true
   become_user: "{{ pgbackrest_user }}"
   when: >-

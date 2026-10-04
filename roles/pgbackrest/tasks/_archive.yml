@@ -46,7 +46,7 @@
 
 - name: Wait for archive_command to be active on every postgres node
   ansible.builtin.command:
-    cmd: psql -U {{ pgbackrest_user | default('postgres') }} -tAc "SHOW archive_command"
+    cmd: 'psql -U {{ pgbackrest_user | default(''postgres'') }} -tAc "SHOW archive_command"'
   become: true
   become_user: "{{ pgbackrest_user | default('postgres') }}"
   register: _pgbackrest_archive_cmd
@@ -70,7 +70,7 @@
 
 - name: Force initial WAL switch so archive.info is created
   ansible.builtin.command:
-    cmd: psql -U {{ pgbackrest_user | default('postgres') }} -tAc "SELECT pg_switch_wal()"
+    cmd: 'psql -U {{ pgbackrest_user | default(''postgres'') }} -tAc "SELECT pg_switch_wal()"'
   become: true
   become_user: "{{ pgbackrest_user | default('postgres') }}"
   delegate_to: >-
@@ -92,7 +92,7 @@
 
 - name: Check pgBackRest stanza configuration
   ansible.builtin.command:
-    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} check
+    cmd: "pgbackrest --stanza={{ pgbackrest_stanza }} check"
   become: true
   become_user: "{{ pgbackrest_user }}"
   changed_when: false

@@ -100,7 +100,7 @@
       changed_when: true
       register: switchover
 
-    - name: Wait for new leader to be {{ candidate_host }}
+    - name: "Wait for new leader to be {{ candidate_host }}"
       ansible.builtin.uri:
         url: "https://{{ ansible_facts['default_ipv4']['address'] }}:8008/cluster"
         validate_certs: false

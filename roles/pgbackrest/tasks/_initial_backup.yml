@@ -8,7 +8,7 @@
 
 - name: Inspect existing backups for the stanza
   ansible.builtin.command:
-    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --output=json info
+    cmd: "pgbackrest --stanza={{ pgbackrest_stanza }} --output=json info"
   become: true
   become_user: "{{ pgbackrest_user }}"
   delegate_to: "{{ groups['postgres'][0] }}"
@@ -17,7 +17,7 @@
 
 - name: Take initial full backup
   ansible.builtin.command:
-    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --type=full backup
+    cmd: "pgbackrest --stanza={{ pgbackrest_stanza }} --type=full backup"
   become: true
   become_user: "{{ pgbackrest_user }}"
   delegate_to: "{{ groups['postgres'][0] }}"
