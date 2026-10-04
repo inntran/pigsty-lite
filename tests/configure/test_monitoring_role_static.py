@@ -181,9 +181,9 @@ def test_agents_read_the_ca_from_a_readable_copy_not_the_pki_dir():
 
 
 def test_pgbouncer_exporter_dsn_points_at_pgbouncers_own_socket_dir():
-    """roles/pgbouncer puts the socket under /var/run/pgbouncer.
+    """roles/pgbouncer puts the socket under /run/pgbouncer.
 
-    PostgreSQL's socket directory (/var/run/postgresql) holds no pgBouncer
+    PostgreSQL's socket directory (/run/postgresql) holds no pgBouncer
     socket, so an exporter pointed there logs "connect: no such file or
     directory" every scrape and publishes pgbouncer_up 0 forever -- while
     still serving a healthy-looking /metrics.
@@ -192,41 +192,39 @@ def test_pgbouncer_exporter_dsn_points_at_pgbouncers_own_socket_dir():
     dsn = defaults["monitoring_agents_pgbouncer_exporter_dsn"]
 
     assert "pgbouncer_unix_socket_dir" in dsn
-    assert "/var/run/postgresql" not in dsn
+    assert "/run/postgresql" not in dsn
 
 
-def test_pgbouncer_exporter_password_never_reaches_the_systemd_unit():
-    """The pgBouncer console is scram-sha-256 even over the unix socket.
+def test_pgbouncer_exporter_logs_in_by_peer():
+    """The exporter reaches the pgBouncer console by peer, with no password.
 
-    The exporter therefore needs a password, but
-    `--pgBouncer.connectionString` is rendered into ExecStart of a 0644 unit
-    and shows up in /proc/<pid>/cmdline for every local user. The credential
-    goes in a 0600 pgpass file instead, the same reasoning the external_push
-    password files already follow.
+    Peer auth requires the requested user to equal the connecting OS user, so
+    the DSN user, the unit's User= and roles/pgbouncer's hba peer rule must all
+    be postgres_osdba, and pgBouncer must run with auth_type = hba.
     """
     unit = (ROOT / "roles/monitoring_agents/templates/pgbouncer-exporter.service.j2").read_text()
+    dsn = _load_yaml("roles/monitoring_agents/defaults/main.yml")[
+        "monitoring_agents_pgbouncer_exporter_dsn"
+    ]
 
-    assert "PGPASSFILE={{ monitoring_agents_pgbouncer_exporter_pgpass }}" in unit
+    assert "user={{ postgres_osdba | default('postgres') }}" in dsn
+    assert "password" not in dsn
+    assert "PGPASSFILE" not in unit
+    assert "password" not in unit
+    assert "User={{ postgres_osdba | default('postgres') }}" in unit
+    assert not (ROOT / "roles/monitoring_agents/templates/pgbouncer-exporter.pgpass.j2").exists()
 
-    exec_start = next(line for line in unit.splitlines() if line.startswith("ExecStart="))
-    assert "password" not in unit[unit.index(exec_start) :]
-
-    defaults = _load_yaml("roles/monitoring_agents/defaults/main.yml")
-    assert "password" not in defaults["monitoring_agents_pgbouncer_exporter_dsn"]
-
-    tasks = list(_walk_tasks(_load_yaml("roles/monitoring_agents/tasks/_exporters.yml")))
-    pgpass = next(
-        task for task in tasks if task.get("name") == "Render the pgbouncer_exporter pgpass file"
+    exporter_tasks = list(_walk_tasks(_load_yaml("roles/monitoring_agents/tasks/_exporters.yml")))
+    cleanup = next(
+        task
+        for task in exporter_tasks
+        if task.get("name") == "Remove the legacy pgbouncer_exporter pgpass file"
     )
 
-    assert pgpass["ansible.builtin.template"]["mode"] == "0600"
-    assert pgpass["no_log"] is True
-    assert pgpass["notify"] == "Restart pgbouncer-exporter"
-
-    # libpq matches a unix-socket connection on the socket directory, not on
-    # "localhost"; the wrong host field falls through to a password prompt.
-    pgpass_template = (
-        ROOT / "roles/monitoring_agents/templates/pgbouncer-exporter.pgpass.j2"
-    ).read_text()
-    record = pgpass_template.strip().splitlines()[-1]
-    assert record.startswith("{{ socket_dir }}:{{ port }}:pgbouncer:")
+    assert cleanup["ansible.builtin.file"]["state"] == "absent"
+    pgbouncer_defaults = _load_yaml("roles/pgbouncer/defaults/main.yml")
+    assert pgbouncer_defaults["pgbouncer_auth_type"] == "hba"
+    assert (
+        pgbouncer_defaults["pgbouncer_peer_console_user"]
+        == "{{ postgres_osdba | default('postgres') }}"
+    )

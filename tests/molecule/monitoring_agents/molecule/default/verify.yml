@@ -46,29 +46,26 @@
       delay: 3
       until: pgb_metrics.status == 200
 
-    # pgBouncer's admin console is scram-sha-256 even over the unix socket, so
-    # this is 0 unless the role handed the exporter the console credential.
+    # The exporter logs into the console by peer; check the socket path and
+    # roles/pgbouncer's HBA peer rule if this is 0.
     - name: Assert pgbouncer_exporter reached the pgBouncer console
       ansible.builtin.assert:
         that:
           - "'pgbouncer_up 1' in pgb_metrics.content"
         fail_msg: >-
           pgbouncer_exporter published pgbouncer_up 0 -- check the socket path
-          and the pgpass file it authenticates with
+          and roles/pgbouncer's HBA peer rule
 
     - name: Read the pgbouncer_exporter unit
       ansible.builtin.slurp:
         src: /etc/systemd/system/pgbouncer-exporter.service
       register: pgb_unit
 
-    # The unit is 0644 and ExecStart shows up in /proc/<pid>/cmdline, so the
-    # credential must come from the pgpass file, never the connection string.
-    - name: Assert the console password is not in the unit file
+    - name: Assert the unit does not set a pgpass file
       ansible.builtin.assert:
         that:
-          - "'superuser-test-pw' not in (pgb_unit.content | b64decode)"
-          - "'PGPASSFILE=' in (pgb_unit.content | b64decode)"
-        fail_msg: "pgbouncer_exporter's password is exposed in its systemd unit"
+          - "'PGPASSFILE=' not in (pgb_unit.content | b64decode)"
+        fail_msg: "pgbouncer_exporter systemd unit still sets PGPASSFILE"
 
     - name: Check pgbackrest_exporter answers on 9854
       ansible.builtin.uri:

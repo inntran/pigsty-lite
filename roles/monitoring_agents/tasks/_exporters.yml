@@ -49,32 +49,14 @@
     - pgbackrest_exporter
   when: inventory_hostname in groups.get('postgres', [])
 
-# pgbouncer_exporter is the only exporter that has to authenticate: the
-# pgBouncer admin console is scram-sha-256 even over the unix socket. See
-# monitoring_agents_pgbouncer_console_password in defaults/main.yml for why
-# the password goes in a pgpass file instead of the connection string.
-- name: Give pgbouncer_exporter the console credential
+# The exporter now logs in by peer; remove the superuser password earlier
+# releases stored in its pgpass file.
+- name: Remove the legacy pgbouncer_exporter pgpass file
+  ansible.builtin.file:
+    path: "{{ monitoring_agents_legacy_pgbouncer_exporter_pgpass }}"
+    state: absent
   when: inventory_hostname in groups.get('postgres', [])
-  block:
-    - name: Ensure the agent config directory exists
-      ansible.builtin.file:
-        path: "{{ monitoring_agents_secrets_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Render the pgbouncer_exporter pgpass file
-      # Owned by the unit's User= and 0600: libpq refuses a pgpass file that
-      # any other account can read.
-      ansible.builtin.template:
-        src: pgbouncer-exporter.pgpass.j2
-        dest: "{{ monitoring_agents_pgbouncer_exporter_pgpass }}"
-        owner: "{{ postgres_osdba | default('postgres') }}"
-        group: "{{ postgres_osdba | default('postgres') }}"
-        mode: "0600"
-      no_log: true
-      notify: Restart pgbouncer-exporter
+  notify: Restart pgbouncer-exporter
 
 - name: Render the PostgreSQL-side exporter systemd units
   ansible.builtin.template:

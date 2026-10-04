@@ -43,24 +43,15 @@ monitoring_agents_postgres_exporter_dsn: >-
 monitoring_agents_pgbouncer_exporter_dsn: >-
   host={{ pgbouncer_unix_socket_dir | default('/run/pgbouncer') }}
   port={{ pgbouncer_port | default(6432) }}
-  user={{ monitoring_agents_pgbouncer_console_user }}
+  user={{ postgres_osdba | default('postgres') }}
   dbname=pgbouncer sslmode=disable
-# The pgBouncer admin console is not peer-authenticated: roles/pgbouncer sets
-# auth_type = scram-sha-256, so even a local unix-socket connection from the
-# right OS user gets "fe_sendauth: no password supplied". The credential that
-# works is the one roles/pgbouncer writes into userlist.txt -- the Patroni
-# superuser -- which is also in pgbouncer_admin_users/pgbouncer_stats_users.
-monitoring_agents_pgbouncer_console_user: >-
-  {{ pgbouncer_auth_user | default(patroni_superuser | default('postgres')) }}
-monitoring_agents_pgbouncer_console_password: >-
-  {{ patroni_superuser_password
-     | mandatory('patroni_superuser_password not set; pgbouncer_exporter needs
-                  the pgBouncer console credential from roles/pgbouncer userlist') }}
-# The password reaches the exporter through a pgpass file, never through
-# --pgBouncer.connectionString: that flag lands in ExecStart of a 0644 unit
-# and in /proc/<pid>/cmdline, readable by every local user. Same reasoning as
-# the external_push password files below.
-monitoring_agents_pgbouncer_exporter_pgpass: "{{ monitoring_agents_secrets_dir }}/pgbouncer-exporter.pgpass"
+# The admin console is reached by peer over pgBouncer's unix socket through
+# roles/pgbouncer's hba rule (auth_type = hba, pgbouncer_peer_console_user).
+# Peer requires the DSN user to equal the unit's User=, so both are
+# postgres_osdba; no password is stored for the exporter.
+# Earlier releases wrote a pgpass file holding the Patroni superuser password;
+# it is removed on converge.
+monitoring_agents_legacy_pgbouncer_exporter_pgpass: "{{ monitoring_agents_pgbouncer_exporter_pgpass | default(monitoring_agents_secrets_dir ~ '/pgbouncer-exporter.pgpass') }}"
 monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }}"
 
 # vmagent (metrics scrape + remote_write)

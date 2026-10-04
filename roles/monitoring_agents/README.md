@@ -39,26 +39,18 @@ indistinguishable from a load balancer that has actually fallen over.
 
 ## Credentials the exporters need
 
-`pgbouncer_exporter` is the only exporter that authenticates.
-`roles/pgbouncer` sets `auth_type = scram-sha-256`, which applies to the
-admin console too — a local unix-socket connection from the right OS user
-still gets `fe_sendauth: no password supplied`. The working credential is
-the Patroni superuser, which `roles/pgbouncer` already writes into
-`userlist.txt` and lists in `pgbouncer_admin_users` / `pgbouncer_stats_users`.
+`pgbouncer_exporter` runs as `postgres_osdba` and connects as that same user
+over pgBouncer's Unix socket (`/run/pgbouncer`). `roles/pgbouncer`'s HBA file
+allows exactly `pgbouncer_peer_console_user` into the `pgbouncer` console by
+peer. For this to work, `pgbouncer_auth_type` must remain `hba` and
+`pgbouncer_peer_console_user` must equal `postgres_osdba` (the exporter's
+`User=`); otherwise `pgbouncer_up` is 0. No password is stored for the
+exporter. Converge removes the legacy pgpass file earlier releases wrote
+with the Patroni superuser password.
 
-It reaches the exporter through a pgpass file
-(`monitoring_agents_pgbouncer_exporter_pgpass`, `0600`, owned by the unit's
-`User=`), referenced from the unit as `Environment=PGPASSFILE=…` — never
-inside `--pgBouncer.connectionString`, which would put it in a `0644` unit
-file and in `/proc/<pid>/cmdline`. The pgpass `host` field is pgBouncer's
-*socket directory*, not `localhost`: that is what libpq matches a
-unix-socket connection against, and the wrong value falls through to a
-password prompt the exporter cannot answer.
-
-Note that the socket directory is pgBouncer's own
-(`pgbouncer_unix_socket_dir`, `/var/run/pgbouncer`), not PostgreSQL's.
-Pointing the exporter at `/var/run/postgresql` yields a healthy-looking
-`/metrics` endpoint publishing `pgbouncer_up 0` forever.
+The socket directory is pgBouncer's own, not PostgreSQL's. Pointing the
+exporter at `/run/postgresql` yields a healthy-looking `/metrics` endpoint
+publishing `pgbouncer_up 0` forever.
 
 ## The CA copy
 

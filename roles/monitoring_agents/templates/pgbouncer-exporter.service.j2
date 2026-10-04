@@ -7,9 +7,6 @@ Wants=network-online.target
 [Service]
 Type=simple
 User={{ postgres_osdba | default('postgres') }}
-{# The console password comes from the pgpass file, not from the connection
-   string: this unit is 0644 and ExecStart is visible in /proc/<pid>/cmdline. #}
-Environment=PGPASSFILE={{ monitoring_agents_pgbouncer_exporter_pgpass }}
 ExecStart=/usr/bin/pgbouncer_exporter \
   --web.listen-address={{ monitoring_agents_exporter_listen }}:{{ monitoring_agents_pgbouncer_exporter_port }} \
   --pgBouncer.connectionString="{{ monitoring_agents_pgbouncer_exporter_dsn }}"
