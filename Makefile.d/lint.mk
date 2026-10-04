@@ -1,11 +1,14 @@
 # Lint targets - included by top-level Makefile.
 
-.PHONY: lint lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml
+.PHONY: lint lint-yaml lint-jinja-quoting lint-ansible lint-python lint-markdown lint-shell lint-xml
 
-lint: lint-yaml lint-ansible lint-python lint-markdown lint-shell lint-xml test-configure
+lint: lint-yaml lint-jinja-quoting lint-ansible lint-python lint-markdown lint-shell lint-xml test-configure
 
 lint-yaml:
 	yamllint .
+
+lint-jinja-quoting:
+	python3 bin/check_yaml_jinja.py
 
 lint-ansible:
 	ansible-lint

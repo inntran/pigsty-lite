@@ -57,6 +57,9 @@ jobs:
       - name: yamllint
         run: yamllint .
 
+      - name: jinja quoting
+        run: python bin/check_yaml_jinja.py
+
       - name: ansible-lint
         run: ansible-lint
 
