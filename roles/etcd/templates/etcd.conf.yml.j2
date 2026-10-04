@@ -18,7 +18,9 @@ initial-cluster: {% for h in groups['etcd'] -%}
 {%- set peer_host = hv.etcd_advertise_address -%}
 {%- elif hv.ansible_host is defined -%}
 {%- set peer_host = hv.ansible_host -%}
-{%- elif hv.ansible_facts.default_ipv6 is defined -%}
+{#- Test the address, not the parent: a host with no IPv6 default route still
+    reports default_ipv6 as an empty dict, which `is defined` accepts. -#}
+{%- elif hv.ansible_facts.default_ipv6.address is defined -%}
 {%- set peer_host = hv.ansible_facts.default_ipv6.address -%}
 {%- else -%}
 {%- set peer_host = hv.ansible_facts.default_ipv4.address -%}
