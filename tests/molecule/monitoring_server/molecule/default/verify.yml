@@ -52,3 +52,15 @@
       register: avc
       changed_when: false
       failed_when: avc.rc == 0 and 'type=AVC' in avc.stdout
+
+    - name: List monitoring-server rich firewall rules
+      ansible.builtin.command:
+        cmd: firewall-cmd --zone=public --list-rich-rules
+      register: monitoring_server_fw_rules
+      changed_when: false
+
+    - name: Assert self-sourced monitoring-server rules are absent
+      ansible.builtin.assert:
+        that:
+          - "'service name=\"victoriametrics\"' not in monitoring_server_fw_rules.stdout"
+          - "'service name=\"victorialogs\"' not in monitoring_server_fw_rules.stdout"

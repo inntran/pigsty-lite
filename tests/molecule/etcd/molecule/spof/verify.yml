@@ -34,3 +34,15 @@
       ansible.builtin.assert:
         that:
           - "'is healthy' in etcd_health.stdout"
+
+    - name: List etcd rich firewall rules
+      ansible.builtin.command:
+        cmd: firewall-cmd --zone=public --list-rich-rules
+      register: etcd_fw_rules
+      changed_when: false
+
+    - name: Assert self-sourced etcd firewall rules are absent
+      ansible.builtin.assert:
+        that:
+          - "'service name=\"etcd-server\"' not in etcd_fw_rules.stdout"
+          - "'service name=\"etcd-client\"' not in etcd_fw_rules.stdout"

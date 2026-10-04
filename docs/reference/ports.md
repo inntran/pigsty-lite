@@ -115,3 +115,9 @@ service; peer-specific rules are restricted to the listed host groups.
 The roles do not manage the zone's pre-existing services. A stock EL10
 `public` zone also allows `cockpit` (9090) and `dhcpv6-client`; remove them
 by hand if the host does not need them.
+
+When the only source for an intra-cluster firewall rule is the service's own
+host, the rule is omitted because traffic to the host's own address uses
+loopback. This applies to etcd peer/client, monitoring-server, and
+node_exporter rules; the service bindings are unchanged. Patroni REST (8008)
+is opened only when `postgres` has more than one member.

@@ -5,7 +5,7 @@
       {{ (etcd_peer_firewall_sources | default([]))
          + [{'address': etcd_firewall_source_address,
              'family': ('ipv6' if ':' in (etcd_firewall_source_address | string) else 'ipv4')}] }}
-  loop: "{{ groups['etcd'] }}"
+  loop: "{{ groups['etcd'] | difference([inventory_hostname]) }}"
   vars:
     etcd_source_hostvars: "{{ hostvars[item] }}"
     etcd_firewall_source_address: >-
@@ -26,7 +26,7 @@
       {{ (etcd_client_firewall_sources | default([]))
          + [{'address': etcd_firewall_source_address,
              'family': ('ipv6' if ':' in (etcd_firewall_source_address | string) else 'ipv4')}] }}
-  loop: "{{ (groups.get('etcd', []) + groups.get('postgres', [])) | unique }}"
+  loop: "{{ (groups.get('etcd', []) + groups.get('postgres', [])) | unique | difference([inventory_hostname]) }}"
   vars:
     etcd_source_hostvars: "{{ hostvars[item] }}"
     etcd_firewall_source_address: >-
@@ -50,7 +50,7 @@
     state: enabled
     immediate: true
     zone: "{{ etcd_firewalld_zone }}"
-  loop: "{{ etcd_peer_firewall_sources | unique }}"
+  loop: "{{ (etcd_peer_firewall_sources | default([])) | unique }}"
 
 - name: Open etcd-client to postgres + etcd hosts
   ansible.posix.firewalld:
@@ -61,4 +61,4 @@
     state: enabled
     immediate: true
     zone: "{{ etcd_firewalld_zone }}"
-  loop: "{{ etcd_client_firewall_sources | unique }}"
+  loop: "{{ (etcd_client_firewall_sources | default([])) | unique }}"

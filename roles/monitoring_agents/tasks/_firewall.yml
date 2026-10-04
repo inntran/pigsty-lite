@@ -10,13 +10,17 @@
       address: >-
         {{ hostvars[monitoring_host].ansible_host
            | default(hostvars[monitoring_host].ansible_facts.default_ipv4.address) }}
-  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
 
 - name: Set the monitor source address family
   ansible.builtin.set_fact:
     monitoring_agents_monitor_family: >-
       {{ 'ipv6' if ':' in (monitoring_agents_monitor_source.address | string) else 'ipv4' }}
-  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
 
 - name: Open the built-in prometheus-node-exporter service to the monitor host
   ansible.posix.firewalld:
@@ -28,7 +32,9 @@
     state: enabled
     immediate: true
     zone: "{{ monitoring_agents_firewalld_zone }}"
-  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
 
 - name: Install the PG-side exporter firewalld service definitions
   ansible.builtin.copy:
@@ -43,12 +49,15 @@
     - pgbackrest-exporter
   when:
     - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
     - inventory_hostname in groups.get('postgres', [])
   notify: Reload firewalld
 
 - name: Flush handlers so firewalld reloads before service rules apply
   ansible.builtin.meta: flush_handlers
-  when: (monitoring_mode | default('self_hosted')) == 'self_hosted'
+  when:
+    - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
 
 - name: Open the PG-side exporter services to the monitor host
   ansible.posix.firewalld:
@@ -66,6 +75,7 @@
     - pgbackrest-exporter
   when:
     - (monitoring_mode | default('self_hosted')) == 'self_hosted'
+    - monitoring_host != inventory_hostname
     - inventory_hostname in groups.get('postgres', [])
 
 - name: Open external pull exporter_exporter endpoint to configured CIDRs

@@ -220,3 +220,27 @@
         url: "http://127.0.0.1:9100/metrics"
         method: GET
         status_code: [200]
+
+- name: Verify node_exporter firewall source
+  hosts: all
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: List node_exporter rich firewall rules
+      ansible.builtin.command:
+        cmd: firewall-cmd --zone=public --list-rich-rules
+      register: node_exporter_fw_rules
+      changed_when: false
+
+    - name: Assert the monitor host has no self-sourced node_exporter rule
+      ansible.builtin.assert:
+        that:
+          - "'service name=\"prometheus-node-exporter\"' not in node_exporter_fw_rules.stdout"
+      when: inventory_hostname == monitoring_host
+
+    - name: Assert other hosts allow the monitor source for node_exporter
+      ansible.builtin.assert:
+        that:
+          - "'service name=\"prometheus-node-exporter\"' in node_exporter_fw_rules.stdout"
+      when: inventory_hostname != monitoring_host

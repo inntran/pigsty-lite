@@ -62,6 +62,7 @@
     state: enabled
     immediate: true
     zone: "{{ patroni_firewalld_zone }}"
+  when: groups['postgres'] | length > 1
   tags: [patroni, firewall]
 
 # The rule's family must match the peer's address: firewalld never matches an

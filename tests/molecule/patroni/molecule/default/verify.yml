@@ -66,3 +66,14 @@
       ansible.builtin.assert:
         that:
           - "'1' in psql_probe.stdout"
+
+    - name: Check patroni-rest firewalld service is disabled
+      ansible.builtin.command: firewall-cmd --zone=public --query-service=patroni-rest
+      register: patroni_fw_query
+      changed_when: false
+      failed_when: false
+
+    - name: Assert patroni-rest firewalld service is disabled
+      ansible.builtin.assert:
+        that:
+          - patroni_fw_query.rc != 0 or 'no' in patroni_fw_query.stdout
