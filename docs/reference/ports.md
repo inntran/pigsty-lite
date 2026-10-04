@@ -75,7 +75,7 @@ flowchart LR
 | 8008 | tcp | Patroni REST (`patroni`) | `network_any_address` | any (service `patroni-rest`) | unconfined | `patroni_rest_port` |
 | 8428 | tcp | VictoriaMetrics vmsingle (`monitoring_server`, `monitor` host) | `network_any_address` | `postgres` and `monitor` hosts | unconfined | `vmsingle_port` |
 | 8429 | tcp | vmagent (`monitoring_agents`) | loopback | none | unconfined | `vmagent_port` |
-| 8432 | tcp | pgBackRest TLS server (`pgbackrest`) | all (`tls-server-address=*`) | `backup_server` ↔ `postgres` hosts (server mode admits `postgres` hosts; client mode admits `backup_server`) | unconfined | `pgbackrest_tls_port` |
+| 8432 | tcp | pgBackRest TLS server (`pgbackrest`) | all (`tls-server-address=*`) | `backup_server` ↔ `postgres` hosts (server mode admits `postgres` hosts; client mode admits `backup_server`); not opened in local mode (AIO) | unconfined | `pgbackrest_tls_port` |
 | 8880 | tcp | vmalert (`monitoring_server`) | loopback | none | unconfined | `vmalert_port` |
 | 9093 | tcp | Alertmanager (`monitoring_server`) | loopback | none | unconfined | `alertmanager_port` |
 | 9100 | tcp | node_exporter (`monitoring_agents`, every host) | self-hosted: `network_any_address`; external modes: loopback | self-hosted: monitor host only; external modes: none | unconfined | `node_exporter_port` |

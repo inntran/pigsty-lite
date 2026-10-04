@@ -302,6 +302,28 @@ See [docs/operations/lifecycle.md](lifecycle.md) for the full runbook.
 For major version upgrades (no playbook), see
 [docs/operations/major-upgrade.md](major-upgrade.md).
 
+## AIO (all-in-one)
+
+`profile: aio` puts PostgreSQL, Patroni, single-member etcd, pgBouncer, and
+pgBackRest on one `pg_primary` host. With `monitoring.mode: self_hosted`, the
+monitoring server also runs there. HAProxy and VIP are not deployed. AIO is a
+temporary dev/demo footprint, not for production.
+
+Patroni and etcd remain enabled so the deployment can move to SPOF or HA
+without rebuilding the database host. In AIO, the pgBackRest repo1 is local
+(`/var/lib/pgbackrest`), so it shares the host's disks and is lost with them.
+Set `backup.secondary_store` to enable S3 repo2; its credentials are the
+operator-supplied vault keys `vault_pgbackrest_s3_key` and
+`vault_pgbackrest_s3_key_secret`. Scheduled backups run once per configured
+repository; the deploy-time initial backup goes to repo1 only. Omitting the
+`backup:` block or setting `backup.enabled: false` skips the pgBackRest play
+in `site.yml`; it does not remove pgBackRest already deployed.
+
+Switchover, failover, and scale playbooks do not apply to AIO. To convert to
+SPOF, change `profile` to `spof`, add a `monitor` node, then run `make deploy`.
+Monitoring history and the local backup repository remain on the old host;
+they are not moved by the deployment.
+
 ## Moving existing databases in
 
 A fresh deployment is empty. If the data is coming from PostgreSQL servers

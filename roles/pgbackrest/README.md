@@ -1,11 +1,15 @@
 # pgbackrest
 
-Installs and configures pgBackRest. Two modes selected via `pgbackrest_mode`:
+Installs and configures pgBackRest. The `_pgbackrest.yml` playbook selects
+`pgbackrest_mode` from inventory membership:
 
 - `server` — the `backup_server` host. Runs `pgbackrest server` daemon, owns repo, creates stanza, installs backup timers, sets `archive_command` on each postgres node, connects to postgres nodes over TLS to pull WAL and run backups.
 - `client` — postgres node. Runs `pgbackrest server` daemon so the server can reach back to read PG data; points `repo1-host` at the server.
+- `local` — a postgres node that is also in `backup_server`. Keeps repo1 and the stanza on that host, creates the stanza, and installs backup timers without a TLS daemon or 8432 firewall rule.
 
-There is no single-host mode. See §1.1 of the main design doc.
+On `postgres`, the mode is `local` when the host is also in `backup_server`,
+otherwise `client`. A `backup_server` host outside `postgres` uses `server`.
+Local mode requires exactly one postgres host.
 
 ## Requirements
 
@@ -17,7 +21,7 @@ There is no single-host mode. See §1.1 of the main design doc.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `pgbackrest_mode` | _(required)_ | `server` or `client` |
+| `pgbackrest_mode` | _(required)_ | `server`, `client`, or `local`; selected from inventory by the playbook |
 | `pgbackrest_stanza` | `pigsty` | Stanza name |
 | `pgbackrest_repo_path` | `/var/lib/pgbackrest` | Repository path |
 | `pgbackrest_retention_full` | `4` | Number of full backups to retain |
@@ -29,8 +33,14 @@ There is no single-host mode. See §1.1 of the main design doc.
 
 ## S3 Secondary Repo
 
-Set `pgbackrest_s3_enabled: true` and supply vault-encrypted values for:
+Configure S3 in the response file's `backup.secondary_store` block. Its
+enabled flag and bucket, endpoint, region, and path populate the pgBackRest
+repo2 settings. Supply these operator-managed values in the Ansible vault:
 
-- `pgbackrest_s3_key`
-- `pgbackrest_s3_key_secret`
-- `pgbackrest_s3_bucket`, `pgbackrest_s3_endpoint`, `pgbackrest_s3_region`, `pgbackrest_s3_path`
+- `vault_pgbackrest_s3_key`
+- `vault_pgbackrest_s3_key_secret`
+
+Repo2 is configured on every host, including PostgreSQL hosts, because WAL
+`archive-push` runs there. Scheduled full and differential backups run once
+against repo1 and, when S3 is enabled, once against repo2. The deploy-time
+initial backup goes to repo1 only.

@@ -30,12 +30,12 @@ upstream release tarballs with sha256 verification.
 - The `postgres-exporter`, `pgbouncer-exporter`, `pgbackrest-exporter`
   custom firewalld services.
 
-## Scrape targets and the `spof` profile
+## Scrape targets and the `spof` / `aio` profiles
 
-`site.yml` skips the HAProxy play when `cluster_profile` is `spof`, so
-`vmagent-scrape.yml.j2` applies the same gate. Without it a single-node
-deployment carries a permanently-down `haproxy` target, which is
-indistinguishable from a load balancer that has actually fallen over.
+`site.yml` skips the HAProxy play when `cluster_profile` is `spof` or `aio`,
+so `vmagent-scrape.yml.j2` applies the same gate. Without it these deployments
+carry a permanently-down `haproxy` target, which is indistinguishable from a
+load balancer that has actually fallen over.
 
 ## Credentials the exporters need
 
