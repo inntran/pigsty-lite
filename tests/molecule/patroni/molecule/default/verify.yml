@@ -77,3 +77,13 @@
       ansible.builtin.assert:
         that:
           - patroni_fw_query.rc != 0 or 'no' in patroni_fw_query.stdout
+
+    - name: Read the postgres login shell PATH
+      ansible.builtin.command: su - postgres -c "printenv PATH"
+      register: postgres_login_path
+      changed_when: false
+
+    - name: Assert PGDG bin dir is first on the postgres PATH
+      ansible.builtin.assert:
+        that:
+          - (postgres_login_path.stdout.split(":") | first) == "/usr/pgsql-18/bin"

@@ -29,6 +29,18 @@
   ansible.builtin.import_tasks: _filesystem.yml
   tags: [postgres, install]
 
+- name: Put PGDG binaries first on the postgres user PATH
+  ansible.builtin.copy:
+    # PGDG .bash_profile sources this file; RPM upgrades never overwrite it.
+    dest: /var/lib/pgsql/.pgsql_profile
+    content: |
+      # Managed by Ansible (postgres role).
+      export PATH="{{ postgres_bin_dir }}:$PATH"
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: "0644"
+  tags: [postgres, install]
+
 - name: Allow custom postgres port via SELinux
   community.general.seport:
     ports: "{{ postgres_port }}"

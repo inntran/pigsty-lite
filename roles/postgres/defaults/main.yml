@@ -7,6 +7,8 @@
 postgres_pkg_server: "postgresql{{ postgres_version }}-server"
 postgres_pkg_contrib: "postgresql{{ postgres_version }}-contrib"
 postgres_pkg_libs: "postgresql{{ postgres_version }}"
+# PGDG binary directory, prepended to the postgres OS user PATH.
+postgres_bin_dir: "/usr/pgsql-{{ postgres_version }}/bin"
 postgres_support_packages:
   - python3-libselinux
   - policycoreutils-python-utils

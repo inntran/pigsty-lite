@@ -25,6 +25,13 @@ extension file packages such as `pgvector_{{ postgres_version }}`. This only
 makes extension files available; SQL extension creation is separate and remains
 driven by `postgres_extensions` in the provision role.
 
+## Shell environment
+
+The role writes `/var/lib/pgsql/.pgsql_profile`, which the PGDG
+`.bash_profile` sources, so `postgres_bin_dir` (`/usr/pgsql-<ver>/bin`) comes
+first on the `postgres` user's `PATH`. Only login shells (`su - postgres`,
+`sudo -iu postgres`) read it. The role owns the whole file.
+
 ## SELinux
 
 Vendor data dir `/var/lib/pgsql/<ver>/data` carries `postgresql_db_t` by
