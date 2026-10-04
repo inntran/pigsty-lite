@@ -13,6 +13,7 @@ by `./bin/snapshot_pgdg_packages.py --check`.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 import yaml
@@ -25,7 +26,15 @@ SCRIPT = ROOT / "bin/snapshot_pgdg_packages.py"
 def _script():
     spec = importlib.util.spec_from_file_location("snapshot_pgdg_packages", SCRIPT)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # The script declares `from __future__ import annotations` dataclasses, and
+    # dataclasses resolves those string annotations through sys.modules. A module
+    # that is only exec'd, never registered, has no entry there and the decorator
+    # raises AttributeError on Python 3.12+.
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        del sys.modules[spec.name]
     return module
 
 
