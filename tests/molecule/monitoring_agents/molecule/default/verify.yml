@@ -10,6 +10,7 @@
         url: "http://127.0.0.1:9100/metrics"
         method: GET
         status_code: [200]
+        return_content: true
       register: node_metrics
       retries: 10
       delay: 3
@@ -20,32 +21,61 @@
         url: "http://127.0.0.1:9187/metrics"
         method: GET
         status_code: [200]
+        return_content: true
       register: pg_metrics
       retries: 10
       delay: 3
       until: pg_metrics.status == 200
 
-    - name: Assert postgres_exporter exposes pg_up
+    # The value, not just the metric name: an exporter that cannot reach its
+    # target still serves /metrics and still publishes the _up series, as 0.
+    - name: Assert postgres_exporter reached PostgreSQL
       ansible.builtin.assert:
         that:
-          - "'pg_up' in pg_metrics.content"
-        fail_msg: "postgres_exporter did not expose pg_up"
+          - "'pg_up 1' in pg_metrics.content"
+        fail_msg: "postgres_exporter published pg_up 0 -- it cannot reach PostgreSQL"
 
     - name: Check pgbouncer_exporter answers on 9127
       ansible.builtin.uri:
         url: "http://127.0.0.1:9127/metrics"
         method: GET
         status_code: [200]
+        return_content: true
       register: pgb_metrics
       retries: 10
       delay: 3
       until: pgb_metrics.status == 200
+
+    # pgBouncer's admin console is scram-sha-256 even over the unix socket, so
+    # this is 0 unless the role handed the exporter the console credential.
+    - name: Assert pgbouncer_exporter reached the pgBouncer console
+      ansible.builtin.assert:
+        that:
+          - "'pgbouncer_up 1' in pgb_metrics.content"
+        fail_msg: >-
+          pgbouncer_exporter published pgbouncer_up 0 -- check the socket path
+          and the pgpass file it authenticates with
+
+    - name: Read the pgbouncer_exporter unit
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/pgbouncer-exporter.service
+      register: pgb_unit
+
+    # The unit is 0644 and ExecStart shows up in /proc/<pid>/cmdline, so the
+    # credential must come from the pgpass file, never the connection string.
+    - name: Assert the console password is not in the unit file
+      ansible.builtin.assert:
+        that:
+          - "'superuser-test-pw' not in (pgb_unit.content | b64decode)"
+          - "'PGPASSFILE=' in (pgb_unit.content | b64decode)"
+        fail_msg: "pgbouncer_exporter's password is exposed in its systemd unit"
 
     - name: Check pgbackrest_exporter answers on 9854
       ansible.builtin.uri:
         url: "http://127.0.0.1:9854/metrics"
         method: GET
         status_code: [200]
+        return_content: true
       register: pgbr_metrics
       retries: 10
       delay: 3
@@ -58,23 +88,135 @@
       changed_when: false
       failed_when: vmagent_listen.stdout | length == 0
 
-- name: Verify metrics arrived at the monitor host
+    # The agents run as vic_vm_agent/vic_vl_agent and cannot read
+    # /etc/pki/pigsty, so the role publishes a readable copy of the CA. If
+    # that regresses, vmagent fails to build its TLS transport and silently
+    # buffers everything instead of shipping it -- the exporters above all
+    # still look healthy.
+    - name: Assert vmagent can read the CA it was pointed at
+      ansible.builtin.command:
+        cmd: runuser -u vic_vm_agent -- head -c 1 /etc/pigsty/monitoring/ca.crt
+      changed_when: false
+
+    - name: Assert every exporter target is up in vmagent
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8429/api/v1/targets"
+        method: GET
+        return_content: true
+      register: vmagent_targets
+      retries: 20
+      delay: 6
+      until: >-
+        vmagent_targets.status == 200
+        and (
+          vmagent_targets.json.data.activeTargets
+          | selectattr('health', 'equalto', 'up')
+          | map(attribute='labels.job')
+          | list
+          | unique
+          | sort
+        ) | intersect(['node', 'pgbackrest', 'pgbouncer', 'postgres'])
+          | length == 4
+
+    # spof does not deploy HAProxy (site.yml gates the play on the profile),
+    # so scraping it would park a permanently-down target in vmsingle.
+    - name: Assert spof does not scrape haproxy
+      ansible.builtin.assert:
+        that:
+          - >-
+            'haproxy' not in (
+              vmagent_targets.json.data.activeTargets
+              | map(attribute='labels.job') | list
+            )
+        fail_msg: "vmagent is scraping haproxy on a spof deployment"
+
+- name: Verify Grafana serves the metrics all four exporters produced
   hosts: monitor
   ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
   become: true
   gather_facts: false
+  vars:
+    grafana_api: "http://127.0.0.1:3000"
+    grafana_auth:
+      url_username: admin
+      url_password: grafana-test-pw
+      force_basic_auth: true
+    # One metric per exporter, chosen because the exporter is the only thing
+    # that could have produced it. `up{job=...}` would only prove vmagent
+    # reached the port.
+    exporter_probes:
+      - exporter: node_exporter
+        query: 'node_exporter_build_info{job="node"}'
+      - exporter: postgres_exporter
+        query: 'pg_up{job="postgres"}'
+      - exporter: pgbouncer_exporter
+        query: 'pgbouncer_up{job="pgbouncer"}'
+      - exporter: pgbackrest_exporter
+        query: 'pgbackrest_exporter_build_info{job="pgbackrest"}'
   tasks:
-    - name: Verify vmsingle reports the postgres job as up
+    - name: Wait for vmsingle to have the remote-written series
       ansible.builtin.uri:
         url: "http://127.0.0.1:8428/api/v1/query?query=up%7Bjob%3D%22postgres%22%7D"
         method: GET
         return_content: true
       register: vm_query
-      retries: 20
+      retries: 30
       delay: 6
       until: >-
         vm_query.status == 200
         and (vm_query.json.data.result | default([])) | length > 0
+
+    - name: Look up the VictoriaMetrics datasource Grafana provisioned
+      ansible.builtin.uri:
+        url: "{{ grafana_api }}/api/datasources/name/VictoriaMetrics"
+        method: GET
+        return_content: true
+      args: "{{ grafana_auth }}"
+      register: grafana_datasource
+      retries: 10
+      delay: 3
+      until: grafana_datasource.status == 200
+
+    - name: Assert the datasource uses the VictoriaMetrics plugin
+      ansible.builtin.assert:
+        that:
+          - grafana_datasource.json.type == 'victoriametrics-metrics-datasource'
+          - grafana_datasource.json.url == 'http://127.0.0.1:8428'
+        fail_msg: >-
+          Grafana's VictoriaMetrics datasource is not the provisioned one
+          ({{ grafana_datasource.json.type }} -> {{ grafana_datasource.json.url }})
+
+    # Through Grafana's datasource proxy, not straight to vmsingle: this is
+    # the path a dashboard panel takes, so it also covers the datasource
+    # provisioning and the plugin being installed and loadable.
+    - name: Query each exporter's metrics through the Grafana datasource proxy
+      ansible.builtin.uri:
+        url: >-
+          {{ grafana_api }}/api/datasources/proxy/uid/{{ grafana_datasource.json.uid }}/api/v1/query?query={{ item.query | urlencode }}
+        method: GET
+        return_content: true
+      args: "{{ grafana_auth }}"
+      register: grafana_probe
+      retries: 20
+      delay: 6
+      until: >-
+        grafana_probe.status == 200
+        and grafana_probe.json.status == 'success'
+        and (grafana_probe.json.data.result | default([])) | length > 0
+      loop: "{{ exporter_probes }}"
+      loop_control:
+        label: "{{ item.exporter }}: {{ item.query }}"
+
+    - name: Assert the series carry the cluster label vmagent attached
+      ansible.builtin.assert:
+        that:
+          - >-
+            item.json.data.result
+            | map(attribute='metric.cluster') | unique | list == ['pigsty-lite-test']
+        fail_msg: "{{ item.item.exporter }} series lost its cluster label"
+      loop: "{{ grafana_probe.results }}"
+      loop_control:
+        label: "{{ item.item.exporter }}"
 
     - name: Check node_exporter on the monitor host answers too
       ansible.builtin.uri:

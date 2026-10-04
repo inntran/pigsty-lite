@@ -1,7 +1,23 @@
 ---
 # Bring up the full base stack so the postgres node has PG + Patroni +
 # pgBouncer + pgBackRest for the exporters to scrape, and the monitor
-# host has the monitoring server for the agents to ship to.
+# host has the monitoring server for the agents to ship to and Grafana
+# reading from it.
+#
+# The podman inventory sets no `ansible_host`, which several templates reach
+# for through `hostvars[other_host]` (haproxy.cfg.j2 renders the Patroni
+# backends that way). Production always has it from the generated inventory,
+# so pin the advertise addresses to the container IPs first -- the same
+# pre_tasks hook every other data-plane scenario uses.
+- name: Pin advertise addresses to container IPs
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Set advertise addresses
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+
 - name: Bring up preflight
   ansible.builtin.import_playbook: ../../../../../playbooks/_preflight.yml
 - name: Bring up CA
@@ -16,9 +32,13 @@
   ansible.builtin.import_playbook: ../../../../../playbooks/_postgres_bootstrap.yml
 - name: Install pgbouncer
   ansible.builtin.import_playbook: ../../../../../playbooks/_pgbouncer.yml
-- name: Install haproxy
-  ansible.builtin.import_playbook: ../../../../../playbooks/_haproxy.yml
+# No haproxy: site.yml skips it on spof, and on a single node it cannot bind
+# 5433/5434 anyway -- PostgreSQL already owns 5432 on every address.
 - name: Install pgBackRest (server + client)
   ansible.builtin.import_playbook: ../../../../../playbooks/_pgbackrest.yml
 - name: Bring up the monitoring server
   ansible.builtin.import_playbook: ../../../../../playbooks/_monitoring_server.yml
+# Grafana reads from vmsingle, not from the agents, so it can be stood up
+# before converge. verify then queries it for the metrics converge shipped.
+- name: Bring up Grafana
+  ansible.builtin.import_playbook: ../../../../../playbooks/_grafana.yml

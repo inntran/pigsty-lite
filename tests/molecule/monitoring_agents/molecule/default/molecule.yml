@@ -2,17 +2,24 @@
 # Testing goal: verify the monitoring_agents role installs node/pg/pgbouncer/
 # pgbackrest exporters + vmagent + vlagent on a fully-stacked postgres node
 # and that the monitor host receives metrics/logs. Prepare imports the full
-# base stack (etcd + patroni + pgbouncer + haproxy + pgbackrest + monitoring
-# server) so every exporter has a real target to scrape.
+# base stack (etcd + patroni + pgbouncer + pgbackrest + monitoring server +
+# Grafana) so every exporter has a real target to scrape, and verify can
+# follow all four exporters the whole way to a Grafana datasource query.
+#
+# This is the SPOF topology: one infra host (monitor + backup store) and one
+# data host carrying etcd, PostgreSQL, Patroni and pgBouncer. No HAProxy --
+# site.yml skips it on spof, and on a single node it has nowhere to bind.
 driver:
   name: podman
 platforms:
   - name: pigsty-lite-monagt-default-server
-    image: localhost/molecule-base-data:latest
+    # infra, not data: the monitor host runs Alertmanager, nginx and Grafana,
+    # and only molecule-base-infra has those baked in.
+    image: localhost/molecule-base-infra:latest
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
-    volume_mounts:
+    volumes:
       - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
@@ -24,12 +31,14 @@ platforms:
     pre_build_image: true
     privileged: true
     command: /usr/sbin/init
-    volume_mounts:
+    volumes:
       - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities: [SYS_ADMIN]
     security_opts: ["label=disable"]
     systemd: always
-    groups: [postgres]
+    # etcd as well as postgres: patroni's _assert.yml fails the play outright
+    # when the etcd group is empty, and in SPOF the quorum is colocated here.
+    groups: [postgres, etcd]
     network: pigsty-lite-monagt-default
 provisioner:
   name: ansible
@@ -37,11 +46,30 @@ provisioner:
     group_vars:
       all:
         network_ip_version: ipv4
+        # Drives the haproxy gate in vmagent-scrape.yml.j2, the same way
+        # site.yml gates the HAProxy play.
+        cluster_profile: spof
         cluster_name: pigsty-lite-test
         cluster_domain: test.local
         pigsty_pki_dir: /etc/pki/pigsty
         node_sysctl_apply: false
         postgres_version: 18
+        # Production gets backup_stanza from group_vars/all/main.yml, which
+        # molecule does not load. Without it the two roles fall back to
+        # different defaults -- 'pigsty' for pgbackrest, cluster_name for
+        # monitoring_agents -- and pgbackrest_exporter reports on a stanza
+        # that was never created.
+        backup_stanza: pigsty-lite-test
+        # Consumed by the monitoring_server and grafana roles that prepare
+        # imports; neither has a usable default for these.
+        vmsingle_retention: 7d
+        vlsingle_retention: 7d
+        alertmanager_receivers: []
+        grafana_admin_password: grafana-test-pw
+        # Also from group_vars/all/main.yml, where it is derived as
+        # groups['monitor'][0]. monitoring_agents uses it to find the
+        # remote_write endpoint and the firewall source.
+        monitoring_host: pigsty-lite-monagt-default-server
       etcd:
         etcd_initial_cluster_state: new
       postgres:
@@ -56,6 +84,7 @@ provisioner:
       pigsty-lite-monagt-default-server: {}
       pigsty-lite-monagt-default-2:
         postgres_role: primary
+        etcd_seq: 1
 verifier:
   name: ansible
 scenario:

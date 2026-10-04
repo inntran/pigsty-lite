@@ -3,5 +3,16 @@
   hosts: all
   become: true
   gather_facts: true
+  vars:
+    # The role's defaults build these from `hostvars[monitoring_host].ansible_host`,
+    # which the podman inventory does not set (unlike a generated production
+    # inventory). Converge is a separate ansible-playbook run, so prepare's
+    # set_fact is gone by now -- point the agents at the monitor's container
+    # IP directly. `_firewall.yml` needs no help: it already falls back to
+    # the gathered default_ipv4 address.
+    monitor_address: >-
+      {{ hostvars[monitoring_host]['ansible_facts']['default_ipv4']['address'] }}
+    monitoring_agents_vmagent_remote_write_url: "http://{{ monitor_address }}:8428/api/v1/write"
+    monitoring_agents_vlagent_remote_write_url: "http://{{ monitor_address }}:9428/insert/jsonline"
   roles:
     - role: monitoring_agents

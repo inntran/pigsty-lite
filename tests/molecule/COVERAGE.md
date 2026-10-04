@@ -47,7 +47,7 @@ can be run locally via `make test-role ROLE=<name>` but do not run in CI.
 | `backup / ha`             | ✓  | `pgbackrest`                  | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `haproxy / ha`            | ✓  | `haproxy`                     | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`                                  |
 | `nginx_proxy / default`   | ✓  | `nginx_proxy`                 | `preflight`, `ca`, `repos`, `node`, `certs`, `monitoring_server`, `grafana`                                 |
-| `monitoring_agents / default` |    | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `haproxy`, `pgbackrest`, `monitoring_server` |
+| `monitoring_agents / default` |    | `monitoring_agents`          | `preflight`, `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`, `pgbouncer`, `pgbackrest`, `monitoring_server`, `grafana` |
 | `monitoring_agents / external_push` | ✓ | `monitoring_agents`    | `preflight`, `ca`, `repos`, `node`, `certs`                                                                 |
 | `preflight / default`     |    | `preflight`                   | —                                                                                                           |
 | `repos / default`         |    | `repos`                       | —                                                                                                           |
@@ -98,11 +98,11 @@ breakage is still caught, but the role's own `verify.yml` does not run).
 | `postgres`         | `postgres/default`                                     | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
 | `patroni`          | `patroni/spof`, `patroni/ha`                           | prepare of `cluster_ops/default`, `backup/ha`, `haproxy/ha`, `monitoring_agents/default` |
 | `pgbouncer`        | `pgbouncer/default`                                    | prepare of `haproxy/ha`, `monitoring_agents/default`             |
-| `haproxy`          | `haproxy/default`, `haproxy/ha`                        | ✓ converge: `haproxy/ha`; prepare of `monitoring_agents/default` |
+| `haproxy`          | `haproxy/default`, `haproxy/ha`                        | ✓ converge: `haproxy/ha`                                         |
 | `provision`        | `provision/default`, `provision/ha`                    | not in CI                                                        |
 | `pgbackrest`       | `backup/default`, `backup/ha`                          | ✓ converge: `backup/ha`; prepare of `monitoring_agents/default`  |
 | `cluster_ops`      | `cluster_ops/default`                                  | ✓ converge: `cluster_ops/default`                                |
-| `grafana`          | `grafana/default`                                      | prepare of `nginx_proxy/default`                                 |
+| `grafana`          | `grafana/default`, `monitoring_agents/default`†        | prepare of `nginx_proxy/default`, `monitoring_agents/default`    |
 | `monitoring_server`| `monitoring_server/default`                            | prepare of `nginx_proxy/default`, `monitoring_agents/default`    |
 | `monitoring_agents`| `monitoring_agents/default`                            | not in CI                                                        |
 | `nginx_proxy`      | `nginx_proxy/default`                                  | ✓ converge: `nginx_proxy/default`                                |
@@ -138,11 +138,27 @@ exporter.
 
 `external_pull` should now converge end to end.
 
-`default` remains blocked, but on an unrelated pre-existing bug rather than
-packaging: its `molecule.yml` places hosts in `monitor`/`backup_server` and
-`postgres` but none in `etcd`, so `prepare` fails at `patroni : Fail if etcd
-group is empty` before the role under test ever runs. Compare `backup/ha`,
-which uses `groups: [etcd, postgres]`. Fixing that is a separate change.
+`default` was separately blocked on a scenario bug rather than packaging: its
+`molecule.yml` placed hosts in `monitor`/`backup_server` and `postgres` but
+none in `etcd`, so `prepare` failed at `patroni : Fail if etcd group is empty`
+before the role under test ever ran. That is fixed — the data host is now
+`groups: [postgres, etcd]`, matching the SPOF topology where the single etcd
+member is colocated with PostgreSQL.
+
+Three other things had to change to get it running, all of them worth knowing
+if you touch the scenario:
+
+- The monitor host runs on `molecule-base-infra`, not `molecule-base-data`.
+  Alertmanager, nginx and Grafana are only baked into the infra image.
+- `prepare` now also imports `_grafana.yml`. Grafana reads from vmsingle
+  rather than from the agents, so it can be stood up before converge; verify
+  then queries it for the metrics converge shipped.
+- Several vars that production gets from `inventory/group_vars/` — which
+  molecule does not load — are declared inline: `backup_stanza`,
+  `haproxy_stats_password`, the retention settings and
+  `grafana_admin_password`. `backup_stanza` matters most: without it
+  `roles/pgbackrest` and `roles/monitoring_agents` fall back to *different*
+  defaults and pgbackrest_exporter reports on a stanza that was never created.
 
 `monitoring_agents/external_push` does run in CI. It covers the path where the
 role handles secrets: remote_write credentials are staged as root-owned `0640`
@@ -170,3 +186,8 @@ authenticated successfully rather than silently failing.
   vmagent_version:         v1.143.0
   vlagent_version:         v1.50.0
   ```
+
+† `monitoring_agents/default` asserts the Grafana end of the pipeline: that
+the provisioned VictoriaMetrics datasource resolves and that a query through
+Grafana's datasource proxy returns a series from each of the four exporters.
+It does not assert the rest of the `grafana` role's outputs.
