@@ -131,6 +131,12 @@ def test_preload_libraries_default_to_pg_stat_statements():
     assert "max_locks_per_transaction" not in parameters
 
 
+def test_unix_socket_directories():
+    parameters = _render_patroni_config()["postgresql"]["parameters"]
+
+    assert parameters["unix_socket_directories"] == "/run/postgresql"
+
+
 def test_preload_libraries_merge_in_order_and_add_companions():
     parameters = _render_patroni_config(preload_prepend=["citus"], preload_append=["timescaledb"])[
         "postgresql"

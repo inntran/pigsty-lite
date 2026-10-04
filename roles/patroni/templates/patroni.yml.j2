@@ -112,6 +112,7 @@ postgresql:
     ssl_cert_file: {{ patroni_cert_file | to_json }}
     ssl_key_file: {{ patroni_key_file | to_json }}
     ssl_ca_file: {{ patroni_trusted_ca_file | to_json }}
+    unix_socket_directories: "/run/postgresql"
 {% set ns = namespace(params={}) %}
 {% set tune_path = role_path ~ '/files/tuning/' ~ patroni_tune_profile ~ '.conf' %}
 {% for line in (lookup('file', tune_path)).splitlines() %}
