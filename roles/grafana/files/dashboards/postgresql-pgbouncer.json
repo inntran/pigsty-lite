@@ -1,0 +1,4075 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "author": "Ruohang Feng (rh@vonng.com)",
+  "description": "Adapted from Pigsty pgsql/pgsql-pgbouncer.json @745a4ea (Apache-2.0) for pigsty-lite native metrics.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "license": "https://pigsty.io/docs/about/license/",
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 128,
+      "title": "QPS / Query RT",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      }
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "15m"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5m"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1m"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 3
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 69,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m] offset 1d))",
+          "legendFormat": "{{instance}} (1d ago)",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "C",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m] offset 2d))",
+          "legendFormat": "{{instance}} (2d ago)",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS Seasonality",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "semi-dark-blue",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 51,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "light-blue",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 70,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_sql_transactions_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Average Queries per Xact",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "semi-dark-blue",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 51,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "light-blue",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 98,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / on (cluster, instance) sum by (cluster, instance) (rate(pg_stat_database_xact_commit{cluster=~\"$cluster\",instance=~\"$instance\"}[1m]))",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Average Queries per Commit",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "pgBouncer Queries per second according to last 1m, 5m, 15m",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "15m"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5m"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1m"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 3
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 66,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "mean",
+            "min",
+            "max",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "1m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "5m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "C",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[15m]))",
+          "legendFormat": "15m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "pgBouncer query average response time in last 1m, 5m, 15m",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "15m"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5m"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1m"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 3
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 68,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "mean",
+            "min",
+            "max",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "1m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "5m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "C",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[15m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[15m]))",
+          "legendFormat": "15m",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "RT",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#346f36cc",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "hidden",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 33,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "QPS Divergence"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 62,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "(avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[5m:]) / stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[5m:])) ^ 2",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS Divergence",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#f79f64",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "hidden",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 35,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RT Divergence"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 64,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "(avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[5m:]) / stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[5m:])) ^ 2",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "RT Divergence",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "QPS"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(50, 117, 217, 0.4)",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "linear"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "µ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(36, 41, 46, 0.66)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "+σ"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "-σ"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(150, 217, 141, 0.8)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "-σ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "+3σ"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "-3σ"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(255, 179, 87, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "-3σ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 56,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "E",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "QPS",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "F",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "Mean",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "C",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) + stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "+1σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "D",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) - stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "-1σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "B",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) + 3 * stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "+3σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) - 3 * stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "-3σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS Distribution",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "v"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(50, 117, 217, 0.5)",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "linear"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "µ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    15,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(36, 41, 46, 0.66)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "+σ"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "-σ"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(85, 166, 75, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "-σ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "+3σ"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "-3σ"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(255, 179, 87, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "-3σ"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "id": 59,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "E",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "Query RT",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "F",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "Mean",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "C",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) + stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "+1σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "D",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) - stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "-1σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "B",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) + 3 * stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "+3σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "avg_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:]) - 3 * stddev_over_time((sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])))[15m:])",
+          "legendFormat": "-3σ",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "RT Distribution",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 42,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "id": 80,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance, database) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "{{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "{{instance}} total",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS by Database",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "id": 81,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "{{cluster}} total",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "QPS by Instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "PostgreSQL Database for ${__field.labels.database}",
+                    "url": "/d/postgresql-database?var-cluster=${__field.labels.cluster}&var-instance=${__field.labels.instance}&var-datname=${__field.labels.database}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "id": 100,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "min",
+            "max",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "{{instance}} total",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance, database) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance, database) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "{{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Query RT by Database",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 21
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.gradientMode",
+                "value": "hue"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "PostgreSQL Cluster for ${__field.labels.cluster}",
+                    "url": "/d/postgresql-instance?var-cluster=${__field.labels.cluster}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "PostgreSQL Instance for ${__field.labels.instance}",
+                    "url": "/d/postgresql-instance?var-cluster=${__field.labels.cluster}&var-instance=${__field.labels.instance}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
+      "id": 102,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "min",
+            "max",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "A",
+          "expr": "sum by (cluster) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "{{cluster}} total",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "refId": "B",
+          "expr": "sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_duration_seconds_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m])) / sum by (cluster, instance) (rate(pgbouncer_stats_totals_queries_pooled_total{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}[1m]))",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Query RT by Instance",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "id": 129,
+      "title": "Session",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      }
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 1,
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 2,
+            "pointSize": 2,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 0.1
+              },
+              {
+                "color": "#fcdb72",
+                "value": 0.3
+              },
+              {
+                "color": "#f79f64",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              },
+              {
+                "color": "#b783af",
+                "value": 0.9
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
+      "id": 114,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_databases_current_connections{cluster=~\"$cluster\",instance=~\"$instance\",name!=\"pgbouncer\"} / pgbouncer_databases_pool_size{cluster=~\"$cluster\",instance=~\"$instance\",name!=\"pgbouncer\"}",
+          "legendFormat": "{{name}} / {{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "pgBouncer Connection Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "New Conn Rate/s in last Minute: Number of assignment for server assigned to client",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 65,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(200, 200, 200, 0.3)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tested"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f79f64",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Login"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "servers"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3d668ffc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Clients"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f5a773fa",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "id": 122,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "exemplar": false,
+          "interval": "",
+          "range": true,
+          "refId": "A",
+          "expr": "-pgbouncer_pools_server_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"} - pgbouncer_pools_server_idle_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"} - pgbouncer_pools_server_used_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"} - pgbouncer_pools_server_testing_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"} - pgbouncer_pools_server_login_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "{{database}} / {{user}} (servers)",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "editorMode": "code",
+          "exemplar": false,
+          "interval": "",
+          "range": true,
+          "refId": "B",
+          "expr": "pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"} + pgbouncer_pools_client_waiting_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "{{database}} / {{user}} (clients)",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "pgBouncer Servers & Clients",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 0.004,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              },
+              {
+                "color": "purple",
+                "value": 1
+              },
+              {
+                "color": "text",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "id": 115,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_pools_client_maxwait_seconds{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "{{database}} / {{user}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Max Wait",
+      "type": "timeseries",
+      "description": "Age in seconds of the oldest client waiting for a server."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(200, 200, 200, 0.3)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tested"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f79f64",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Login"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 66
+      },
+      "id": 116,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_pools_server_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Active",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "B",
+          "expr": "pgbouncer_pools_server_used_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Used",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "C",
+          "expr": "pgbouncer_pools_server_idle_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Idle",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "D",
+          "expr": "pgbouncer_pools_server_testing_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Testing",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "E",
+          "expr": "pgbouncer_pools_server_login_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Login",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "pgBouncer Server State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "id": 117,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Active",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        },
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "B",
+          "expr": "pgbouncer_pools_client_waiting_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "Waiting",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "pgBouncer Client State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(200, 200, 200, 0.3)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tested"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f79f64",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Login"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "id": 118,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "sum by (cluster, instance, database) (pgbouncer_pools_server_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "legendFormat": "{{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Active Server by Database",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(200, 200, 200, 0.3)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tested"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f79f64",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Login"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "id": 119,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "max by (cluster, instance, database) (pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "legendFormat": "{{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Active Clients by Database",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 90
+      },
+      "id": 130,
+      "title": "Pool",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      }
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/\\[statement\\].*/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/\\[transaction\\].*/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/\\[session\\].*/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 91
+      },
+      "id": 109,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\"}",
+          "legendFormat": "{{database}} / {{user}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Active Clients",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(128, 128, 128, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 91
+      },
+      "id": 110,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "sum by (cluster, instance, user) (pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "legendFormat": "{{user}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Clients by User",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(128, 128, 128, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 99
+      },
+      "id": 111,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}",
+          "legendFormat": "{{database}} / {{user}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Clients by Pool",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 71,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "idle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(128, 128, 128, 0.5)",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 99
+      },
+      "id": 112,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "exemplar": false,
+          "interval": "",
+          "refId": "A",
+          "expr": "sum by (cluster, instance, database) (pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "legendFormat": "{{database}}",
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          }
+        }
+      ],
+      "title": "Clients by Database",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [
+    "postgresql"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "VictoriaMetrics"
+        },
+        "query": "label_values(up{job=\"pgbouncer\"}, cluster)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "VictoriaMetrics"
+        },
+        "query": "label_values(up{job=\"pgbouncer\",cluster=~\"$cluster\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "PostgreSQL pgBouncer",
+  "uid": "postgresql-pgbouncer",
+  "version": 1
+}

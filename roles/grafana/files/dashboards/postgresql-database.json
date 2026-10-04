@@ -1,0 +1,4083 @@
+{
+  "id": null,
+  "uid": "postgresql-database",
+  "title": "PostgreSQL Database",
+  "description": "Adapted from Pigsty pgsql/pgsql-database.json @745a4ea (Apache-2.0) for pigsty-lite native metrics.",
+  "tags": [
+    "postgresql"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "VictoriaMetrics"
+        },
+        "query": "label_values(up{job=\"postgres\"}, cluster)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "VictoriaMetrics"
+        },
+        "query": "label_values(up{job=\"postgres\",cluster=~\"$cluster\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "datname",
+        "label": "Database",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "VictoriaMetrics"
+        },
+        "query": "label_values(pg_stat_database_numbackends{cluster=~\"$cluster\",instance=~\"$instance\"}, datname)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 148,
+      "title": "Overview",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 32
+              },
+              {
+                "color": "#f79f64",
+                "value": 32000
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 0,
+        "y": 1
+      },
+      "id": 46,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_xact_commit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "legendFormat": "Commit",
+          "refId": "A"
+        }
+      ],
+      "title": "Transactions committed / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 4
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 2,
+        "y": 1
+      },
+      "id": 57,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_xact_rollback{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "legendFormat": "Rollback",
+          "refId": "A"
+        }
+      ],
+      "title": "Transactions rolled back / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 4
+              },
+              {
+                "color": "#b783af",
+                "value": 8
+              },
+              {
+                "color": "text",
+                "value": 16
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 4,
+        "y": 1
+      },
+      "id": 89,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum(pg_stat_activity_count{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\",state=~\"idle in.*\"})",
+          "interval": "",
+          "legendFormat": "Idle in transaction",
+          "refId": "A"
+        }
+      ],
+      "title": "Idle-in-transaction sessions",
+      "type": "stat",
+      "description": "Legitimately empty when no session is idle in transaction."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 1000000000
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1000000000000
+              },
+              {
+                "color": "#f79f64",
+                "value": 10000000000000
+              }
+            ]
+          },
+          "unit": "decbytes"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 6,
+        "y": 1
+      },
+      "id": 49,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum(pg_database_size_bytes{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"})",
+          "interval": "",
+          "legendFormat": "Size",
+          "refId": "A"
+        }
+      ],
+      "title": "Database size",
+      "type": "stat",
+      "description": "No; database-size samples are expected for selected databases."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 1000000000
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1000000000000
+              },
+              {
+                "color": "#f79f64",
+                "value": 10000000000000
+              }
+            ]
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 8,
+        "y": 1
+      },
+      "id": 83,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum by (datname) (rate(pg_stat_database_temp_bytes{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[5m]))",
+          "interval": "",
+          "legendFormat": "Temporary bytes / s",
+          "refId": "A"
+        }
+      ],
+      "title": "Temporary data written / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 4
+              },
+              {
+                "color": "#fcdb72",
+                "value": 20
+              },
+              {
+                "color": "#f79f64",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 80
+              },
+              {
+                "color": "#b783af",
+                "value": 100
+              },
+              {
+                "color": "text",
+                "value": 400
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 10,
+        "y": 1
+      },
+      "id": 64,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}",
+          "interval": "",
+          "legendFormat": "Sessions",
+          "refId": "A"
+        }
+      ],
+      "title": "Database sessions",
+      "type": "stat",
+      "description": "No; PostgreSQL reports each selected database."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 0.1
+              },
+              {
+                "color": "#fcdb72",
+                "value": 0.3
+              },
+              {
+                "color": "#f79f64",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              },
+              {
+                "color": "#b783af",
+                "value": 0.9
+              },
+              {
+                "color": "text",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 12,
+        "y": 1
+      },
+      "id": 93,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} / (pg_database_connection_limit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} > 0)",
+          "interval": "",
+          "legendFormat": "Connection usage",
+          "refId": "A"
+        }
+      ],
+      "title": "Connection limit usage",
+      "type": "stat",
+      "description": "The source formula divides backends by the database connection limit; an unlimited limit (-1) yields a negative percentage."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 1,
+          "min": 0,
+          "noValue": "∅",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              },
+              {
+                "color": "#b783af",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              },
+              {
+                "color": "#f79f64",
+                "value": 0.95
+              },
+              {
+                "color": "#fcdb72",
+                "value": 0.99
+              },
+              {
+                "color": "#346f36cc",
+                "value": 0.999
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 14,
+        "y": 1
+      },
+      "id": 86,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_blks_hit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) / (rate(pg_stat_database_blks_hit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) + rate(pg_stat_database_blks_read{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]))",
+          "interval": "",
+          "legendFormat": "Hit ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Blocks hit ratio (1m)",
+      "type": "stat",
+      "description": "May be empty when the selected range has no block activity."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 16,
+        "y": 1
+      },
+      "id": 127,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_fetched{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "legendFormat": "Rows fetched / s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rows fetched / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 18,
+        "y": 1
+      },
+      "id": 128,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_inserted{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) + rate(pg_stat_database_tup_updated{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) + rate(pg_stat_database_tup_deleted{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "legendFormat": "Rows modified / s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rows modified / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 0.1
+              },
+              {
+                "color": "#fcdb72",
+                "value": 0.3
+              },
+              {
+                "color": "#f79f64",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              },
+              {
+                "color": "#b783af",
+                "value": 0.9
+              },
+              {
+                "color": "text",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 20,
+        "y": 1
+      },
+      "id": 129,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_active_time_seconds_total{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) / pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}",
+          "interval": "",
+          "legendFormat": "Active time / session",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Active time per session",
+      "type": "stat",
+      "description": "May be empty when the selected database has no connected sessions."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 4
+              },
+              {
+                "color": "#fcdb72",
+                "value": 20
+              },
+              {
+                "color": "#f79f64",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 80
+              },
+              {
+                "color": "#b783af",
+                "value": 100
+              },
+              {
+                "color": "text",
+                "value": 400
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 22,
+        "y": 1
+      },
+      "id": 130,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (mode) (pg_locks_count{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\",mode=\"accesssharelock\"})",
+          "interval": "",
+          "legendFormat": "Read locks",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Read locks",
+      "type": "stat",
+      "description": "Legitimately empty when there are no read locks."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 1
+              },
+              {
+                "color": "#fcdb72",
+                "value": 10
+              },
+              {
+                "color": "#f79f64",
+                "value": 20
+              },
+              {
+                "color": "#cc4637d9",
+                "value": 40
+              },
+              {
+                "color": "#b783af",
+                "value": 80
+              },
+              {
+                "color": "text",
+                "value": 160
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 0,
+        "y": 4
+      },
+      "id": 131,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (mode) (pg_locks_count{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\",mode=~\"rowsharelock|rowexclusivelock\"})",
+          "interval": "",
+          "legendFormat": "Write locks",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Write locks",
+      "type": "stat",
+      "description": "Legitimately empty when there are no write locks."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#cc4637d9",
+                "value": 1
+              },
+              {
+                "color": "#7771a4",
+                "value": 4
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 3,
+        "y": 4
+      },
+      "id": 132,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (mode) (pg_locks_count{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\",mode!~\"accesssharelock|rowsharelock|rowexclusivelock\"})",
+          "interval": "",
+          "legendFormat": "Exclusive locks",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Exclusive locks",
+      "type": "stat",
+      "description": "Legitimately empty when there are no exclusive locks."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 18,
+        "x": 6,
+        "y": 4
+      },
+      "id": 114,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum by (cluster,instance) (pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\"})",
+          "hide": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "Instance",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\"}",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{datname}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Session",
+      "type": "timeseries",
+      "description": "No; PostgreSQL reports session gauges for database and instance."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 113,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum by (cluster,instance) (rate(pg_stat_database_xact_commit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\"}[1m]))",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "Instance",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_xact_commit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\"}[1m])",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{datname}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Transactions",
+      "type": "timeseries",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 149,
+      "title": "pgBouncer",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 4
+              },
+              {
+                "color": "#fcdb72",
+                "value": 20
+              },
+              {
+                "color": "#f79f64",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 80
+              },
+              {
+                "color": "#b783af",
+                "value": 100
+              },
+              {
+                "color": "text",
+                "value": 400
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 2,
+        "x": 0,
+        "y": 17
+      },
+      "id": 80,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum(pgbouncer_pools_server_active_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"})",
+          "interval": "",
+          "legendFormat": "Active servers",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer active servers",
+      "type": "stat",
+      "description": "May be empty when no pools are exposed."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 4
+              },
+              {
+                "color": "#f79f64",
+                "value": 2000
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 2,
+        "x": 2,
+        "y": 17
+      },
+      "id": 78,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum(max without (user) (pgbouncer_pools_client_active_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}))",
+          "interval": "",
+          "legendFormat": "Active clients",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer active clients",
+      "type": "stat",
+      "description": "Legitimately empty when no active clients are exposed."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 0.1
+              },
+              {
+                "color": "#fcdb72",
+                "value": 0.3
+              },
+              {
+                "color": "#f79f64",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              },
+              {
+                "color": "#b783af",
+                "value": 0.9
+              },
+              {
+                "color": "text",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 2,
+        "x": 4,
+        "y": 17
+      },
+      "id": 111,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "pgbouncer_databases_current_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"} / pgbouncer_databases_pool_size{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}",
+          "interval": "",
+          "legendFormat": "Pool usage",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer database pool usage",
+      "type": "stat",
+      "description": "May be empty if no matching PgBouncer database series; a zero pool size yields an undefined ratio."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "Configured PgBouncer database aliases and their real PostgreSQL database names.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "table"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/Pool.*/"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3e668f",
+                      "value": 0
+                    },
+                    {
+                      "color": "#346f36cc",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Conn"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3e668f",
+                      "value": 0
+                    },
+                    {
+                      "color": "#346f36cc",
+                      "value": 10
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 30
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 70
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 90
+                    },
+                    {
+                      "color": "text",
+                      "value": 100
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Conn Max"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 10
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 64
+                    },
+                    {
+                      "color": "#346f36cc",
+                      "value": 100
+                    },
+                    {
+                      "color": "semi-dark-green",
+                      "value": 200
+                    },
+                    {
+                      "color": "dark-green",
+                      "value": 400
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Conn Usage"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3e668f",
+                      "value": 0
+                    },
+                    {
+                      "color": "#346f36cc",
+                      "value": 0.1
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 0.3
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "text",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/Disabled|Paused/"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "#346f36cc",
+                        "index": 1,
+                        "text": "F"
+                      },
+                      "1": {
+                        "color": "#f79f64",
+                        "index": 2,
+                        "text": "T"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "color": "gray",
+                        "index": 0,
+                        "text": "N/A"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "basic",
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Database"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "PostgreSQL Database for ${__data.fields.Database}",
+                    "url": "/d/postgresql-database?var-cluster=${cluster}&var-instance=${instance}&var-datname=${__data.fields.Database}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Disabled"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Paused"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pool Resv"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 87
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 6,
+        "y": 17
+      },
+      "id": 68,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Database"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_pool_size{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Pool Size",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_reserve_pool{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Pool Resv",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_current_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Conn",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_max_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Conn Max",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_current_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"}) / max by (name,database) (pgbouncer_databases_max_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Conn Usage",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_disabled{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Disabled",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "max by (name,database) (pgbouncer_databases_paused{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Paused",
+          "refId": "G"
+        }
+      ],
+      "title": "Databases in PgBouncer",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "name": "Database",
+              "database": "Real database",
+              "Value #A": "Pool Size",
+              "Value #B": "Pool Resv",
+              "Value #C": "Conn",
+              "Value #D": "Conn Max",
+              "Value #E": "Conn Usage",
+              "Value #F": "Disabled",
+              "Value #G": "Paused"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 20000
+              },
+              {
+                "color": "#f79f64",
+                "value": 30000
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 26
+      },
+      "id": 60,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pgbouncer_stats_totals_sql_transactions_pooled_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m])",
+          "interval": "",
+          "legendFormat": "Transactions / s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer transactions / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available or when PgBouncer has no transaction series."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 4
+              },
+              {
+                "color": "#b783af",
+                "value": 8
+              },
+              {
+                "color": "text",
+                "value": 16
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 26
+      },
+      "id": 81,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pgbouncer_stats_totals_server_in_transaction_seconds_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m]) / rate(pgbouncer_stats_totals_sql_transactions_pooled_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m])",
+          "interval": "",
+          "legendFormat": "Transaction response time",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer transaction response time",
+      "type": "stat",
+      "description": "May be empty before two samples are available or when no transactions were pooled."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 4
+              },
+              {
+                "color": "#b783af",
+                "value": 8
+              },
+              {
+                "color": "text",
+                "value": 16
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 26
+      },
+      "id": 44,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "sum by (cluster) (pgbouncer_pools_client_waiting_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"})",
+          "interval": "",
+          "legendFormat": "Waiting clients",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer waiting clients",
+      "type": "stat",
+      "description": "Legitimately empty when no clients are waiting."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#f79f64",
+                "value": 32000
+              }
+            ]
+          },
+          "unit": "cps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 26
+      },
+      "id": 47,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pgbouncer_stats_totals_queries_pooled_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m])",
+          "interval": "",
+          "legendFormat": "Queries / s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer queries / s",
+      "type": "stat",
+      "description": "May be empty before two samples are available or when no queries were pooled."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "noValue": "∅",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 4
+              },
+              {
+                "color": "#b783af",
+                "value": 8
+              },
+              {
+                "color": "text",
+                "value": 16
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 26
+      },
+      "id": 62,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pgbouncer_stats_totals_queries_duration_seconds_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m]) / rate(pgbouncer_stats_totals_queries_pooled_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m])",
+          "interval": "",
+          "legendFormat": "Query response time",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer query response time",
+      "type": "stat",
+      "description": "May be empty before two samples are available or when no queries were pooled."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#346f36cc",
+                "value": 1000
+              },
+              {
+                "color": "#fcdb72",
+                "value": 64000000
+              },
+              {
+                "color": "#f79f64",
+                "value": 100000000
+              },
+              {
+                "color": "red",
+                "value": 300000000
+              }
+            ]
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 26
+      },
+      "id": 91,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "exemplar": false,
+          "expr": "rate(pgbouncer_stats_totals_received_bytes_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m]) + rate(pgbouncer_stats_totals_sent_bytes_total{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}[1m])",
+          "interval": "",
+          "legendFormat": "Received + sent",
+          "refId": "A"
+        }
+      ],
+      "title": "PgBouncer traffic",
+      "type": "stat",
+      "description": "May be empty before two samples are available or when no traffic series are exposed."
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 150,
+      "title": "Metrics",
+      "type": "row",
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "May be empty before two samples are available.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 3,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Returned"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#24292e4d",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fetched"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#346f36cc",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 141,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_fetched{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[5m])",
+          "interval": "",
+          "legendFormat": "Fetched",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_returned{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[5m])",
+          "interval": "",
+          "legendFormat": "Returned",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Row Returned / Fetched",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "May be empty before two samples are available.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "INSERTED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "UPDATED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "id": 142,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_inserted{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "INSERTED",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_updated{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "UPDATED",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_tup_deleted{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m])",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "DELETED",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Row Modified",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 2,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "cps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rollback"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commit"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 143,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_xact_commit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[3m])",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "commit",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_xact_rollback{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[3m])",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "rollback",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Xact Commit / Rollback",
+      "type": "timeseries",
+      "description": "May be empty before two samples are available."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 40,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "pointSize": 2,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "id": 144,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": false,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (datname) (pg_stat_activity_max_tx_duration{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",state=\"active\"})",
+          "interval": "",
+          "legendFormat": "Longest active transaction",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Long-lived active transactions",
+      "type": "timeseries",
+      "description": "Legitimately empty if there is no active transaction."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "bars",
+            "fillOpacity": 55,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AccessShareLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#56A64B",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RowShareLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8AB8FF",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RowExclusiveLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3274D9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ShareUpdateExclusiveLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2CC0C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ShareLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#CC9D00",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ShareRowExclusiveLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ExclusiveLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#E02F44",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AccessExclusiveLock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#A352CC",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "id": 145,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (mode) (pg_locks_count{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"})",
+          "interval": "",
+          "legendFormat": "{{mode}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Locks",
+      "type": "timeseries",
+      "description": "Legitimately empty when no locks are reported."
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-metrics-datasource",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "May be empty when the selected range has no block activity.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 1,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 2,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hit Ratio"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "100%"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Hit Ratio"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "id": 146,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Min",
+          "sortDesc": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(pg_stat_database_blks_hit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) / (rate(pg_stat_database_blks_hit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]) + rate(pg_stat_database_blks_read{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"}[1m]))",
+          "interval": "",
+          "legendFormat": "Hit Ratio",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-metrics-datasource",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "1",
+          "interval": "",
+          "legendFormat": "100%",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Blocks Hit Ratio (1m)",
+      "type": "timeseries"
+    }
+  ]
+}
