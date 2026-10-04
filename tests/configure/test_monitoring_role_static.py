@@ -99,3 +99,134 @@ def test_exporter_install_verifies_a_checksum():
     for task in downloads:
         checksum = task["ansible.builtin.get_url"].get("checksum", "")
         assert checksum.startswith("sha256:"), "the tarball must be checksum-verified"
+
+
+def _render_scrape_config(**overrides) -> str:
+    from jinja2 import Environment
+
+    context = {
+        "ansible_managed": "test",
+        "monitoring_agents_scrape_interval": "15s",
+        "network_loopback_address": "127.0.0.1",
+        "cluster_name": "pigsty-lite-test",
+        "inventory_hostname": "pgnode01",
+        "groups": {"postgres": ["pgnode01"]},
+        "monitoring_agents_node_exporter_port": 9100,
+        "monitoring_agents_postgres_exporter_port": 9187,
+        "monitoring_agents_pgbouncer_exporter_port": 9127,
+        "monitoring_agents_pgbackrest_exporter_port": 9854,
+        "monitoring_agents_patroni_rest_port": 8008,
+        "monitoring_agents_haproxy_stats_port": 9101,
+        "monitoring_agents_ca_file": "/etc/pki/pigsty/ca.crt",
+    }
+    context.update(overrides)
+    template = Environment(trim_blocks=False, lstrip_blocks=False).from_string(
+        (ROOT / "roles/monitoring_agents/templates/vmagent-scrape.yml.j2").read_text()
+    )
+    return template.render(**context)
+
+
+def test_scrape_config_covers_the_four_exporters_on_a_postgres_host():
+    jobs = yaml.safe_load(_render_scrape_config())["scrape_configs"]
+    names = [job["job_name"] for job in jobs]
+
+    assert {"node", "postgres", "pgbouncer", "pgbackrest"} <= set(names)
+
+
+def test_spof_does_not_scrape_haproxy():
+    """site.yml skips _haproxy.yml on spof, so there is nothing listening.
+
+    Rendering the job anyway parks a permanently-down target in vmsingle for
+    the life of the deployment.
+    """
+    ha = yaml.safe_load(_render_scrape_config(cluster_profile="ha"))
+    spof = yaml.safe_load(_render_scrape_config(cluster_profile="spof"))
+
+    assert "haproxy" in [job["job_name"] for job in ha["scrape_configs"]]
+    assert "haproxy" not in [job["job_name"] for job in spof["scrape_configs"]]
+
+
+def test_agents_read_the_ca_from_a_readable_copy_not_the_pki_dir():
+    """vmagent/vlagent run as vic_vm_agent/vic_vl_agent.
+
+    `{{ pigsty_pki_dir }}` is 0750 root:pigsty because it holds private keys,
+    so pointing the agents at the CA in place yields "cannot read `ca_file`:
+    permission denied" -- which takes down the patroni scrape and
+    remote_write both, since vmagent builds the TLS transport even for a
+    plain-http remote write URL.
+    """
+    defaults = _load_yaml("roles/monitoring_agents/defaults/main.yml")
+
+    assert defaults["monitoring_agents_ca_source"] == "{{ pigsty_pki_dir }}/ca.crt"
+    assert "pigsty_pki_dir" not in defaults["monitoring_agents_ca_file"]
+
+    tasks = list(_walk_tasks(_load_yaml("roles/monitoring_agents/tasks/main.yml")))
+    copy = next(
+        task
+        for task in tasks
+        if task.get("name") == "Copy the CA certificate out of the PKI directory"
+    )
+
+    assert copy["ansible.builtin.copy"]["src"] == "{{ monitoring_agents_ca_source }}"
+    assert copy["ansible.builtin.copy"]["dest"] == "{{ monitoring_agents_ca_file }}"
+    assert copy["ansible.builtin.copy"]["mode"] == "0644"
+    # A rotated CA is a new file behind an unchanged ExecStart, so the
+    # upstream roles see nothing to restart.
+    assert set(copy["notify"]) == {"Restart vmagent", "Restart vlagent"}
+
+    handlers = [
+        handler["name"] for handler in _load_yaml("roles/monitoring_agents/handlers/main.yml")
+    ]
+    assert {"Restart vmagent", "Restart vlagent"} <= set(handlers)
+
+
+def test_pgbouncer_exporter_dsn_points_at_pgbouncers_own_socket_dir():
+    """roles/pgbouncer puts the socket under /var/run/pgbouncer.
+
+    PostgreSQL's socket directory (/var/run/postgresql) holds no pgBouncer
+    socket, so an exporter pointed there logs "connect: no such file or
+    directory" every scrape and publishes pgbouncer_up 0 forever -- while
+    still serving a healthy-looking /metrics.
+    """
+    defaults = _load_yaml("roles/monitoring_agents/defaults/main.yml")
+    dsn = defaults["monitoring_agents_pgbouncer_exporter_dsn"]
+
+    assert "pgbouncer_unix_socket_dir" in dsn
+    assert "/var/run/postgresql" not in dsn
+
+
+def test_pgbouncer_exporter_password_never_reaches_the_systemd_unit():
+    """The pgBouncer console is scram-sha-256 even over the unix socket.
+
+    The exporter therefore needs a password, but
+    `--pgBouncer.connectionString` is rendered into ExecStart of a 0644 unit
+    and shows up in /proc/<pid>/cmdline for every local user. The credential
+    goes in a 0600 pgpass file instead, the same reasoning the external_push
+    password files already follow.
+    """
+    unit = (ROOT / "roles/monitoring_agents/templates/pgbouncer-exporter.service.j2").read_text()
+
+    assert "PGPASSFILE={{ monitoring_agents_pgbouncer_exporter_pgpass }}" in unit
+
+    exec_start = next(line for line in unit.splitlines() if line.startswith("ExecStart="))
+    assert "password" not in unit[unit.index(exec_start) :]
+
+    defaults = _load_yaml("roles/monitoring_agents/defaults/main.yml")
+    assert "password" not in defaults["monitoring_agents_pgbouncer_exporter_dsn"]
+
+    tasks = list(_walk_tasks(_load_yaml("roles/monitoring_agents/tasks/_exporters.yml")))
+    pgpass = next(
+        task for task in tasks if task.get("name") == "Render the pgbouncer_exporter pgpass file"
+    )
+
+    assert pgpass["ansible.builtin.template"]["mode"] == "0600"
+    assert pgpass["no_log"] is True
+    assert pgpass["notify"] == "Restart pgbouncer-exporter"
+
+    # libpq matches a unix-socket connection on the socket directory, not on
+    # "localhost"; the wrong host field falls through to a password prompt.
+    pgpass_template = (
+        ROOT / "roles/monitoring_agents/templates/pgbouncer-exporter.pgpass.j2"
+    ).read_text()
+    record = pgpass_template.strip().splitlines()[-1]
+    assert record.startswith("{{ socket_dir }}:{{ port }}:pgbouncer:")

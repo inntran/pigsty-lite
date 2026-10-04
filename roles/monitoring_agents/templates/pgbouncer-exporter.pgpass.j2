@@ -1,0 +1,10 @@
+{#- {{ ansible_managed }} -- no comment line: libpq treats `#` as a comment but
+   pgpass is parsed field-by-field and a stray line is cheap to get wrong.
+
+   host:port:database:user:password. The host field must be pgBouncer's unix
+   socket directory: that is what libpq (and lib/pq, which pgbouncer_exporter
+   uses) matches a socket connection against, not "localhost". Getting it
+   wrong fails open to a password prompt the exporter cannot answer. -#}
+{% set socket_dir = pgbouncer_unix_socket_dir | default('/var/run/pgbouncer') -%}
+{% set port = pgbouncer_port | default(6432) -%}
+{{ socket_dir }}:{{ port }}:pgbouncer:{{ monitoring_agents_pgbouncer_console_user }}:{{ monitoring_agents_pgbouncer_console_password }}

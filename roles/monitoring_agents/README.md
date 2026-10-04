@@ -14,11 +14,58 @@ repository for those tasks only.
 - `postgres_exporter` (9187), `pgbouncer_exporter` (9127),
   `pgbackrest_exporter` (9854) on postgres hosts only.
 - `vmagent` (`network_loopback_address:8429`) — scrapes local exporters,
-  Patroni REST, and HAProxy stats, `remote_write`s to the monitor.
+  Patroni REST, and (outside the `spof` profile) HAProxy stats,
+  `remote_write`s to the monitor.
 - `vlagent` (`network_loopback_address:9429`) — tails journald + PG
   logs + Patroni logs, ships to the monitor.
 - The `postgres-exporter`, `pgbouncer-exporter`, `pgbackrest-exporter`
   custom firewalld services.
+
+## Scrape targets and the `spof` profile
+
+`site.yml` skips the HAProxy play when `cluster_profile` is `spof`, so
+`vmagent-scrape.yml.j2` applies the same gate. Without it a single-node
+deployment carries a permanently-down `haproxy` target, which is
+indistinguishable from a load balancer that has actually fallen over.
+
+## Credentials the exporters need
+
+`pgbouncer_exporter` is the only exporter that authenticates.
+`roles/pgbouncer` sets `auth_type = scram-sha-256`, which applies to the
+admin console too — a local unix-socket connection from the right OS user
+still gets `fe_sendauth: no password supplied`. The working credential is
+the Patroni superuser, which `roles/pgbouncer` already writes into
+`userlist.txt` and lists in `pgbouncer_admin_users` / `pgbouncer_stats_users`.
+
+It reaches the exporter through a pgpass file
+(`monitoring_agents_pgbouncer_exporter_pgpass`, `0600`, owned by the unit's
+`User=`), referenced from the unit as `Environment=PGPASSFILE=…` — never
+inside `--pgBouncer.connectionString`, which would put it in a `0644` unit
+file and in `/proc/<pid>/cmdline`. The pgpass `host` field is pgBouncer's
+*socket directory*, not `localhost`: that is what libpq matches a
+unix-socket connection against, and the wrong value falls through to a
+password prompt the exporter cannot answer.
+
+Note that the socket directory is pgBouncer's own
+(`pgbouncer_unix_socket_dir`, `/var/run/pgbouncer`), not PostgreSQL's.
+Pointing the exporter at `/var/run/postgresql` yields a healthy-looking
+`/metrics` endpoint publishing `pgbouncer_up 0` forever.
+
+## The CA copy
+
+The agents verify the monitor host against `monitoring_agents_ca_file`, a
+`0644` copy of `{{ pigsty_pki_dir }}/ca.crt` placed in
+`monitoring_agents_secrets_dir`. They cannot read the PKI directory itself —
+it is `0750 root:pigsty` because it also holds every private key, and the
+agents run as `vic_vm_agent` / `vic_vl_agent`. Pointing them at the original
+gets ``cannot read `ca_file`: permission denied``, which takes down the
+Patroni scrape *and* `remote_write`, because vmagent builds the TLS transport
+even when the remote write URL is plain HTTP. A CA certificate is public
+material, so a readable copy beats widening the PKI directory.
+
+Rotating the CA replaces that file behind an unchanged `ExecStart`, so the
+upstream agent roles see nothing to do; the copy task notifies its own
+`Restart vmagent` / `Restart vlagent` handlers.
 
 ## external_push credentials
 

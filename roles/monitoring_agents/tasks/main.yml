@@ -35,7 +35,7 @@
 
     - name: Stat the CA certificate (from P0 certs role)
       ansible.builtin.stat:
-        path: "{{ monitoring_agents_ca_file }}"
+        path: "{{ monitoring_agents_ca_source }}"
       register: monitoring_agents_ca_stat
 
     - name: Fail if the CA certificate is missing
@@ -43,7 +43,7 @@
         that:
           - monitoring_agents_ca_stat.stat.exists
         fail_msg: >-
-          Expected the pigsty-lite CA at {{ monitoring_agents_ca_file }};
+          Expected the pigsty-lite CA at {{ monitoring_agents_ca_source }};
           agents need it to verify the monitor host's TLS. Run the P0
           _node.yml playbook (certs role) first.
       when: (monitoring_mode | default('self_hosted')) != 'external_pull'
@@ -56,6 +56,34 @@
   ansible.builtin.import_tasks: _agent_accounts.yml
   tags: [monitoring, config]
   when: (monitoring_mode | default('self_hosted')) != 'external_pull'
+
+- name: Publish the CA where the agents can read it
+  tags: [monitoring, config]
+  when: (monitoring_mode | default('self_hosted')) != 'external_pull'
+  block:
+    - name: Ensure the agent config directory exists
+      ansible.builtin.file:
+        path: "{{ monitoring_agents_secrets_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy the CA certificate out of the PKI directory
+      # 0644: a CA certificate is public, and both agent service users plus
+      # anything else verifying the monitor host need to read it. See
+      # monitoring_agents_ca_file in defaults/main.yml for why the agents
+      # cannot read the original in place.
+      ansible.builtin.copy:
+        src: "{{ monitoring_agents_ca_source }}"
+        dest: "{{ monitoring_agents_ca_file }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Restart vmagent
+        - Restart vlagent
 
 - name: Stage external_push credentials on disk
   ansible.builtin.import_tasks: _external_secrets.yml

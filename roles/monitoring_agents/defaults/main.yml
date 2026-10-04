@@ -36,11 +36,31 @@ monitoring_agents_postgres_exporter_dsn: >-
   port={{ postgres_port | default(5432) }}
   user={{ postgres_osdba | default('postgres') }}
   dbname=postgres sslmode=disable
+# pgBouncer's socket is not in PostgreSQL's socket directory: roles/pgbouncer
+# puts it under pgbouncer_unix_socket_dir (/var/run/pgbouncer). Pointing the
+# exporter at /var/run/postgresql leaves it logging "connect: no such file or
+# directory" every scrape and publishing pgbouncer_up 0 forever.
 monitoring_agents_pgbouncer_exporter_dsn: >-
-  host=/var/run/postgresql
+  host={{ pgbouncer_unix_socket_dir | default('/var/run/pgbouncer') }}
   port={{ pgbouncer_port | default(6432) }}
-  user={{ postgres_osdba | default('postgres') }}
+  user={{ monitoring_agents_pgbouncer_console_user }}
   dbname=pgbouncer sslmode=disable
+# The pgBouncer admin console is not peer-authenticated: roles/pgbouncer sets
+# auth_type = scram-sha-256, so even a local unix-socket connection from the
+# right OS user gets "fe_sendauth: no password supplied". The credential that
+# works is the one roles/pgbouncer writes into userlist.txt -- the Patroni
+# superuser -- which is also in pgbouncer_admin_users/pgbouncer_stats_users.
+monitoring_agents_pgbouncer_console_user: >-
+  {{ pgbouncer_auth_user | default(patroni_superuser | default('postgres')) }}
+monitoring_agents_pgbouncer_console_password: >-
+  {{ patroni_superuser_password
+     | mandatory('patroni_superuser_password not set; pgbouncer_exporter needs
+                  the pgBouncer console credential from roles/pgbouncer userlist') }}
+# The password reaches the exporter through a pgpass file, never through
+# --pgBouncer.connectionString: that flag lands in ExecStart of a 0644 unit
+# and in /proc/<pid>/cmdline, readable by every local user. Same reasoning as
+# the external_push password files below.
+monitoring_agents_pgbouncer_exporter_pgpass: "{{ monitoring_agents_secrets_dir }}/pgbouncer-exporter.pgpass"
 monitoring_agents_pgbackrest_stanza: "{{ backup_stanza | default(cluster_name) }}"
 
 # vmagent (metrics scrape + remote_write)
@@ -53,7 +73,20 @@ monitoring_agents_scrape_interval: "{{ monitoring_scrape_interval | default('15s
 # vlagent (log shipping)
 monitoring_agents_vlagent_listen: "{{ network_loopback_address | default('127.0.0.1') }}:{{ vlagent_port | default(9429) }}"
 monitoring_agents_vlagent_remote_write_url: "http://{{ hostvars[monitoring_host].ansible_host }}:{{ vlsingle_port | default(9428) }}/insert/jsonline"
-monitoring_agents_ca_file: "{{ pigsty_pki_dir }}/ca.crt"
+# The CA the agents verify against, and where it comes from.
+#
+# They cannot read the PKI directory: it is 0750 root:pigsty because it also
+# holds every private key, and vmagent/vlagent run as vic_vm_agent and
+# vic_vl_agent. Pointing them straight at {{ pigsty_pki_dir }}/ca.crt gets
+# "cannot read `ca_file`: permission denied" -- which kills the patroni
+# scrape *and* remote_write, because vmagent builds the TLS transport even
+# when the remote_write URL is plain http.
+#
+# A CA certificate is public material, so publish a readable copy next to the
+# agents' other config rather than widening the PKI directory or putting the
+# agents in a group that can read every key in it.
+monitoring_agents_ca_source: "{{ pigsty_pki_dir }}/ca.crt"
+monitoring_agents_ca_file: "{{ monitoring_agents_secrets_dir }}/ca.crt"
 monitoring_agents_external_auth_username: "{{ monitoring_external_auth_username | default('') }}"
 monitoring_agents_external_auth_bearer: "{{ monitoring_external_auth_bearer | default(false) }}"
 monitoring_agents_external_tls_skip_verify: "{{ monitoring_external_tls_skip_verify | default(false) }}"
