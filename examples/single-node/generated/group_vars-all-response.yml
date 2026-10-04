@@ -25,6 +25,8 @@ postgres_extensions:
 - pg_stat_statements
 - name: vector
   db: orders
+postgres_preload_libraries_prepend: []
+postgres_preload_libraries_append: []
 postgres_databases:
 - name: orders
   owner: orders_app

@@ -272,6 +272,27 @@ def _validate_extension_packages(postgres: dict) -> None:
             raise SchemaError(f"postgres.extension_packages[{index}]: expected string")
 
 
+def _validate_preload_libraries(postgres: dict) -> None:
+    if "preload_libraries" not in postgres:
+        return
+    libraries = postgres["preload_libraries"]
+    if not isinstance(libraries, dict):
+        raise SchemaError("postgres.preload_libraries: must be a mapping")
+    unknown = sorted(set(libraries) - {"prepend", "append"})
+    if unknown:
+        raise SchemaError(f"postgres.preload_libraries: unknown keys {unknown}")
+    for key in ("prepend", "append"):
+        values = libraries.get(key, [])
+        if not isinstance(values, list):
+            raise SchemaError(f"postgres.preload_libraries.{key}: must be a list")
+        for index, value in enumerate(values):
+            path = f"postgres.preload_libraries.{key}[{index}]"
+            if not isinstance(value, str):
+                raise SchemaError(f"{path}: expected string")
+            if not value.strip() or "," in value:
+                raise SchemaError(f"{path}: must be a non-empty library name without commas")
+
+
 def _validate_minor_upgrade(postgres: dict) -> None:
     minor_upgrade = postgres.get("minor_upgrade")
     if minor_upgrade is None:
@@ -305,6 +326,7 @@ def _validate_postgres(postgres: dict, ip_version: str) -> None:
     _validate_databases(postgres)
     _validate_extension_packages(postgres)
     _validate_extensions(postgres)
+    _validate_preload_libraries(postgres)
     _validate_minor_upgrade(postgres)
 
 

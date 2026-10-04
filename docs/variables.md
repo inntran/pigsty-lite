@@ -134,6 +134,7 @@ in `response.yml`. It is never also declared in a `group_vars/<group>`
 file. The role that consumes it carries a `default()` (or a role
 default) so the role still works if the response file omits the key.
 Example: `haproxy_rto_profile`, `postgres_tune_profile`,
+`postgres_preload_libraries_prepend`, `postgres_preload_libraries_append`,
 `vip_manager_enabled` and the other connection/tuning knobs are emitted
 by the generator and read via `default()` in `roles/haproxy/defaults`,
 `roles/patroni/defaults`, etc. — they do not appear in

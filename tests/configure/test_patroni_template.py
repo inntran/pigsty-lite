@@ -32,6 +32,30 @@ def _env() -> Environment:
     return env
 
 
+class UniqueKeyLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_mapping_no_duplicates(
+    loader: UniqueKeyLoader, node: yaml.MappingNode, deep: bool = False
+) -> dict[Any, Any]:
+    loader.flatten_mapping(node)
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise yaml.constructor.ConstructorError(
+                None, None, f"duplicate key {key!r}", key_node.start_mark
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping_no_duplicates
+)
+
+
 def _resolve(value: Any, env: Environment, context: dict[str, Any]) -> Any:
     if isinstance(value, str):
         return env.from_string(value).render(context)
@@ -47,6 +71,10 @@ def _render_patroni_config(
     ipv6: bool = False,
     operator_rules: list[dict[str, Any]] | None = None,
     monitor_rules: list[dict[str, Any]] | None = None,
+    tune_profile: str = "oltp",
+    preload_prepend: list[str] | None = None,
+    preload_append: list[str] | None = None,
+    extra_parameters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     env = _env()
     context: dict[str, Any] = dict(
@@ -78,8 +106,11 @@ def _render_patroni_config(
         patroni_replication_password="replication-pw",
         patroni_rewind_password="rewind-pw",
         role_path=str(ROOT / "roles/patroni"),
-        patroni_tune_profile="oltp",
-        postgres_extra_parameters={},
+        patroni_tune_profile=tune_profile,
+        patroni_preload_libraries_base=["pg_stat_statements"],
+        patroni_preload_libraries_prepend=preload_prepend or [],
+        patroni_preload_libraries_append=preload_append or [],
+        postgres_extra_parameters=extra_parameters or {},
     )
     defaults = yaml.safe_load(DEFAULTS.read_text())
     context["patroni_hba_system_rules"] = _resolve(
@@ -89,7 +120,65 @@ def _render_patroni_config(
     context["patroni_hba_operator_rules"] = operator_rules or []
 
     template = env.from_string((ROOT / "roles/patroni/templates/patroni.yml.j2").read_text())
-    return yaml.safe_load(template.render(context))
+    return yaml.load(template.render(context), Loader=UniqueKeyLoader)
+
+
+def test_preload_libraries_default_to_pg_stat_statements():
+    parameters = _render_patroni_config()["postgresql"]["parameters"]
+
+    assert parameters["shared_preload_libraries"] == "pg_stat_statements"
+    assert "timescaledb.telemetry_level" not in parameters
+    assert "max_locks_per_transaction" not in parameters
+
+
+def test_preload_libraries_merge_in_order_and_add_companions():
+    parameters = _render_patroni_config(
+        preload_prepend=["citus"], preload_append=["timescaledb"]
+    )["postgresql"]["parameters"]
+
+    assert parameters["shared_preload_libraries"] == "citus,pg_stat_statements,timescaledb"
+    assert parameters["max_locks_per_transaction"] == "400"
+    assert parameters["timescaledb.telemetry_level"] == "off"
+
+
+def test_preload_libraries_remove_duplicates_preserving_first_occurrence():
+    parameters = _render_patroni_config(preload_append=["pg_stat_statements"])[
+        "postgresql"
+    ]["parameters"]
+
+    assert parameters["shared_preload_libraries"] == "pg_stat_statements"
+
+
+def test_extra_preload_parameter_override_controls_companions():
+    added = _render_patroni_config(
+        extra_parameters={"shared_preload_libraries": "pg_stat_statements, timescaledb"}
+    )["postgresql"]["parameters"]
+    removed = _render_patroni_config(
+        preload_append=["timescaledb"],
+        extra_parameters={"shared_preload_libraries": "pg_stat_statements"},
+    )["postgresql"]["parameters"]
+
+    assert added["shared_preload_libraries"] == "pg_stat_statements, timescaledb"
+    assert added["timescaledb.telemetry_level"] == "off"
+    assert added["max_locks_per_transaction"] == "400"
+    assert "timescaledb.telemetry_level" not in removed
+    assert "max_locks_per_transaction" not in removed
+
+
+def test_extra_max_locks_parameter_overrides_derived_companion():
+    parameters = _render_patroni_config(
+        preload_append=["timescaledb"], extra_parameters={"max_locks_per_transaction": 512}
+    )["postgresql"]["parameters"]
+
+    assert parameters["max_locks_per_transaction"] == 512
+
+
+def test_citus_companion_uses_tuning_profile_max_connections():
+    parameters = _render_patroni_config(
+        tune_profile="olap", preload_prepend=["citus"]
+    )["postgresql"]["parameters"]
+
+    assert parameters["max_locks_per_transaction"] == "200"
 
 
 def _hba(**kwargs: Any) -> list[str]:

@@ -41,6 +41,25 @@ def test_postgres_extension_packages_pass_through():
     assert out["postgres_extension_packages"] == ["pgvector_{{ postgres_version }}"]
 
 
+def test_postgres_preload_libraries_default_to_empty_lists():
+    out = yaml.safe_load(generate(_load("ha.rsp.yml")))
+
+    assert out["postgres_preload_libraries_prepend"] == []
+    assert out["postgres_preload_libraries_append"] == []
+
+
+def test_postgres_preload_libraries_lists_pass_through():
+    data = _load("ha.rsp.yml")
+    data["postgres"]["preload_libraries"] = {
+        "prepend": ["citus"],
+        "append": ["timescaledb"],
+    }
+    out = yaml.safe_load(generate(data))
+
+    assert out["postgres_preload_libraries_prepend"] == ["citus"]
+    assert out["postgres_preload_libraries_append"] == ["timescaledb"]
+
+
 def test_firewall_keys_promoted_to_top_level():
     out = yaml.safe_load(generate(_load("ha.rsp.yml")))
     assert out["operator_cidrs"] == ["10.0.0.0/8"]

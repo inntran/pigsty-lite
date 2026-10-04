@@ -190,6 +190,62 @@ def test_postgres_extension_packages_rejects_non_string_entries():
         validate(data)
 
 
+def test_postgres_preload_libraries_accepts_prepend_and_append_lists():
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = {
+        "prepend": ["citus"],
+        "append": ["timescaledb", "auto_explain"],
+    }
+
+    validate(data)
+
+
+@pytest.mark.parametrize("value", ["timescaledb", None, 42])
+def test_postgres_preload_libraries_must_be_mapping(value):
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = value
+
+    with pytest.raises(SchemaError, match=r"postgres\.preload_libraries: must be a mapping"):
+        validate(data)
+
+
+@pytest.mark.parametrize("key", ["prepend", "append"])
+def test_postgres_preload_libraries_values_must_be_lists(key):
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = {key: "timescaledb"}
+
+    with pytest.raises(SchemaError, match=rf"postgres\.preload_libraries\.{key}: must be a list"):
+        validate(data)
+
+
+@pytest.mark.parametrize("value", [42, None, True])
+def test_postgres_preload_libraries_rejects_non_string_entries(value):
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = {"append": [value]}
+
+    with pytest.raises(
+        SchemaError, match=r"postgres\.preload_libraries\.append\[0\]: expected string"
+    ):
+        validate(data)
+
+
+@pytest.mark.parametrize("value", ["", "   ", "timescaledb,pg_stat_statements"])
+def test_postgres_preload_libraries_rejects_empty_or_comma_entries(value):
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = {"append": [value]}
+
+    with pytest.raises(SchemaError, match=r"postgres\.preload_libraries\.append\[0\]"):
+        validate(data)
+
+
+def test_postgres_preload_libraries_rejects_unknown_keys():
+    data = _minimal_spof_response()
+    data["postgres"]["preload_libraries"] = {"prepend": [], "replace": ["timescaledb"]}
+
+    with pytest.raises(SchemaError, match=r"postgres\.preload_libraries: unknown keys"):
+        validate(data)
+
+
 def test_minor_upgrade_block_must_be_mapping():
     response = _minimal_spof_response()
     response["postgres"]["minor_upgrade"] = "soon"

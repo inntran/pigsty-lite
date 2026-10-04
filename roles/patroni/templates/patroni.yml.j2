@@ -112,6 +112,7 @@ postgresql:
     ssl_cert_file: {{ patroni_cert_file | to_json }}
     ssl_key_file: {{ patroni_key_file | to_json }}
     ssl_ca_file: {{ patroni_trusted_ca_file | to_json }}
+{% set ns = namespace(params={}) %}
 {% set tune_path = role_path ~ '/files/tuning/' ~ patroni_tune_profile ~ '.conf' %}
 {% for line in (lookup('file', tune_path)).splitlines() %}
 {%   set stripped = line.strip() %}
@@ -121,10 +122,40 @@ postgresql:
 {%     if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')) %}
 {%       set value = value[1:-1] %}
 {%     endif %}
-    {{ item[0].strip() }}: {{ value | to_json }}
+{%     set _ = ns.params.update({item[0].strip(): value}) %}
 {%   endif %}
 {% endfor %}
-{% for k, v in (postgres_extra_parameters | default({})).items() %}
+{% set preload = namespace(items=[]) %}
+{% for library in (patroni_preload_libraries_prepend | default([]))
+    + (patroni_preload_libraries_base | default(['pg_stat_statements']))
+    + (patroni_preload_libraries_append | default([])) %}
+{%   if library not in preload.items %}
+{%     set _ = preload.items.append(library) %}
+{%   endif %}
+{% endfor %}
+{% set _ = ns.params.update({'shared_preload_libraries': preload.items | join(',')}) %}
+{% set extra_params = postgres_extra_parameters | default({}) %}
+{% for k, v in extra_params.items() %}
+{%   set _ = ns.params.update({k: v}) %}
+{% endfor %}
+{% set effective_preload = namespace(items=[]) %}
+{% for library in ns.params.get('shared_preload_libraries', '').split(',') %}
+{%   set library = library.strip() %}
+{%   if library and library not in effective_preload.items %}
+{%     set _ = effective_preload.items.append(library) %}
+{%   endif %}
+{% endfor %}
+{% if 'timescaledb' in effective_preload.items
+    and 'timescaledb.telemetry_level' not in extra_params %}
+{%   set _ = ns.params.update({'timescaledb.telemetry_level': 'off'}) %}
+{% endif %}
+{% if ('timescaledb' in effective_preload.items or 'citus' in effective_preload.items)
+    and 'max_locks_per_transaction' not in extra_params %}
+{%   set _ = ns.params.update({
+       'max_locks_per_transaction': ((ns.params.get('max_connections', 100) | int) * 2) | string
+     }) %}
+{% endif %}
+{% for k, v in ns.params.items() %}
     {{ k }}: {{ v | to_json }}
 {% endfor %}
 

@@ -88,6 +88,12 @@ def generate(response: dict[str, Any]) -> str:
         "postgres_shared_buffer_ratio": postgres.get("shared_buffer_ratio", 0.25),
         "postgres_extension_packages": postgres.get("extension_packages", []),
         "postgres_extensions": postgres.get("extensions", []),
+        "postgres_preload_libraries_prepend": postgres.get("preload_libraries", {}).get(
+            "prepend", []
+        ),
+        "postgres_preload_libraries_append": postgres.get("preload_libraries", {}).get(
+            "append", []
+        ),
         "postgres_databases": postgres.get("databases", []),
         "postgres_users": postgres.get("users", []),
         "postgres_hba_rules": postgres.get("hba_rules", []),

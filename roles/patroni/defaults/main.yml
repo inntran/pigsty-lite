@@ -84,6 +84,9 @@ patroni_rewind_password: >-
 # Memory-derived params (overridable)
 patroni_shared_buffer_ratio: "{{ postgres_shared_buffer_ratio | default(0.25) }}"
 patroni_tune_profile: "{{ postgres_tune_profile | default('oltp') }}"
+patroni_preload_libraries_base: [pg_stat_statements]
+patroni_preload_libraries_prepend: "{{ postgres_preload_libraries_prepend | default([]) }}"
+patroni_preload_libraries_append: "{{ postgres_preload_libraries_append | default([]) }}"
 
 # Service control
 patroni_service_name: patroni

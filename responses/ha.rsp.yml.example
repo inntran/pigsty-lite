@@ -30,6 +30,12 @@ postgres:
   #   https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-10-x86_64/
   extension_packages:
     - "pgvector_{{ postgres_version }}"
+  # Some extensions (e.g. timescaledb) need a package, a preload library,
+  # and an entry in `extensions`. Changing preload libraries requires a
+  # rolling restart on a running cluster.
+  # preload_libraries:
+  #   prepend: []
+  #   append: [timescaledb]
   # Extensions to CREATE EXTENSION, and in which database - run on the leader.
   extensions:
     - {name: vector, db: app}
