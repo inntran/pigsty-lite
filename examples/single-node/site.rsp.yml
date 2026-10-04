@@ -1,0 +1,154 @@
+# pigsty-lite response file - worked single-node (SPOF) example.
+#
+# A complete, filled-in `spof` profile: one monitor/backup host and one
+# PostgreSQL host, carrying two application databases. Unlike
+# responses/spof.rsp.yml.example this leaves nothing for you to invent --
+# every optional block that a real deployment wants is present and set.
+#
+# To use it:
+#
+#     cp examples/single-node/site.rsp.yml responses/site.rsp.yml
+#     $EDITOR responses/site.rsp.yml      # IPs, domain, CIDRs, db/user names
+#     ./configure --validate responses/site.rsp.yml
+#     make plan
+#     make deploy
+#
+# See examples/single-node/README.md for what this generates and
+# docs/operations/migrate-into-spof.md for loading existing databases into it.
+---
+profile: spof
+network:
+  ip_version: ipv4
+cluster:
+  name: pg-single
+  domain: pg-single.example.internal
+
+# The login Ansible uses on every target host. Needs passwordless SSH and
+# NOPASSWD sudo already in place; pigsty-lite does not create it.
+access:
+  ansible_user: dba
+
+# SPOF is exactly one monitor and exactly one pg_primary. The monitor host
+# doubles as the pgBackRest repository (the generated inventory puts it in
+# both the `monitor` and `backup_server` groups).
+nodes:
+  pgmon01:
+    ip: 10.20.30.10
+    role: monitor
+  pgnode01:
+    ip: 10.20.30.11
+    role: pg_primary
+
+postgres:
+  version: 18
+  port: 5432
+  tune: oltp
+  shared_buffer_ratio: 0.25
+
+  # RPM packages that ship extension files. Installed on every PG node; this
+  # only makes the extension available, CREATE EXTENSION is the list below.
+  # Jinja is evaluated, so the version tracks postgres.version automatically.
+  extension_packages:
+    - "pgvector_{{ postgres_version }}"
+
+  # Run as CREATE EXTENSION on the leader. A bare string lands in the
+  # `postgres` database only; use the mapping form, with the key `db`, to put
+  # an extension in an application database.
+  extensions:
+    - pg_stat_statements
+    - {name: vector, db: orders}
+
+  databases:
+    - name: orders
+      owner: orders_app
+    - name: billing
+      owner: billing_app
+
+  # ./configure only generates the fixed infrastructure secrets (patroni,
+  # haproxy stats, grafana admin). Application logins are yours to supply.
+  # Never inline the plaintext: this file is committed. Reference a vault
+  # key instead -- the value is templated by Ansible at deploy time -- and
+  # add the keys yourself with
+  #   ansible-vault edit inventory/group_vars/all/vault.yml
+  # A user with no `password` is created as a role that cannot log in with
+  # scram-sha-256, which is what you want for `reporting` if it only ever
+  # arrives via certificate or peer auth.
+  users:
+    - name: orders_app
+      password: "{{ vault_orders_app_password }}"
+    - name: billing_app
+      password: "{{ vault_billing_app_password }}"
+    # A read-only login for reporting/BI, and the role that grants it.
+    - name: reporting
+      password: "{{ vault_reporting_password }}"
+      roles: [pg_read_all_data]
+
+  hba_rules:
+    - db: orders
+      user: orders_app
+      source: 10.20.40.0/24
+      method: scram-sha-256
+    - db: billing
+      user: billing_app
+      source: 10.20.40.0/24
+      method: scram-sha-256
+    - db: all
+      user: reporting
+      source: 10.20.40.0/24
+      method: scram-sha-256
+
+  # make minor-upgrade refuses to run unless a backup landed this recently.
+  minor_upgrade:
+    require_recent_backup_hours: 24
+
+# On SPOF there is no replica to fail over to, so backups are the only
+# recovery path. Leaving this disabled on a single node means one bad
+# DROP TABLE is unrecoverable.
+backup:
+  enabled: true
+  tool: pgbackrest
+  schedule:
+    full: 0 1 * * 0
+    differential: 0 1 * * 1-6
+  retention:
+    full: 4
+
+tls:
+  internal_ca: generate
+  user_facing:
+    mode: ca_signed
+
+monitoring:
+  mode: self_hosted
+  vmsingle_retention: 90d
+  vlsingle_retention: 30d
+  alertmanager:
+    receivers: []
+
+repos:
+  pigsty:
+    enabled: false
+    packages: []
+
+firewall:
+  # Who may reach Grafana, the Patroni REST API and SSH-side admin surfaces.
+  operator_cidrs:
+    - 10.20.30.0/24
+  # Who may open a PostgreSQL connection. Keep this tighter than
+  # operator_cidrs; it should match the hba_rules sources above.
+  postgres_client_cidrs:
+    - 10.20.40.0/24
+
+db_routing:
+  haproxy:
+    # SPOF skips the HAProxy playbook entirely (playbooks/site.yml gates it on
+    # the profile), so these two values are inert here. They are kept so the
+    # file converts to an `ha` profile by editing `profile:` and `nodes:`.
+    rto_profile: norm
+    backend_target: pgbouncer
+  vip_manager:
+    # A VIP needs somewhere to move to. With one node there is nowhere, so
+    # clients should address pgnode01 directly (or via your own DNS record).
+    enabled: false
+    vip_cidr: 10.20.30.20/24
+    interface: eth0

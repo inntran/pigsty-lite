@@ -42,6 +42,11 @@ Target hosts:
    $EDITOR responses/site.rsp.yml
    ```
 
+   The `.example` files leave most fields for you to fill in. For a
+   single-node deployment, [`examples/single-node/`](../../examples/single-node/)
+   is a filled-in response file with every choice annotated, alongside the
+   inventory and `group_vars` it generates.
+
    Use `network.ip_version: dual` for mixed/default behavior, `ipv4` to require
    IPv4 inputs, or `ipv6` to require IPv6 node IPs, firewall CIDRs, and HBA CIDR
    sources. IPv6 single-stack mode also switches generated bind defaults to
@@ -280,3 +285,11 @@ upgrades, and scaling replicas in/out. None of these are part of
 See [docs/operations/lifecycle.md](lifecycle.md) for the full runbook.
 For major version upgrades (no playbook), see
 [docs/operations/major-upgrade.md](major-upgrade.md).
+
+## Moving existing databases in
+
+A fresh deployment is empty. If the data is coming from PostgreSQL servers
+that are already running, see
+[docs/operations/migrate-into-spof.md](migrate-into-spof.md) — Patroni owns
+the target data directory, so the cutover is a logical or streaming *copy*,
+never a filesystem move.

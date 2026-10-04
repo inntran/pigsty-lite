@@ -1,0 +1,80 @@
+# GENERATED FILE - DO NOT EDIT.
+# Regenerate via: ./configure -s -f responses/site.rsp.yml
+# This is the operator-facing variable layer; edit the response file.
+---
+cluster_profile: spof
+cluster_name: pg-single
+cluster_domain: pg-single.example.internal
+ansible_user: dba
+network_ip_version: ipv4
+network_ipv6_single_stack: false
+network_loopback_address: 127.0.0.1
+network_loopback_addresses:
+- 127.0.0.1
+network_any_address: 0.0.0.0
+network_any_cidr: 0.0.0.0/0
+haproxy_loopback_listen_addresses:
+- 127.0.0.2
+postgres_version: 18
+postgres_port: 5432
+postgres_tune_profile: oltp
+postgres_shared_buffer_ratio: 0.25
+postgres_extension_packages:
+- pgvector_{{ postgres_version }}
+postgres_extensions:
+- pg_stat_statements
+- name: vector
+  db: orders
+postgres_databases:
+- name: orders
+  owner: orders_app
+- name: billing
+  owner: billing_app
+postgres_users:
+- name: orders_app
+  password: '{{ vault_orders_app_password }}'
+- name: billing_app
+  password: '{{ vault_billing_app_password }}'
+- name: reporting
+  password: '{{ vault_reporting_password }}'
+  roles:
+  - pg_read_all_data
+postgres_hba_rules:
+- db: orders
+  user: orders_app
+  source: 10.20.40.0/24
+  method: scram-sha-256
+- db: billing
+  user: billing_app
+  source: 10.20.40.0/24
+  method: scram-sha-256
+- db: all
+  user: reporting
+  source: 10.20.40.0/24
+  method: scram-sha-256
+postgres_extra_parameters: {}
+postgres_pin_version: ''
+postgres_minor_upgrade_require_recent_backup_hours: 24
+ca_mode: generate
+nginx_proxy_tls_mode: ca_signed
+monitoring_mode: self_hosted
+monitoring_scrape_interval: 15s
+operator_cidrs:
+- 10.20.30.0/24
+postgres_client_cidrs:
+- 10.20.40.0/24
+repos_pigsty_enabled: false
+repos_pigsty_packages: []
+vmsingle_retention: 90d
+vlsingle_retention: 30d
+alertmanager_receivers: []
+backup_enabled: true
+backup_tool: pgbackrest
+backup_schedule_full: 0 1 * * 0
+backup_schedule_full_oncalendar: Sun *-*-* 01:00:00
+backup_schedule_differential: 0 1 * * 1-6
+backup_schedule_differential_oncalendar: Mon,Tue,Wed,Thu,Fri,Sat *-*-* 01:00:00
+backup_retention_full: 4
+haproxy_rto_profile: norm
+haproxy_backend_target: pgbouncer
+vip_manager_enabled: false
