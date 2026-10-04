@@ -7,3 +7,4 @@
   ansible.builtin.systemd:
     name: pgbackrest
     state: restarted
+  when: pgbackrest_mode != 'local'

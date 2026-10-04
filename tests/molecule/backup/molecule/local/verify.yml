@@ -1,0 +1,144 @@
+---
+- name: Verify local mode, stanza, and a full backup on the all-in-one host
+  hosts: pigsty-lite-backup-local-server
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the rendered pgBackRest config
+      ansible.builtin.slurp:
+        src: /etc/pgbackrest/pgbackrest.conf
+      register: pgbr_conf
+
+    - name: Assert the config is local mode
+      ansible.builtin.assert:
+        that:
+          - "'repo1-path=' in (pgbr_conf.content | b64decode)"
+          - "'pg1-path=' in (pgbr_conf.content | b64decode)"
+          - "'repo1-host' not in (pgbr_conf.content | b64decode)"
+          - "'tls-server' not in (pgbr_conf.content | b64decode)"
+
+    - name: Read pgbackrest.service state
+      ansible.builtin.systemd:
+        name: pgbackrest
+      register: pgbr_svc
+
+    - name: Assert no TLS server daemon runs in local mode
+      ansible.builtin.assert:
+        that:
+          - pgbr_svc.status.LoadState == 'not-found' or pgbr_svc.status.ActiveState != 'active'
+
+    - name: PgBackRest check passes against the local repo
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test check
+      become: true
+      become_user: postgres
+      changed_when: false
+
+    - name: PgBackRest info before the on-demand backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: postgres
+      register: pgbr_info_initial
+      changed_when: false
+
+    - name: Assert the deploy-time initial backup landed
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info_initial.stdout | from_json) | first).backup | length > 0
+        fail_msg: "pgbackrest_initial_backup did not produce a backup in local mode"
+
+    - name: PgBackRest info reports the stanza
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: postgres
+      register: pgbr_info
+      changed_when: false
+
+    - name: Assert the stanza exists and is named correctly
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info.stdout | from_json) | first).name == "pigsty-lite-test"
+        fail_msg: "pgbackrest info did not report the expected stanza"
+
+    - name: Run an on-demand full backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test --type=full backup
+      become: true
+      become_user: postgres
+      register: pgbr_backup
+      changed_when: >-
+        'completed successfully' in pgbr_backup.stderr
+        or 'completed successfully' in pgbr_backup.stdout
+
+    - name: PgBackRest info now reports at least one backup
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: postgres
+      register: pgbr_info_after_backup
+      changed_when: false
+
+    - name: Assert a backup is present
+      ansible.builtin.assert:
+        that:
+          - ((pgbr_info_after_backup.stdout | from_json) | first).backup | length > 0
+        fail_msg: "No backup recorded after running a full backup"
+
+- name: Force a WAL switch on the all-in-one host
+  hosts: pigsty-lite-backup-local-server
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Record the newest archived WAL segment before the switch
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: postgres
+      register: pgbr_info_before_wal
+      changed_when: false
+
+    # pg_switch_wal() is a no-op when nothing was written since the last
+    # switch, and the initial/on-demand backups just switched. Write a WAL
+    # record first so the switch produces a new segment to archive.
+    - name: Write a WAL record
+      community.postgresql.postgresql_query:
+        query: "SELECT pg_logical_emit_message(false, 'molecule', 'wal-check')"
+        login_db: postgres
+        login_unix_socket: /run/postgresql
+      become: true
+      become_user: postgres
+
+    - name: Force a WAL switch
+      community.postgresql.postgresql_query:
+        query: "SELECT pg_switch_wal()"
+        login_db: postgres
+        login_unix_socket: /run/postgresql
+      become: true
+      become_user: postgres
+
+- name: Confirm the WAL segment reached the backup store
+  hosts: pigsty-lite-backup-local-server
+  ignore_errors: "{{ lookup('ansible.builtin.env', 'MOLECULE_TASK_IGNORE_ERRORS') | default('', true) | bool }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for the WAL segment to be archived
+      ansible.builtin.command:
+        cmd: pgbackrest --stanza=pigsty-lite-test info --output=json
+      become: true
+      become_user: postgres
+      register: pgbr_info_after_wal
+      changed_when: false
+      retries: 12
+      delay: 5
+      vars:
+        _max_before: >-
+          {{ ((pgbr_info_before_wal.stdout | from_json) | first).archive
+             | map(attribute='max') | select | max | default('') }}
+      until: >-
+        (((pgbr_info_after_wal.stdout | from_json) | first).archive
+          | map(attribute='max') | select | max | default('')) > _max_before

@@ -1,26 +1,27 @@
 ---
 # Three plays. Order matters:
-#   1. Client install on every postgres node — puts the pgbackrest binary,
-#      cert config, and TLS server daemon in place so the server-side
-#      stanza-create (which delegates to a postgres node) can run.
-#   2. Server install on backup_server — owns the repo, runs the daemon,
-#      delegates `pgbackrest stanza-create` to the first postgres node.
+#   1. Client (or local-repo) install on every postgres node — puts the
+#      pgbackrest binary and config in place; co-located backup_server nodes
+#      use local mode and do not connect to themselves over TLS.
+#   2. Server install on backup_server — owns the repo and runs the daemon.
 #   3. Activate WAL archiving on the postgres group — by PATCHing
 #      archive_mode + archive_command into Patroni's DCS dynamic config
 #      via its REST API. We never touch patroni's static files; Patroni
 #      owns its own config rendering. The final `pgbackrest check` runs
 #      here too, since it requires archive_command to be live.
-- name: PgBackRest — client install (postgres group)
+- name: PgBackRest — client (or local repo) install (postgres group)
   hosts: postgres
   become: true
   vars:
-    pgbackrest_mode: client
+    # A postgres host that is also the backup_server keeps the repo locally:
+    # one config with both repo1-path and pg1-path, no TLS hop to itself.
+    pgbackrest_mode: "{{ 'local' if inventory_hostname in groups['backup_server'] else 'client' }}"
   roles:
     - role: pgbackrest
       tags: [pgbackrest, backup]
 
-- name: PgBackRest — server install + stanza (backup_server group)
-  hosts: backup_server
+- name: PgBackRest — server install + stanza (non-postgres backup_server group)
+  hosts: backup_server:!postgres
   become: true
   vars:
     pgbackrest_mode: server
@@ -31,11 +32,11 @@
 - name: PgBackRest — activate WAL archiving + optional initial backup (postgres group)
   hosts: postgres
   become: true
+  # No include_vars of the role defaults here: include_role already loads
+  # them at role-default precedence, while include_vars would outrank the
+  # inventory and pin pgbackrest_initial_backup (and the backup_* mapping)
+  # to its defaults.
   tasks:
-    - name: Load pgbackrest role defaults
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../roles/pgbackrest/defaults/main.yml"
-
     - name: Run archive activation
       ansible.builtin.include_role:
         name: pgbackrest

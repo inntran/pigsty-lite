@@ -6,5 +6,5 @@
     owner: "{{ pgbackrest_user }}"
     group: "{{ pgbackrest_group }}"
     mode: "0640"
-  no_log: "{{ pgbackrest_s3_enabled }}"
+  no_log: "{{ pgbackrest_s3_enabled | bool }}"
   notify: Restart pgbackrest

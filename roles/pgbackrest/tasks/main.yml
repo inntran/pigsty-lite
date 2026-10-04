@@ -3,10 +3,22 @@
   ansible.builtin.assert:
     that:
       - pgbackrest_mode is defined
-      - pgbackrest_mode in ['server', 'client']
+      - pgbackrest_mode in ['server', 'client', 'local']
     fail_msg: >-
-      pgbackrest_mode must be set to 'server' or 'client' at role
+      pgbackrest_mode must be set to 'server', 'client' or 'local' at role
       invocation. Got: {{ pgbackrest_mode | default('<unset>') }}
+  tags: [pgbackrest, always]
+
+- name: Assert local mode runs on a single-node cluster
+  ansible.builtin.assert:
+    that:
+      - groups['postgres'] | length == 1
+    fail_msg: >-
+      pgBackRest local mode (repo on the PostgreSQL host) only supports a
+      single-node cluster, but the postgres group has
+      {{ groups['postgres'] | length }} hosts. Declare a backup_store or
+      monitor node so the repository lives on its own host.
+  when: pgbackrest_mode == 'local'
   tags: [pgbackrest, always]
 
 - name: Install pgBackRest
@@ -24,11 +36,12 @@
 
 - name: Open firewalld for pgBackRest TLS port
   ansible.builtin.import_tasks: _firewall.yml
+  when: pgbackrest_mode in ['server', 'client']
   tags: [pgbackrest, firewall]
 
 - name: Create pgBackRest stanza
   ansible.builtin.import_tasks: _stanza.yml
-  when: pgbackrest_mode == 'server'
+  when: pgbackrest_mode in ['server', 'local']
   tags: [pgbackrest, stanza]
 
 # Note: WAL archive activation (_archive.yml) is NOT imported here.
@@ -38,10 +51,10 @@
 
 - name: Install backup timers
   ansible.builtin.import_tasks: _timers.yml
-  when: pgbackrest_mode == 'server'
+  when: pgbackrest_mode in ['server', 'local']
   tags: [pgbackrest, timers]
 
 # Note: the initial backup runs in playbooks/_pgbackrest.yml's third play,
-# AFTER archive activation. Putting it here (server play, before
+# AFTER archive activation. Putting it here (server/local play, before
 # archive_command is live) would fail with "archive_command must contain
 # pgbackrest" because backup needs WAL archiving operational.

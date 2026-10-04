@@ -3,7 +3,7 @@
 
 Modes:
   ./configure                  Interactive wizard (TTY required)
-  ./configure -c {spof,ha}     Preset profile, prompts for the rest
+  ./configure -c {spof,ha,aio} Preset profile, prompts for the rest
   ./configure -s -f FILE       Silent: load FILE, validate, regenerate
   ./configure --validate FILE  Validate FILE and exit
 
@@ -270,25 +270,30 @@ def cmd_interactive(args: argparse.Namespace) -> int:
     print("pigsty-lite interactive configure")
     print("(P0 implements minimal prompts; future tasks extend this)")
     print()
-    profile = args.profile or input("Profile (spof|ha) [ha]: ").strip() or "ha"
+    profile = args.profile or input("Profile (spof|ha|aio) [ha]: ").strip() or "ha"
     cluster_name = input("Cluster name [pg-prod]: ").strip() or "pg-prod"
     cluster_domain = input("Cluster domain [example.internal]: ").strip() or "example.internal"
     remote_user = input("Remote user [dba]: ").strip() or "dba"
 
-    print()
-    print("Database routing (HAProxy + vip-manager):")
-    rto_profile = _prompt_choice(
-        "  HAProxy RTO profile", ("tight", "norm", "loose"), "norm"
-    )
-    backend_target = _prompt_choice(
-        "  HAProxy backend target", ("pgbouncer", "postgres"), "pgbouncer"
-    )
-    vip_enabled = _prompt_yes_no("  Enable vip-manager (leader-bound VIP)", default=False)
-    vip_cidr = ""
-    vip_interface = ""
-    if vip_enabled:
-        vip_cidr = input("    VIP CIDR (e.g. 10.20.30.20/24): ").strip()
-        vip_interface = input("    VIP interface [eth0]: ").strip() or "eth0"
+    if profile == "aio":
+        # One host: HAProxy is not deployed and a VIP has nowhere to move.
+        rto_profile, backend_target, vip_enabled = "norm", "pgbouncer", False
+        vip_cidr = vip_interface = ""
+    else:
+        print()
+        print("Database routing (HAProxy + vip-manager):")
+        rto_profile = _prompt_choice(
+            "  HAProxy RTO profile", ("tight", "norm", "loose"), "norm"
+        )
+        backend_target = _prompt_choice(
+            "  HAProxy backend target", ("pgbouncer", "postgres"), "pgbouncer"
+        )
+        vip_enabled = _prompt_yes_no("  Enable vip-manager (leader-bound VIP)", default=False)
+        vip_cidr = ""
+        vip_interface = ""
+        if vip_enabled:
+            vip_cidr = input("    VIP CIDR (e.g. 10.20.30.20/24): ").strip()
+            vip_interface = input("    VIP interface [eth0]: ").strip() or "eth0"
 
     example_name = f"{profile}.rsp.yml.example"
     example_path = ROOT / "responses" / example_name
@@ -362,7 +367,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--validate", metavar="FILE", help="validate FILE and exit")
     parser.add_argument("-s", "--silent", action="store_true")
     parser.add_argument("-f", "--file", help="response file for silent mode")
-    parser.add_argument("-c", "--profile", choices=("spof", "ha"), help="preset profile for wizard")
+    parser.add_argument(
+        "-c", "--profile", choices=("spof", "ha", "aio"), help="preset profile for wizard"
+    )
     parser.add_argument(
         "--no-vault",
         action="store_true",

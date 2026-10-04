@@ -65,6 +65,7 @@ can be run locally via `make test-role ROLE=<name>` but do not run in CI.
 | `provision / default`     |    | `provision`                   | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `provision / ha`          |    | `provision`                   | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `backup / default`        |    | `pgbackrest`                  | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
+| `backup / local`          |    | `pgbackrest`                  | `ca`, `repos`, `node`, `certs`, `etcd`, `postgres`, `patroni`                                               |
 | `grafana / default`       |    | `grafana`                     | `preflight`, `ca`, `repos`, `node`, `certs`, `monitoring_server`                                            |
 | `monitoring_server / default` |  | `monitoring_server`           | `preflight`, `ca`, `repos`, `node`, `certs`                                                                 |
 | `vip_manager / default`   |    | `vip_manager`                 | `repos`                                                                                                     |

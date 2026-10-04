@@ -24,7 +24,7 @@
 - name: Import P2b haproxy playbook
   import_playbook: _haproxy.yml
   tags: [haproxy]
-  when: cluster_profile | default('ha') != 'spof'
+  when: cluster_profile | default('ha') not in ['spof', 'aio']
 - name: Import P2b vip-manager playbook
   import_playbook: _vip_manager.yml
   tags: [vip_manager]
@@ -34,6 +34,7 @@
 - name: Import P4 pgbackrest playbook
   import_playbook: _pgbackrest.yml
   tags: [backup]
+  when: backup_enabled | default(true) | bool
 - name: Import P5 monitoring server playbook
   import_playbook: _monitoring_server.yml
   when: groups['monitor'] | length > 0

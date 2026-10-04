@@ -34,7 +34,7 @@
     owner: "{{ pgbackrest_user }}"
     group: "{{ pgbackrest_group }}"
     mode: "0750"
-  when: pgbackrest_mode == 'server'
+  when: pgbackrest_mode in ['server', 'local']
 
 - name: Register SELinux fcontext for repo directory
   community.general.sefcontext:
@@ -43,14 +43,14 @@
     state: present
   register: _pgbackrest_repo_fcontext
   when:
-    - pgbackrest_mode == 'server'
+    - pgbackrest_mode in ['server', 'local']
     - ansible_facts.selinux.status == "enabled"
 
 - name: Relabel repo directory if fcontext changed
   ansible.builtin.command:
     cmd: "restorecon -RF {{ pgbackrest_repo_path }}"
   when:
-    - pgbackrest_mode == 'server'
+    - pgbackrest_mode in ['server', 'local']
     - ansible_facts.selinux.status == "enabled"
     - _pgbackrest_repo_fcontext.changed
   changed_when: true

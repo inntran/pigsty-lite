@@ -180,3 +180,36 @@ def test_interactive_prompts_for_db_routing(monkeypatch, tmp_path):
         "vip_cidr": "10.20.30.20/24",
         "interface": "eth0",
     }
+
+
+def test_interactive_aio_skips_routing_prompts(monkeypatch, tmp_path):
+    module = _load_configure_module()
+    (tmp_path / "responses").mkdir()
+    (tmp_path / "responses" / "aio.rsp.yml.example").write_text(
+        (ROOT / "responses" / "aio.rsp.yml.example").read_text()
+    )
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "RESPONSE_FILE_PATH", tmp_path / "responses" / "site.rsp.yml")
+    monkeypatch.setattr(module, "INVENTORY_PATH", tmp_path / "inventory" / "site.yml")
+    monkeypatch.setattr(
+        module,
+        "RESPONSE_VARS_PATH",
+        tmp_path / "inventory" / "group_vars" / "all" / "response.yml",
+    )
+    monkeypatch.setattr(sys, "stdin", _TtyStdin())
+    answers = iter(["pg-aio", "example.internal", "dba", ""])
+    monkeypatch.setattr(builtins, "input", lambda _prompt: next(answers))
+
+    rc = module.cmd_interactive(argparse.Namespace(profile="aio", no_vault=True))
+
+    assert rc == 0
+    data = yaml.safe_load((tmp_path / "responses" / "site.rsp.yml").read_text())
+    assert data["profile"] == "aio"
+    assert data["db_routing"]["vip_manager"] == {"enabled": False}
+
+
+def test_profile_flag_accepts_aio():
+    module = _load_configure_module()
+    src = (ROOT / "configure").read_text()
+    assert 'choices=("spof", "ha", "aio")' in src
+    assert module is not None

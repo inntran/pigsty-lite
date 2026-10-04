@@ -36,9 +36,9 @@ scrape_configs:
         labels:
           cluster: "{{ cluster_name }}"
           instance: "{{ inventory_hostname }}"
-{#- site.yml skips _haproxy.yml on spof, so scraping it there would park a
+{#- site.yml skips _haproxy.yml on spof/aio, so scraping it there would park a
     permanently-down target in vmsingle. Same gate, same default. -#}
-{% if (cluster_profile | default('ha')) != 'spof' %}
+{% if (cluster_profile | default('ha')) not in ['spof', 'aio'] %}
   - job_name: haproxy
     static_configs:
       - targets: ["{{ network_loopback_address | default('127.0.0.1') }}:{{ monitoring_agents_haproxy_stats_port }}"]

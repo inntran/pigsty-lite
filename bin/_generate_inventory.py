@@ -36,6 +36,14 @@ def generate(response: dict[str, Any]) -> str:
     by_role = _split_nodes_by_role(response["nodes"])
 
     monitor_hosts = [(name, {"ansible_host": node["ip"]}) for name, node in by_role["monitor"]]
+    # aio: the single pg_primary is also the monitor when monitoring is
+    # self-hosted. backup_server then follows monitor (or falls back to the
+    # primary under external monitoring) via the logic below.
+    monitoring_mode = response.get("monitoring", {}).get("mode", "self_hosted")
+    if response.get("profile") == "aio" and monitoring_mode == "self_hosted":
+        monitor_hosts = [
+            (name, {"ansible_host": node["ip"]}) for name, node in by_role["pg_primary"]
+        ]
 
     pg_nodes = by_role["pg_primary"] + by_role["pg_replica"]
 

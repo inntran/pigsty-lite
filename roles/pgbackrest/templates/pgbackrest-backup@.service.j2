@@ -8,4 +8,7 @@ Wants=network-online.target
 Type=oneshot
 User={{ pgbackrest_user }}
 Group={{ pgbackrest_group }}
-ExecStart=/usr/bin/pgbackrest --stanza={{ pgbackrest_stanza }} --type=%i backup
+ExecStart=/usr/bin/pgbackrest --stanza={{ pgbackrest_stanza }} --repo=1 --type=%i backup
+{% if pgbackrest_s3_enabled | bool %}
+ExecStart=/usr/bin/pgbackrest --stanza={{ pgbackrest_stanza }} --repo=2 --type=%i backup
+{% endif %}

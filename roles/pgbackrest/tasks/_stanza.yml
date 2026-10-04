@@ -19,12 +19,28 @@
     path: "{{ pgbackrest_repo_path }}/archive/{{ pgbackrest_stanza }}/archive.info"
   register: _pgbackrest_stanza_archive_info
 
+# repo1's archive.info says nothing about the S3 repo2, which may have been
+# enabled after the stanza was first created. Ask pgBackRest directly:
+# status 1 ("missing stanza path") or 3 ("missing stanza data") means repo2
+# has no stanza yet. stanza-create is safe to re-run against repo1.
+- name: Check whether the stanza exists in the S3 repository
+  ansible.builtin.command:
+    cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --repo=2 --output=json info
+  become: true
+  become_user: "{{ pgbackrest_user }}"
+  register: _pgbackrest_repo2_info
+  changed_when: false
+  when: pgbackrest_s3_enabled | bool
+
 - name: Create pgBackRest stanza
   ansible.builtin.command:
     cmd: pgbackrest --stanza={{ pgbackrest_stanza }} --no-online stanza-create
   become: true
   become_user: "{{ pgbackrest_user }}"
-  when: not _pgbackrest_stanza_archive_info.stat.exists
+  when: >-
+    not _pgbackrest_stanza_archive_info.stat.exists
+    or ((pgbackrest_s3_enabled | bool)
+        and ((_pgbackrest_repo2_info.stdout | from_json | first).status.code in [1, 3]))
   changed_when: true
 
 # Note: `pgbackrest check` is run at the end of _archive.yml, once

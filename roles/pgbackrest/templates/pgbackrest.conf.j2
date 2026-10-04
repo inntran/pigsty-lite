@@ -4,10 +4,7 @@ log-level-console=info
 log-level-file=detail
 log-path={{ pgbackrest_log_path }}
 start-fast=y
-{% if pgbackrest_mode == 'server' %}
-repo1-path={{ pgbackrest_repo_path }}
-repo1-retention-full={{ pgbackrest_retention_full }}
-{% if pgbackrest_s3_enabled %}
+{% if pgbackrest_s3_enabled | bool %}
 repo2-type=s3
 repo2-s3-bucket={{ pgbackrest_s3_bucket }}
 repo2-s3-endpoint={{ pgbackrest_s3_endpoint }}
@@ -17,6 +14,9 @@ repo2-s3-key={{ pgbackrest_s3_key }}
 repo2-s3-key-secret={{ pgbackrest_s3_key_secret }}
 repo2-retention-full={{ pgbackrest_s3_retention_full }}
 {% endif %}
+{% if pgbackrest_mode in ['server', 'local'] %}
+repo1-path={{ pgbackrest_repo_path }}
+repo1-retention-full={{ pgbackrest_retention_full }}
 {% endif %}
 {% if pgbackrest_mode == 'client' %}
 repo1-host={{ pgbackrest_server_host }}
@@ -25,14 +25,18 @@ repo1-host-ca-file={{ pigsty_pki_dir }}/ca.crt
 repo1-host-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
 repo1-host-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
 repo1-host-port={{ pgbackrest_tls_port }}
+{% endif %}
+{% if pgbackrest_mode in ['client', 'local'] %}
 archive-async=y
 spool-path=/var/spool/pgbackrest
 {% endif %}
+{% if pgbackrest_mode != 'local' %}
 tls-server-address=*
 tls-server-port={{ pgbackrest_tls_port }}
 tls-server-ca-file={{ pigsty_pki_dir }}/ca.crt
 tls-server-cert-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.crt
 tls-server-key-file={{ pigsty_pki_dir }}/{{ inventory_hostname }}.key
+{% endif %}
 {% if pgbackrest_mode == 'server' %}
 {% for host in groups['postgres'] %}
 tls-server-auth={{ host }}={{ pgbackrest_stanza }}
@@ -55,7 +59,7 @@ pg{{ loop.index }}-path={{ hostvars[host].pgbackrest_pg_path | default(pgbackres
 pg{{ loop.index }}-port={{ hostvars[host].pgbackrest_pg_port | default(pgbackrest_pg_port) }}
 {% endfor %}
 {% endif %}
-{% if pgbackrest_mode == 'client' %}
+{% if pgbackrest_mode in ['client', 'local'] %}
 pg1-path={{ pgbackrest_pg_path }}
 pg1-port={{ pgbackrest_pg_port }}
 {% endif %}

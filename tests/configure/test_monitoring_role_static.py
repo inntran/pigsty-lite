@@ -141,9 +141,11 @@ def test_spof_does_not_scrape_haproxy():
     """
     ha = yaml.safe_load(_render_scrape_config(cluster_profile="ha"))
     spof = yaml.safe_load(_render_scrape_config(cluster_profile="spof"))
+    aio = yaml.safe_load(_render_scrape_config(cluster_profile="aio"))
 
     assert "haproxy" in [job["job_name"] for job in ha["scrape_configs"]]
     assert "haproxy" not in [job["job_name"] for job in spof["scrape_configs"]]
+    assert "haproxy" not in [job["job_name"] for job in aio["scrape_configs"]]
 
 
 def test_agents_read_the_ca_from_a_readable_copy_not_the_pki_dir():

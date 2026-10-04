@@ -1,0 +1,96 @@
+# AIO profile - everything on one host.
+# For temporary/dev use, not production. See docs/operations/firstrun.md#aio-all-in-one.
+# Copy to responses/site.rsp.yml and edit IPv4/IPv6 IPs / credentials / domain.
+# Then run: ./configure -s -f responses/site.rsp.yml
+---
+profile: aio
+network:
+  ip_version: dual  # dual, ipv4, or ipv6
+cluster:
+  name: pg-aio
+  domain: example.internal
+# Ansible logs in as this user on every target host. It must have
+# passwordless SSH (key auth) and NOPASSWD sudo. pigsty-lite does not
+# configure this - set it up yourself. See docs/operations/firstrun.md.
+access:
+  ansible_user: dba
+nodes:
+  pgaio01:
+    ip: 10.20.30.10
+    role: pg_primary
+postgres:
+  version: 18
+  port: 5432
+  tune: oltp
+  shared_buffer_ratio: 0.25
+  # RPM packages providing extension files - installed on every PG node.
+  # Makes extensions available (CREATE EXTENSION is separate, see below).
+  # Values pass through Jinja, so "pgvector_{{ postgres_version }}" auto-syncs
+  # with the PG major version. Browse available packages for your platform at:
+  #   https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-10-x86_64/
+  extension_packages: []
+  # Extensions to CREATE EXTENSION, and in which database - run on the leader.
+  extensions:
+    - pg_stat_statements
+  databases: []
+  users: []
+  hba_rules: []
+  # Minor-upgrade safety: make minor-upgrade refuses unless a backup
+  # exists within this window. Optional; defaults to 24 hours.
+  # minor_upgrade:
+  #   require_recent_backup_hours: 24
+  # Pin a specific minor version (otherwise dnf takes the latest):
+  # pin_version: "18.4"
+# AIO keeps the pgBackRest repository on this same host (/var/lib/pgbackrest),
+# so a disk loss takes the backups with it. Uncomment secondary_store to also
+# ship every backup and WAL segment to S3, then add the credentials with
+#   ansible-vault edit inventory/group_vars/all/vault.yml
+#     vault_pgbackrest_s3_key: ...
+#     vault_pgbackrest_s3_key_secret: ...
+backup:
+  enabled: true
+  tool: pgbackrest
+  schedule: {full: "0 1 * * 0", differential: "0 1 * * 1-6"}
+  retention: {full: 4}
+  # secondary_store:
+  #   enabled: true
+  #   type: s3
+  #   bucket: my-pg-backups
+  #   endpoint: s3.us-east-1.amazonaws.com
+  #   region: us-east-1
+  #   path: /pg-aio
+tls:
+  internal_ca: generate
+  user_facing: {mode: ca_signed}
+# P5 day-2 workflow: edit this block, then run make deploy. See
+# docs/operations/day2-monitoring.md.
+monitoring:
+  mode: self_hosted  # self_hosted | external_push | external_pull
+  vmsingle_retention: 30d
+  vlsingle_retention: 14d
+  alertmanager: {receivers: []}
+  # external_push:
+  #   metrics_url: https://vm.example.com/api/v1/write
+  #   logs_url: https://vl.example.com/insert/jsonline
+  #   auth:
+  #     username: pigsty
+  #     bearer: false
+  #   tls_skip_verify: false
+  # external_pull:
+  #   metrics_port: 9999
+  #   (auth: bearer token from the vault, vault_monitoring_pull_token)
+  #   source_cidrs: ["10.0.0.0/8"]
+  #   tls: true
+repos:
+  pigsty: {enabled: false, packages: []}
+firewall:
+  operator_cidrs: ["10.0.0.0/8"]
+  postgres_client_cidrs: ["10.20.40.0/24"]
+
+# Routing settings are kept for completeness; AIO does not deploy HAProxy.
+db_routing:
+  haproxy:
+    rto_profile: norm          # tight | norm | loose
+    backend_target: pgbouncer  # pgbouncer | postgres
+  # AIO has one node, so a VIP has nowhere to move.
+  vip_manager: {enabled: false}

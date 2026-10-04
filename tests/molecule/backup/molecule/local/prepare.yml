@@ -1,0 +1,47 @@
+---
+- name: Prepare - generate CA on control side
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: ca
+
+- name: Prepare - repos, node, certs on all hosts
+  hosts: all
+  gather_facts: true
+  vars:
+    repos_pgdg_enabled: true
+    repos_pgdg_rpm_url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+    node_sysctl_apply: false
+  pre_tasks:
+    - name: Pin advertise addresses and SANs to container IP
+      ansible.builtin.set_fact:
+        etcd_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+        patroni_advertise_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+  roles:
+    - role: repos
+    - role: node
+    - role: certs
+
+- name: Prepare - etcd on the etcd group
+  hosts: etcd
+  gather_facts: false
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
+    - role: etcd
+
+- name: Prepare - postgres + patroni on the postgres group
+  hosts: postgres
+  gather_facts: false
+  vars:
+    network_any_address: 0.0.0.0
+    network_loopback_address: 127.0.0.1
+    firewalld_default_zone: public
+  roles:
+    - role: postgres
+    - role: patroni

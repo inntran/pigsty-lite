@@ -1,0 +1,60 @@
+---
+# Testing goal: verify pgBackRest runs in local mode on an all-in-one host,
+# bootstraps a stanza, ships a WAL, and takes an initial backup.
+driver:
+  name: podman
+platforms:
+  - name: pigsty-lite-backup-local-server
+    image: localhost/molecule-base-data:latest
+    pre_build_image: true
+    privileged: true
+    command: /usr/sbin/init
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+    capabilities: [SYS_ADMIN]
+    security_opts: ["label=disable"]
+    systemd: always
+    groups: [etcd, postgres, backup_server]
+    network: pigsty-lite-backup-local
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        network_ip_version: ipv4
+        cluster_name: pigsty-lite-test
+        cluster_domain: test.local
+        pigsty_pki_dir: /etc/pki/pigsty
+        postgres_version: 18
+        postgres_port: 5432
+        backup_enabled: true
+        backup_tool: pgbackrest
+        backup_stanza: pigsty-lite-test
+        # Exercise the deploy-time backup path in local mode too.
+        pgbackrest_initial_backup: true
+      etcd:
+        etcd_initial_cluster_state: new
+      postgres:
+        patroni_superuser_password: superuser-test-pw
+        patroni_replication_password: replicator-test-pw
+        patroni_rewind_password: rewind-test-pw
+        postgres_tune_profile: tiny
+        # archive_mode/archive_command are intentionally NOT seeded here.
+        # roles/pgbackrest's _archive.yml PATCHes them into Patroni DCS
+        # dynamic config via the REST API after the stanza is created;
+        # a static placeholder would override the dynamic value.
+    host_vars:
+      pigsty-lite-backup-local-server:
+        postgres_role: primary
+        etcd_seq: 1
+verifier:
+  name: ansible
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy

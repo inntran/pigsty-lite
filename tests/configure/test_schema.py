@@ -265,6 +265,52 @@ def test_ha_profile_requires_exactly_one_primary():
         validate(data)
 
 
+def test_aio_profile_fixture_validates():
+    validate(_load("aio.rsp.yml"))
+
+
+@pytest.mark.parametrize("extra_role", ["monitor", "backup_store", "pg_replica", "pg_primary"])
+def test_aio_rejects_a_second_node(extra_role):
+    data = deepcopy(_load("aio.rsp.yml"))
+    data["nodes"]["other"] = {"ip": "10.20.30.11", "role": extra_role}
+    with pytest.raises(SchemaError, match=r"profile 'aio' requires exactly one node"):
+        validate(data)
+
+
+def test_aio_rejects_non_primary_single_node():
+    data = deepcopy(_load("aio.rsp.yml"))
+    data["nodes"] = {"pgaio01": {"ip": "10.20.30.10", "role": "monitor"}}
+    with pytest.raises(SchemaError, match=r"profile 'aio' requires exactly one node"):
+        validate(data)
+
+
+def test_aio_rejects_vip():
+    data = deepcopy(_load("aio.rsp.yml"))
+    data["db_routing"] = {
+        "vip_manager": {"enabled": True, "vip_cidr": "10.20.30.20/24", "interface": "eth0"}
+    }
+    with pytest.raises(SchemaError, match=r"vip_manager\.enabled.*aio"):
+        validate(data)
+
+
+def test_aio_allows_external_monitoring():
+    data = deepcopy(_load("aio.rsp.yml"))
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+        },
+    }
+    validate(data)
+
+
+def test_aio_example_validates():
+    example = Path(__file__).resolve().parents[2] / "responses/aio.rsp.yml.example"
+    with example.open() as fh:
+        validate(yaml.safe_load(fh))
+
+
 def test_backup_enabled_must_be_bool():
     data = _load("spof.rsp.yml")
     data["backup"] = {"enabled": "yes-please"}
@@ -298,6 +344,39 @@ def test_backup_secondary_store_requires_bucket_when_enabled():
         "secondary_store": {"enabled": True, "type": "s3", "endpoint": "s3.example.com"},
     }
     with pytest.raises(SchemaError, match=r"backup\.secondary_store\.bucket"):
+        validate(data)
+
+
+def test_backup_secondary_store_rejects_non_s3_type():
+    data = _minimal_spof_response()
+    data["backup"] = {
+        "enabled": True,
+        "secondary_store": {
+            "enabled": True,
+            "type": "gcs",
+            "bucket": "b",
+            "endpoint": "e.example.com",
+        },
+    }
+    with pytest.raises(SchemaError, match=r"backup\.secondary_store\.type"):
+        validate(data)
+
+
+@pytest.mark.parametrize("field", ["region", "path"])
+@pytest.mark.parametrize("value", [1, True, [], {}])
+def test_backup_secondary_store_region_and_path_must_be_strings(field, value):
+    data = _minimal_spof_response()
+    data["backup"] = {
+        "enabled": True,
+        "secondary_store": {
+            "enabled": True,
+            "type": "s3",
+            "bucket": "b",
+            "endpoint": "e.example.com",
+            field: value,
+        },
+    }
+    with pytest.raises(SchemaError, match=rf"backup\.secondary_store\.{field}"):
         validate(data)
 
 

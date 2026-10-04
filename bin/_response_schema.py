@@ -11,7 +11,7 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
-ALLOWED_PROFILES = {"spof", "ha"}
+ALLOWED_PROFILES = {"spof", "ha", "aio"}
 ALLOWED_NODE_ROLES = {"monitor", "backup_store", "pg_primary", "pg_replica"}
 ALLOWED_IP_VERSIONS = {"dual", "ipv4", "ipv6"}
 ALLOWED_TUNE = {"oltp", "olap", "tiny"}
@@ -127,6 +127,15 @@ def _validate_nodes(nodes: dict, profile: str, ip_version: str, monitoring_mode:
         if role not in ALLOWED_NODE_ROLES:
             raise SchemaError(f"{path}.role: '{role}' not in {sorted(ALLOWED_NODE_ROLES)}")
         roles.append(role)
+
+    if profile == "aio":
+        if roles != ["pg_primary"]:
+            raise SchemaError(
+                "nodes: profile 'aio' requires exactly one node with role 'pg_primary'; "
+                f"got roles {sorted(roles)} (use profile 'spof' or 'ha' for separate "
+                "monitor, backup_store or replica nodes)"
+            )
+        return
 
     primaries = roles.count("pg_primary")
     replicas = roles.count("pg_replica")
@@ -553,6 +562,14 @@ def _validate_backup(backup: Any) -> None:
                     raise SchemaError(
                         f"backup.secondary_store.{field}: required when secondary_store is enabled"
                     )
+            if secondary_store["type"] != "s3":
+                raise SchemaError(
+                    "backup.secondary_store.type: only 's3' is supported; "
+                    f"got '{secondary_store['type']}'"
+                )
+            for field in ("region", "path"):
+                if field in secondary_store and not isinstance(secondary_store[field], str):
+                    raise SchemaError(f"backup.secondary_store.{field}: must be a string")
 
 
 def validate(data: Any) -> None:
@@ -580,3 +597,10 @@ def validate(data: Any) -> None:
     _validate_firewall(_require(data, "firewall", ""), ip_version)
     _validate_backup(data.get("backup"))
     _validate_db_routing(data.get("db_routing"), ip_version)
+    if profile == "aio":
+        vip = (data.get("db_routing") or {}).get("vip_manager") or {}
+        if vip.get("enabled"):
+            raise SchemaError(
+                "db_routing.vip_manager.enabled: profile 'aio' has one node, "
+                "so a VIP has nowhere to move; set it to false"
+            )

@@ -1,7 +1,7 @@
 ---
 # roles/pgbackrest/defaults/main.yml
 
-pgbackrest_mode: ~                   # required: server | client (set per group_vars)
+pgbackrest_mode: ~                   # required: server | client | local (set per group_vars)
 
 pgbackrest_package: pgbackrest
 pgbackrest_support_packages:
@@ -17,9 +17,12 @@ pgbackrest_log_path: /var/log/pgbackrest
 pgbackrest_config_file: /etc/pgbackrest/pgbackrest.conf
 pgbackrest_config_dir: /etc/pgbackrest
 pgbackrest_tls_port: 8432
-pgbackrest_retention_full: 4
-pgbackrest_schedule_full: "Sun *-*-* 01:00:00"
-pgbackrest_schedule_diff: "Mon..Sat *-*-* 01:00:00"
+# Operator-facing values come from the response file's `backup:` block
+# (flattened to backup_* by ./configure). The default() fallbacks keep the
+# role usable standalone (molecule).
+pgbackrest_retention_full: "{{ backup_retention_full | default(4) }}"
+pgbackrest_schedule_full: "{{ backup_schedule_full_oncalendar | default('Sun *-*-* 01:00:00') }}"
+pgbackrest_schedule_diff: "{{ backup_schedule_differential_oncalendar | default('Mon..Sat *-*-* 01:00:00') }}"
 
 # Run a full backup at the end of `make deploy` so the cluster comes out
 # of initial deploy with a real recovery point, not just a configured repo.
@@ -43,12 +46,14 @@ pgbackrest_server_host: "{{ groups['backup_server'][0] }}"
 # Firewalld
 pgbackrest_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 
-# S3 secondary repo (optional, repo2)
-pgbackrest_s3_enabled: false
-pgbackrest_s3_bucket: ~
-pgbackrest_s3_endpoint: ~
-pgbackrest_s3_region: us-east-1
-pgbackrest_s3_path: /pgbackrest
-pgbackrest_s3_key: ~            # from Ansible Vault
-pgbackrest_s3_key_secret: ~     # from Ansible Vault
+# S3 secondary repo (optional, repo2) — from backup.secondary_store.
+# Key and secret are operator-supplied vault entries; they are only
+# dereferenced when the S3 block renders.
+pgbackrest_s3_enabled: "{{ (backup_secondary_store | default({})).get('enabled', false) }}"
+pgbackrest_s3_bucket: "{{ (backup_secondary_store | default({})).get('bucket', '') }}"
+pgbackrest_s3_endpoint: "{{ (backup_secondary_store | default({})).get('endpoint', '') }}"
+pgbackrest_s3_region: "{{ (backup_secondary_store | default({})).get('region', 'us-east-1') }}"
+pgbackrest_s3_path: "{{ (backup_secondary_store | default({})).get('path', '/pgbackrest') }}"
+pgbackrest_s3_key: "{{ vault_pgbackrest_s3_key }}"
+pgbackrest_s3_key_secret: "{{ vault_pgbackrest_s3_key_secret }}"
 pgbackrest_s3_retention_full: "{{ pgbackrest_retention_full }}"

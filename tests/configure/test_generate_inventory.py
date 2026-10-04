@@ -95,6 +95,28 @@ def test_ipv6_ansible_host_propagated_from_response():
     assert pg["pgnode01"]["ansible_host"] == "2001:db8:10::11"
 
 
+def test_aio_self_hosted_puts_single_host_in_every_group():
+    out = yaml.safe_load(generate(_load("aio.rsp.yml")))
+    children = out["all"]["children"]
+    for group in ("monitor", "backup_server", "etcd", "postgres"):
+        assert set(children[group]["hosts"]) == {"pgaio01"}, group
+    assert children["postgres"]["hosts"]["pgaio01"]["postgres_role"] == "primary"
+
+
+def test_aio_external_monitoring_leaves_monitor_empty():
+    data = _load("aio.rsp.yml")
+    data["monitoring"] = {
+        "mode": "external_push",
+        "external_push": {
+            "metrics_url": "https://vm.example/api/v1/write",
+            "logs_url": "https://vl.example/insert/jsonline",
+        },
+    }
+    children = yaml.safe_load(generate(data))["all"]["children"]
+    assert children["monitor"]["hosts"] == {}
+    assert set(children["backup_server"]["hosts"]) == {"pgaio01"}
+
+
 def test_generated_inventory_includes_banner_comment():
     raw = generate(_load("spof.rsp.yml"))
     assert raw.lstrip().startswith("#")
