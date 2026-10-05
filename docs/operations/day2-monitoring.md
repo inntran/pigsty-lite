@@ -65,9 +65,16 @@ evaluation interval.
 
 ## Add a Grafana dashboard
 
+Grafana ships these dashboards in the **pigsty-lite** folder: the cluster
+overview, PostgreSQL Exporter, Node Instance, PostgreSQL Instance, PostgreSQL
+Database, PostgreSQL pgBouncer, and PostgreSQL Patroni. See
+[`roles/grafana/README.md`](../../roles/grafana/README.md) for how the adapted
+dashboards were built.
+
 Drop a dashboard JSON into `roles/grafana/files/dashboards/` and
 `make deploy --tags monitoring`. The file provider picks up new
-dashboards within 30 seconds; no Grafana restart needed.
+dashboards within 30 seconds; no Grafana restart needed. New dashboards must
+pass `make test` (the metric-name guardrail) and query only names in the fixture.
 
 ## Common gotchas
 

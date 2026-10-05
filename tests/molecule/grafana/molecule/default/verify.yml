@@ -49,3 +49,20 @@
         url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"
         force_basic_auth: true
         status_code: [200]
+
+    - name: Each adapted Pigsty dashboard is provisioned
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000/api/dashboards/uid/{{ item }}"
+        method: GET
+        url_username: admin
+        url_password: "{{ grafana_admin_password | default('grafana-dev-admin-change-me') }}"
+        force_basic_auth: true
+        status_code: [200]
+      loop:
+        - node-instance
+        - postgresql-instance
+        - postgresql-database
+        - postgresql-pgbouncer
+        - postgresql-patroni
+      loop_control:
+        label: "{{ item }}"

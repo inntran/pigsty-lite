@@ -13,7 +13,7 @@ and VictoriaLogs datasources and provisions dashboards via
 - The VictoriaMetrics (Prometheus-type) and VictoriaLogs datasources.
 - Dashboards provisioned from `roles/grafana/files/dashboards/`.
 
-## PGSQL Exporter dashboard
+## PostgreSQL Exporter dashboard
 
 `pgsql-exporter.json` adapts upstream Pigsty's `files/grafana/pgsql/pgsql-exporter.json`
 for the `prometheus-community/postgres_exporter` deployed by this project. It
@@ -30,6 +30,52 @@ The overview distinguishes `up` (vmagent can scrape the exporter) from `pg_up`
 and `pg_exporter_scrapes_total` queries use metrics emitted by
 `postgres_exporter`. Grafana provisions the dashboard automatically with the
 VictoriaMetrics datasource.
+
+## Dashboards adapted from Pigsty
+
+These five dashboards are adapted from `pgsty/pigsty@745a4ea` and licensed
+Apache-2.0:
+
+| Title | UID | Pigsty source |
+|---|---|---|
+| Node Instance | `node-instance` | `files/grafana/node/node-instance.json` |
+| PostgreSQL Instance | `postgresql-instance` | `files/grafana/pgsql/pgsql-instance.json` |
+| PostgreSQL Database | `postgresql-database` | `files/grafana/pgsql/pgsql-database.json` |
+| PostgreSQL pgBouncer | `postgresql-pgbouncer` | `files/grafana/pgsql/pgsql-pgbouncer.json` |
+| PostgreSQL Patroni | `postgresql-patroni` | `files/grafana/pgsql/pgsql-patroni.json` |
+
+The adapted queries use only metrics pigsty-lite already collects:
+`postgres_exporter` default collectors, `pgbouncer_exporter`, `node_exporter`,
+and Patroni `/metrics`. They use no recording rules; labels are `cluster` and
+`instance` instead of Pigsty's `cls`, `ins`, and `ip`. Panels without a native
+metric equivalent were dropped rather than left empty. User-visible text says
+`PostgreSQL`, not `PGSQL`.
+
+There is no Tables dashboard because `postgres_exporter` connects with
+`dbname=postgres`; `pg_stat_user_tables_*` would therefore show only tables
+in the `postgres` database.
+
+### Metric-name guardrail
+
+`tests/configure/test_grafana_dashboards_static.py` fails if a dashboard
+queries a name not in `tests/configure/fixtures/grafana_metric_names.txt`.
+After an exporter version bump, refresh the fixture from a deployed AIO host:
+
+```sh
+curl -s http://127.0.0.1:8428/api/v1/label/__name__/values | python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin)["data"])))'
+```
+
+Keep the fixture's header comment, updating its date and exporter versions,
+and preserve the trailing replica-only section. Passing the guardrail proves
+that names exist, not that queries return data.
+
+### Live check
+
+After deploying, generate light load with `pgbench` and open each dashboard
+with its default variables. A panel showing "No data" is a bug unless it is
+normally empty when idle: locks, waiting clients, paused/disabled pools,
+Patroni pending restart / failsafe / WAL paused, or replication lag on a
+single node.
 
 ## What this role does NOT own
 
