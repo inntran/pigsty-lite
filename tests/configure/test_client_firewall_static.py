@@ -45,16 +45,29 @@ def test_database_client_services_are_not_enabled_zone_wide():
             ), f"{path.relative_to(ROOT)} enables a database service zone-wide"
 
 
-def test_haproxy_client_rule_covers_both_services_by_client_cidr():
+def test_haproxy_client_rule_covers_only_haproxy_postgres_by_client_cidr():
     tasks = _load_yaml("roles/haproxy/tasks/main.yml")
-    task = _task_named(tasks, "Open client ports to postgres_client_cidrs")
+    task = _task_named(tasks, "Open HAProxy RW/RO ports to postgres_client_cidrs")
     firewalld = task["ansible.posix.firewalld"]
 
     assert "haproxy_client_cidrs" in task["loop"]
-    assert "postgresql" in task["loop"]
-    assert "haproxy-postgres" in task["loop"]
-    assert "item.0" in firewalld["rich_rule"]
-    assert "item.1" in firewalld["rich_rule"]
+    assert "postgresql" not in task["loop"]
+    assert 'service name="haproxy-postgres"' in firewalld["rich_rule"]
+    assert "postgresql" not in firewalld["rich_rule"]
+    assert "item" in firewalld["rich_rule"]
+    assert firewalld["permanent"] is True
+    assert firewalld["immediate"] is True
+
+
+def test_patroni_client_rule_admits_client_cidrs_to_postgresql_on_every_host():
+    tasks = _load_yaml("roles/patroni/tasks/main.yml")
+    task = _task_named(tasks, "Admit postgres_client_cidrs to PostgreSQL")
+    firewalld = task["ansible.posix.firewalld"]
+
+    assert "when" not in task
+    assert "patroni_client_cidrs" in task["loop"]
+    assert 'service name="postgresql"' in firewalld["rich_rule"]
+    assert "item" in firewalld["rich_rule"]
     assert firewalld["permanent"] is True
     assert firewalld["immediate"] is True
 
@@ -85,7 +98,6 @@ def test_pgbouncer_is_closed_zone_wide_and_client_rule_follows_the_flag():
 
 def test_client_cidrs_are_not_used_by_intra_cluster_firewall_rules():
     paths = (
-        "roles/patroni/tasks/main.yml",
         "roles/etcd/tasks/_firewall.yml",
         "roles/pgbackrest/tasks/_firewall.yml",
     )
@@ -93,3 +105,10 @@ def test_client_cidrs_are_not_used_by_intra_cluster_firewall_rules():
         text = (ROOT / path).read_text()
         assert "postgres_client_cidrs" not in text
         assert "haproxy_client_cidrs" not in text
+
+    peer_task = _task_named(
+        _load_yaml("roles/patroni/tasks/main.yml"),
+        "Open PostgreSQL port to other cluster members (replication + pg_basebackup)",
+    )
+    peer_text = str(peer_task["loop"]) + str(peer_task["ansible.posix.firewalld"]["rich_rule"])
+    assert "client_cidrs" not in peer_text

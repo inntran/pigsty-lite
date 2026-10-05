@@ -112,6 +112,21 @@
     label: "{{ item.key }} {{ item.value }}"
   tags: [patroni, firewall]
 
+# Runs on every postgres host whatever the member count: clients may connect
+# to any member, and pg_hba.conf still gates each connection.
+- name: Admit postgres_client_cidrs to PostgreSQL
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="{{ 'ipv6' if ':' in item else 'ipv4' }}"
+      source address="{{ item }}"
+      service name="postgresql" accept
+    permanent: true
+    state: enabled
+    immediate: true
+    zone: "{{ patroni_firewalld_zone }}"
+  loop: "{{ patroni_client_cidrs }}"
+  tags: [patroni, firewall]
+
 - name: Start Patroni and wait for healthy cluster
   ansible.builtin.import_tasks: _service.yml
   tags: [patroni, service]

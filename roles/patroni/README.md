@@ -51,6 +51,13 @@ member with no address fails the play and is named. Using a member's address
 as the rule's source relies on cluster members sharing one network, with no
 NAT or multi-homing between peers.
 
+The role that renders `pg_hba.conf` also owns the matching client firewall
+rule: on every postgres host it admits `patroni_client_cidrs` (default
+`postgres_client_cidrs`) to PostgreSQL (5432, service `postgresql`) in
+`patroni_firewalld_zone`, regardless of member count or whether HAProxy is
+deployed. The firewall rule only admits the source; `pg_hba.conf` gates the
+connection separately (`postgres_hba_rules` and the other rule lists).
+
 ## systemd customizations
 
 The role installs a drop-in at

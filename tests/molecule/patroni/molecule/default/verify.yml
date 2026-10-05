@@ -78,6 +78,18 @@
         that:
           - patroni_fw_query.rc != 0 or 'no' in patroni_fw_query.stdout
 
+    - name: List public zone rich rules
+      ansible.builtin.command: firewall-cmd --zone=public --list-rich-rules
+      register: public_rich_rules
+      changed_when: false
+
+    - name: Assert the client CIDR is admitted to postgresql
+      ansible.builtin.assert:
+        that:
+          - >-
+            public_rich_rules.stdout is search(
+            'source address="192.0.2.0/24" service name="postgresql" accept')
+
     - name: Read the postgres login shell PATH
       ansible.builtin.command: su - postgres -c "printenv PATH"
       register: postgres_login_path

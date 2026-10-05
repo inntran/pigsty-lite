@@ -69,6 +69,10 @@ family follows its address. Using a member's address as the rule's source
 relies on cluster members sharing one network, with no NAT or multi-homing
 between peers.
 
-The client-facing `postgresql` (5432) and `haproxy-postgres` (5433/5434)
-services are admitted only from `postgres_client_cidrs`. Cluster members
-retain their own PostgreSQL replication and HAProxy backend rich rules.
+This role admits only the `haproxy-postgres` service (5433/5434) from
+`haproxy_client_cidrs`, in `haproxy_firewalld_zone`; both now govern only those
+ports. Client access to `postgresql` (5432), including HAProxy's 5432 frontend
+on the VIP, is admitted by roles/patroni and follows `patroni_client_cidrs` and
+`patroni_firewalld_zone`. All four default to `postgres_client_cidrs` and
+`firewalld_default_zone`. Cluster members retain their own PostgreSQL
+replication and HAProxy backend rich rules.

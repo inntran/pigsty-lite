@@ -96,6 +96,9 @@ patroni_systemd_dropin_file: "{{ patroni_systemd_dropin_dir }}/10-pigsty-lite.co
 # Firewall
 patroni_firewalld_zone: "{{ firewalld_default_zone | default('public') }}"
 patroni_firewalld_service_name: patroni-rest
+# Database clients (firewall.postgres_client_cidrs). This role renders
+# pg_hba.conf, so it also owns the 5432 firewalld rule for client sources.
+patroni_client_cidrs: "{{ postgres_client_cidrs | default([]) }}"
 
 # pg_hba.conf
 # Patroni is the only writer of pg_hba.conf, on every member: it renders
