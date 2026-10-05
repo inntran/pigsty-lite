@@ -308,3 +308,14 @@ def test_dashboard_links_target_shipped_dashboards_with_native_variables():
                 f"{path.name}: link to unshipped dashboard {url!r}"
             )
             assert not legacy_variable.search(url), f"{path.name}: legacy variable in {url!r}"
+
+
+def test_queries_do_not_select_metric_names_by_regex():
+    # metric_names() cannot resolve {__name__=~"..."}, so the fixture check
+    # would silently pass such a query. Forbid the form instead.
+    regex_name = re.compile(r"__name__\s*(=~|!~)")
+    for path, dashboard in _dashboard_data():
+        for query in _query_texts(dashboard):
+            assert not regex_name.search(query), (
+                f"{path.name}: regex __name__ matcher defeats the fixture check: {query!r}"
+            )

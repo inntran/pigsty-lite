@@ -759,7 +759,7 @@
             "uid": "VictoriaMetrics"
           },
           "exemplar": false,
-          "expr": "pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} / (pg_database_connection_limit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} > 0)",
+          "expr": "pg_stat_database_numbackends{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} / on (cluster, instance, datname) (pg_database_connection_limit{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\"} > 0)",
           "interval": "",
           "legendFormat": "Connection usage",
           "refId": "A"
@@ -1922,7 +1922,7 @@
             "uid": "VictoriaMetrics"
           },
           "exemplar": false,
-          "expr": "sum(max without (user) (pgbouncer_pools_client_active_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"}))",
+          "expr": "sum(pgbouncer_pools_client_active_connections{job=\"pgbouncer\",cluster=~\"$cluster\",instance=~\"$instance\",database=~\"$datname\",database!=\"pgbouncer\"})",
           "interval": "",
           "legendFormat": "Active clients",
           "refId": "A"
@@ -3687,7 +3687,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max by (datname) (pg_stat_activity_max_tx_duration{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",state=\"active\"})",
+          "expr": "max by (cluster, instance, datname) (pg_stat_activity_max_tx_duration{job=\"postgres\",cluster=~\"$cluster\",instance=~\"$instance\",datname=~\"$datname\",state=\"active\"})",
           "interval": "",
           "legendFormat": "Longest active transaction",
           "range": true,

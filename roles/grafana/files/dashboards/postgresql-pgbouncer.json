@@ -3442,7 +3442,7 @@
           "exemplar": false,
           "interval": "",
           "refId": "A",
-          "expr": "max by (cluster, instance, database) (pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
+          "expr": "sum by (cluster, instance, database) (pgbouncer_pools_client_active_connections{cluster=~\"$cluster\",instance=~\"$instance\",database!=\"pgbouncer\"})",
           "legendFormat": "{{database}}",
           "datasource": {
             "type": "victoriametrics-metrics-datasource",
